@@ -419,6 +419,56 @@ control applies directly: a StyleGAN2 trained per class on ~100–400 images wil
 narrow, prototypical samples, and a classifier trained on those can score high on the
 easy majority of a real test set while learning nothing about the tail.
 
+### 4.1.1 The subject structure supplies a concrete mechanism for the 97.6%
+
+Added after the ACNE04 identity audit (`docs/05_acne04_audit.md` §5), which found the
+dataset's 1,457 photographs to be roughly 550–750 individuals.
+
+Zein et al. trained StyleGAN2-ADA per severity level on **1,073 ACNE04 images** plus 400
+web images, then evaluated a synthetic-trained classifier on "unseen real acneic face
+images." The paper never states where those real test images came from, how many there
+were, or whether they were excluded from the generators' training data. The most
+economical reading is that they are the ACNE04 remainder.
+
+If so, the identity structure alone predicts heavy contamination. Simulating that split
+200 times over the measured identity graph — 1,073 images to the generator, the rest
+held out, stratified by severity because the generators were trained per level:
+
+| identity threshold | chance rate | held-out images sharing a subject with the generator's training set |
+|---|---|---|
+| 0.85 | 0.019% | **15.9%** (95% range 12.8–18.7) |
+| 0.80 | 0.058% | 36.7% (32.7–41.0) |
+| 0.75 | 0.120% | **56.9%** (52.6–61.2) |
+| 0.60 | 0.273% | 77.4% (72.8–82.0) |
+
+Stratifying per severity, as they did, changes nothing: 15.2% and 56.3% at 0.85 and 0.75.
+
+**Why this matters for interpreting their number.** Their generators saw on the order of
+100–400 images per severity level. The 1.88% replication rate Somepalli et al. measure
+is for Stable Diffusion trained on two billion images; a GAN fitted to a few hundred
+faces is a different regime entirely, and memorisation there is the expected outcome
+rather than a tail risk. Compose the two facts and a specific mechanism appears:
+
+1. StyleGAN2 memorises individuals from a few-hundred-image training set.
+2. Those individuals reappear in the "unseen" real test set, because ACNE04 photographs
+   each person several times and any split of it puts most subjects on both sides.
+3. A classifier trained on the synthetic images has therefore effectively been trained
+   on those individuals, and recognising them at test time is not severity grading.
+
+This is a hypothesis, not a demonstration: the paper does not describe its test set, so
+we cannot confirm the split. But it is a hypothesis with a computed prior, it explains an
+otherwise extraordinary result — a synthetic-trained model beating every real-trained
+ACNE04 result by roughly eleven points — and it requires no assumption of error on the
+authors' part beyond the one the field shares, namely splitting a face dataset at the
+image level.
+
+It also sharpens what our own study has to do. Replicating 97.6% "under controls" is not
+one control but three: a generator trained only on our real *train* split (§6.2), splits
+that are subject-disjoint rather than image-disjoint (§8.8 of the protocol), and a
+memorisation audit against the generator's own training set (§8.2). Any one of them
+absent and the number is uninterpretable.
+
+
 **The retracted adjacent paper.** Sankar, Chaturvedi, Nayan, Hesamian, Braytee &
 Prasad, "Utilizing Generative Adversarial Networks for Acne Dataset Generation in
 Dermatology," *BioMedInformatics* 2024, **4**, 1059–1070, was retracted on
