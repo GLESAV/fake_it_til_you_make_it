@@ -153,7 +153,7 @@ def cmd_analyse(args) -> int:
 def cmd_smoke(args) -> int:
     from .smoke import run_smoke
 
-    return run_smoke(Path(args.out), quick=args.quick)
+    return run_smoke(Path(args.out), quick=args.quick, gap=args.gap)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -195,6 +195,13 @@ def build_parser() -> argparse.ArgumentParser:
     smoke = sub.add_parser("smoke", help="end-to-end pipeline check on procedural data")
     smoke.add_argument("--out", default="runs/smoke")
     smoke.add_argument("--quick", action="store_true", help="fewer images, seeds and epochs")
+    smoke.add_argument(
+        "--gap",
+        type=float,
+        default=0.6,
+        help="mis-specification of the toy synthetic process. 0 runs the null check: "
+        "the two processes are then identical and the mixing curve must be flat.",
+    )
     smoke.set_defaults(func=cmd_smoke)
 
     return parser

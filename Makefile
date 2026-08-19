@@ -28,6 +28,9 @@ smoke:  ## end-to-end pipeline check on procedural data, CPU, ~20 min
 smoke-full:  ## the same with 5 seeds and 5 mixing fractions, CPU, ~1 h
 	$(FITYMI) smoke --out runs/smoke_full
 
+smoke-null:  ## null check: gap=0 makes the processes identical, curve must be flat
+	$(FITYMI) smoke --out runs/smoke_null --quick --gap 0
+
 # ---------------------------------------------------------------- real study
 # Everything below needs a GPU host and the ACNE04 dataset. See
 # docs/03_environment.md for why it cannot run in the authoring sandbox.

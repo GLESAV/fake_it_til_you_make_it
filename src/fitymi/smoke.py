@@ -5,15 +5,16 @@ paths* — dedup, group-stratified splitting, sealed-test enforcement, budget-ma
 mixing, training, evaluation, statistics, figures — on the toy generative process in
 `data/toy.py`, on CPU, in a couple of minutes.
 
-It checks two things beyond "nothing crashed":
+It checks one thing beyond "nothing crashed", and which one depends on `--gap`:
 
-1. **Null behaviour.** With `gap=0` the synthetic process is identical to the real
-   one, so the mixing curve should be flat. A pipeline that reports a decline here is
-   measuring its own bookkeeping, not the data.
-2. **Signal behaviour.** With `gap>0` the curve should slope down and the trend test
-   should pick it up.
+* **Signal behaviour** (the default, `gap>0`). The mixing curve should slope down and
+  the trend test should pick it up.
+* **Null behaviour** (`--gap 0`). The synthetic process is then identical to the real
+  one, so the curve should be flat and the slope interval should contain zero. A
+  pipeline that reports a decline here is measuring its own bookkeeping. This doubles
+  the runtime, so it is opt-in rather than part of every check.
 
-If either check fails, the analysis code is not fit to be pointed at real data.
+If either fails, the analysis code is not fit to be pointed at real data.
 """
 
 from __future__ import annotations
@@ -158,13 +159,26 @@ def _analyse_and_check(out_dir: Path, gap: float) -> int:
 
     ok = True
     for cell, trend in tables["trends"].items():
-        if cell.startswith("real_subset"):
-            continue
         slope = trend["slope"]["point"]
-        if gap > 0 and slope >= 0:
-            log.error("%s: expected a negative slope with gap=%.2f, got %.4f", cell, gap, slope)
+        lo, hi = trend["slope"]["lo"], trend["slope"]["hi"]
+        log.info("%s: slope=%.4f [%.4f, %.4f] p=%.4g", cell, slope, lo, hi, trend["p_value"])
+        if gap > 0:
+            if slope >= 0:
+                log.error(
+                    "%s: expected a negative slope with gap=%.2f, got %.4f. Either the "
+                    "toy synthetic process is not actually harmful, or the analysis is "
+                    "wrong -- check which before trusting this code on real data.",
+                    cell, gap, slope,
+                )
+                ok = False
+        elif not (lo <= 0 <= hi):
+            log.error(
+                "%s: gap=0 makes the two processes identical, so the slope interval "
+                "[%.4f, %.4f] should contain zero. It does not, which means the "
+                "pipeline is manufacturing an effect.",
+                cell, lo, hi,
+            )
             ok = False
-        log.info("%s: slope=%.4f p=%.4g", cell, slope, trend["p_value"])
 
     audit_log = out_dir / "test_unseal_audit.jsonl"
     if audit_log.exists():

@@ -68,14 +68,23 @@ The four that most of this literature gets wrong, and that we bind ourselves to:
 make install          # venv + package
 make test             # 60 unit tests, CPU, ~8s
 make smoke            # end-to-end pipeline check on procedural data, CPU, ~20 min
+make smoke-null       # the null: gap=0, mixing curve must come out flat
 ```
 
 `make smoke` runs the *same code paths* as the real study — dedup, group-stratified
 splitting, sealed-test enforcement, budget-matched mixing, training, evaluation,
 statistics, figures — against a procedural generative process whose synthetic arm is
-mis-specified by a tunable `gap`. It checks two things: with `gap=0` the mixing curve
-must be flat, and with `gap>0` it must slope down and the trend test must detect it.
-If those fail, the analysis code isn't fit to point at real data.
+mis-specified by a tunable `gap`. With `gap>0` the mixing curve must slope down and
+the trend test must detect it; with `gap=0` the two processes are identical and the
+slope interval must contain zero. If either fails, the analysis code isn't fit to
+point at real data.
+
+The mis-specification models **concept error** — the generator's rendered severity
+drifts toward the corpus mean, so an image labelled "very severe" may depict a
+moderate case. That matters: a first version only narrowed the within-grade
+distributions, and synthetic-trained models came out *better*, because cleaner
+prototypes of each class are easier to learn from. A gap that doesn't corrupt the
+label-image relationship isn't the gap this study is about.
 
 The real study needs a GPU host and ACNE04:
 
