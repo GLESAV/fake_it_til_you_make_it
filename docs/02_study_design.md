@@ -309,6 +309,61 @@ described as such.
 
 ---
 
+### 8.8 Subject-disjoint splitting — mandatory, not a control
+
+Added 2026-08-19 after the audit in `docs/05_acne04_audit.md`.
+
+ACNE04's 1,457 photographs are approximately 550–750 distinct individuals. Splitting at
+the image level — which every published result on this benchmark does, including our
+own first attempt — puts the same person on both sides of the boundary for 15.9% of test
+images at an identity threshold where 0.019% of all pairs qualify by chance, and for
+77.5% at the ordinary operating point.
+
+**All splits used in this study are subject-disjoint**, grouped by ArcFace identity at
+cosine 0.60 in addition to perceptual and CLIP deduplication
+(`data.subject_grouping: true`). This is not optional and not an ablation. A
+substitution curve measured across an image-level split would be measuring how well each
+arm memorises individuals who reappear at test time, which is not the question.
+
+We additionally report the matched pair — the identical classifier, hyperparameters,
+budget and seeds on image-level and subject-disjoint splits — as a quantification of the
+leakage bonus, because it is the number the rest of the ACNE04 literature needs.
+
+### 8.9 Label-robustness control — repeat the headline under a second annotation
+
+Added 2026-08-19.
+
+The audit shows the ACNE04 severity label is a property of the annotation team: an
+independent expert re-annotation of 1,204 of the same photographs agrees with the
+original grade on 30.1% of images under the benchmark's own labelling function, and on
+58.2% after any monotone recalibration. Grade agreement between the dataset's own two
+annotations of the *same* image is 78.9%.
+
+This bounds what our own result can mean, and it is testable rather than merely
+lamentable. **We repeat the headline substitution comparison with labels derived from the
+ACNE04-v2 counts** (quantile-matched to the v1 grade marginal so the class balance and
+therefore the training budget per class are unchanged), on the 1,204 images both
+annotations cover.
+
+Three outcomes, all informative:
+
+1. **The substitution curve has the same shape and slope under both labellings.** The
+   result is robust to which expert team defined severity, which is a much stronger claim
+   than any single-labelling study in this literature can make.
+2. **The curve's slope differs materially.** Then the measured effect of synthetic data
+   is entangled with the labelling convention, and we say so rather than reporting one
+   number.
+3. **Neither labelling produces a detectable slope.** Then the study is
+   noise-limited on this dataset, and the honest output is a bound, not a curve.
+
+No prior work in this area could run this control, because no other benchmark we
+reviewed has two independent expert annotations of the same images. It costs one extra
+sweep and it is the cheapest external-validity evidence available to us.
+
+**Pre-committed decision rule.** The v1 labelling is primary; v2 is the robustness
+check. We do not select whichever gives the more interesting slope. Both are reported,
+with the v1 result as the headline regardless of which is more favourable.
+
 ## 9. Statistics
 
 - **5 seeds minimum** per configuration; report mean ± 95% CI across seeds, never a
@@ -366,3 +421,8 @@ licence terms for the closed-set arm.
 |---|---|---|
 | 2026-08-19 | v0.1 initial protocol | — |
 | 2026-08-19 | Added §8.6, the prototype-effect check | Found while building the pipeline: a synthetic process that narrows within-grade variation without breaking the label–image mapping *improves* measured performance. Any arm beating p=0 needs this ruled out before it is reported as a win. |
+| 2026-08-19 | §8.8 added: all splits subject-disjoint (ArcFace, cosine 0.60). | The audit found ACNE04's 1,457 images are ~550–750 individuals; image-level splits put the same person on both sides for 15.9–77.5% of test images. Measuring substitution across such a split measures memorisation of individuals, not generalisation. |
+| 2026-08-19 | §8.9 added: label-robustness control against ACNE04-v2 annotations. | Two expert teams agree on the grade for 30.1% of images (58.2% after monotone recalibration). A result that holds under both labellings is far stronger than one that holds under either; a result that does not is entangled with the labelling convention and must be reported as such. |
+| 2026-08-19 | Guidance sweep recentred from {1.5, 3, 5, 7.5, 10} to {1.0, 1.5, 2.0, 3.0, 5.0}; provisional default 3.0 → 2.0. | Sariyildiz et al. Table 1 and Fan et al. independently put the training-utility optimum at 2.0; the old grid had four of five points above it. Selection is still made on validation. |
+| 2026-08-19 | Dedup thresholds changed from the library defaults to phash ≤ 2, CLIP cosine ≥ 0.98. | At Hamming 8 perceptual hashing percolates into a cluster holding 14.7% of ACNE04 and links different people in the same pose; CLIP percolates at 0.96. |
+
