@@ -24,12 +24,47 @@ constant, and evaluate every arm on the *same sealed real test set*.
 
 | | |
 |---|---|
-| Literature review | ✅ `docs/01_related_work.md` |
+| Literature review | ✅ `docs/01_related_work.md` — **verification pass 1 and 2 done**, see `docs/VERIFY.md` |
 | Study protocol | ✅ `docs/02_study_design.md` |
 | Environment audit | ✅ `docs/03_environment.md` |
 | Codebase | ✅ `src/fitymi/`, verified end-to-end — see `docs/examples/` |
-| Experiments | ⛔ needs a GPU host + ACNE04 (see `docs/03_environment.md`) |
-| Paper | 🚧 scaffold in `paper/`, results placeholders unfilled |
+| **ACNE04 data audit** | ✅ **`docs/05_acne04_audit.md` — a finished result in its own right, drafted as `paper/audit.tex`** |
+| Real-only baseline | 🚧 running on Apple Silicon |
+| Generation + mixing sweep | ⛔ needs ~65 GPU-hours |
+| Paper | 🚧 `paper/main.tex` scaffold; `paper/audit.tex` complete but for one number |
+
+## The benchmark turned out to be broken, and that is the first result
+
+Before any synthetic image existed, deduplicating ACNE04 for the splits surfaced
+something larger. `docs/05_acne04_audit.md` has the whole thing; none of it needs a GPU,
+a model, or anything but the public archive:
+
+- **5.2% of files are byte-identical duplicates.** 38 pairs, eight of which carry
+  conflicting severity grades and 26 conflicting lesion counts.
+- **All five of the dataset's own published folds leak.** On average 4.25% of each test
+  split is byte-identical to a training image.
+- **The 1,457 photographs are about 600 people.** 15.9% of every published test fold is a
+  person who also appears in training, at an identity threshold where 0.019% of image
+  pairs qualify by chance — and 77.5% at the ordinary operating point. Published ACNE04
+  accuracies measure within-subject, not between-subject, generalisation.
+- **The severity label belongs to the annotation team, not the photograph.** An
+  independent expert re-annotation of 1,204 of the same images counts 3.2× more lesions
+  and agrees with the original grade on 30.1% of them — 58.2% after being granted any
+  monotone recalibration.
+
+Reproduce any of it:
+
+```bash
+python scripts/audit_acne04.py             # duplicates, fold leakage, label noise
+python scripts/audit_acne04_subjects.py    # identity structure and subject leakage
+python scripts/compare_acne04_versions.py --v2 <acne04v2>/Acne04-v2_annotations.json
+```
+
+Three protocol amendments followed (`docs/02_study_design.md` §12): subject-disjoint
+splitting is now mandatory rather than an ablation, every headline comparison is repeated
+under the second annotation team's labels, and every synthetic pool is measured for
+identity diversity — a generator fitted to this training split is learning from 267
+distinct people, and 47 of them at the very-severe grade.
 
 ## What we found in the literature
 
