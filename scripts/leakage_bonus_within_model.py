@@ -12,11 +12,19 @@ person in them also appears in that model's training split.
 
 Requires run records carrying `val_predictions` and the cached face embeddings.
 
-The remaining caveat, stated rather than hidden: the two partitions are different
-images, so an intrinsic difficulty difference between them is not excluded. Two things
-bound it. The partition is by identity, which is unrelated to severity for the 73% of
-subjects whose images all carry one grade; and the per-class breakdown below shows
-whether the gap is uniform or concentrated where leakage should help most.
+**The aggregate contrast is confounded and the confound is structural.** Severity is
+inversely related to how many times a subject was photographed -- 2.30 images per person
+at mild, 1.21 at very severe -- so rare-grade subjects are much less likely to have a twin
+in training, and the "clean" partition ends up heavily enriched in the hard classes. On
+ACNE04 at cosine 0.60 the leaked partition is 8.6% severe and 2.6% very severe while the
+clean partition is 20.9% and 22.4%. A leaked-versus-clean split is therefore also a
+severity split, and the aggregate difference mixes the leakage bonus with a class-mix
+effect that inflates it.
+
+So the aggregate rows below are printed with that warning attached, and **the per-class
+rows are the ones to read**: they hold class fixed, which is the only comparison the
+partition permits. Classes with fewer than 10 images on either side are marked, because
+with 13 images per side a per-class recall difference is not a measurement.
 """
 
 from __future__ import annotations
@@ -118,12 +126,29 @@ def main() -> None:
             d = np.array([r[f"{key}_leaked"] - r[f"{key}_clean"] for r in rows])
             lo, hi = bootstrap_ci(d)
             print(f"  {label:>18}: leaked minus clean = {100 * d.mean():+.2f} points "
-                  f"(95% CI {100 * lo:+.2f} to {100 * hi:+.2f})")
+                  f"(95% CI {100 * lo:+.2f} to {100 * hi:+.2f})  [CONFOUNDED, see below]")
             if not np.isnan(lo) and lo <= 0 <= hi:
                 print(f"  {'':>18}  interval spans zero -- report the bound, not an effect")
 
-        # Per-class, because a leakage bonus should concentrate where classes are small.
-        print(f"  {'grade':>14} {'n leaked':>9} {'n clean':>8} {'recall leaked':>14} {'recall clean':>13}")
+        # Class composition first, because it is what makes the aggregate unreadable.
+        comp_l, comp_c = [], []
+        for record in records[:1]:
+            p = record["val_predictions"]
+            names, y_true = p["images"], np.array(p["y_true"])
+            mask = np.array([leaked_by_name.get(n, False) for n in names])
+            for c in range(NUM_CLASSES):
+                comp_l.append(int(((y_true == c) & mask).sum()))
+                comp_c.append(int(((y_true == c) & ~mask).sum()))
+        tl, tc = max(sum(comp_l), 1), max(sum(comp_c), 1)
+        hard_l = 100 * (comp_l[2] + comp_l[3]) / tl
+        hard_c = 100 * (comp_c[2] + comp_c[3]) / tc
+        print(f"  class mix: severe+very-severe is {hard_l:.1f}% of the leaked partition "
+              f"and {hard_c:.1f}% of the clean one")
+        if abs(hard_l - hard_c) > 5:
+            print("  -> the partitions are not comparable in aggregate; read the per-class rows")
+
+        # Per-class holds class fixed, which is the only fair comparison here.
+        print(f"  {'grade':>14} {'n leaked':>9} {'n clean':>8} {'recall leaked':>14} {'recall clean':>13} {'diff':>8}")
         for c in range(NUM_CLASSES):
             rl, rc, nl, nc = [], [], 0, 0
             for record in records:
@@ -137,9 +162,10 @@ def main() -> None:
                 if b.sum():
                     rc.append(float((y_pred[b] == c).mean()))
             name = SEVERITY_NAMES[c] if c < len(SEVERITY_NAMES) else str(c)
-            print(f"  {name:>14} {nl:>9} {nc:>8} "
-                  f"{np.mean(rl) if rl else float('nan'):>14.4f} "
-                  f"{np.mean(rc) if rc else float('nan'):>13.4f}")
+            a = np.mean(rl) if rl else float("nan")
+            b = np.mean(rc) if rc else float("nan")
+            flag = "  (n too small)" if min(nl, nc) < 10 else ""
+            print(f"  {name:>14} {nl:>9} {nc:>8} {a:>14.4f} {b:>13.4f} {a - b:>+8.4f}{flag}")
 
 
 if __name__ == "__main__":

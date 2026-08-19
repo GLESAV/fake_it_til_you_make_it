@@ -496,9 +496,8 @@ in plain accuracy will not show this leak even though it is there.**
 
 The two arms have different test sets, so this comparison mixes the leakage bonus with
 whatever intrinsic difficulty difference exists between those sets. We flag it rather
-than hide it, and a matched within-model analysis is running: one model, one test set,
-partitioned by whether the person in each test image also appears in that model's
-training split.
+than hide it, and §6.4 reports the matched within-model analysis — which turns out to
+carry a confound of its own, in the opposite direction.
 
 But the per-class pattern is already hard to explain as a test-set artefact. A difficulty
 difference between two random subject-disjoint splits has no reason to land specifically
@@ -514,6 +513,60 @@ their leakage rate is 77.5% against our image-level arm's 74.5% — close, but n
 experiment. The defensible statement is narrower and still substantial: **on this dataset,
 with this architecture and budget, image-level splitting is worth +4.5 balanced-accuracy
 points, concentrated almost entirely in the two clinically important grades.**
+
+
+### 6.4 The within-model contrast, and why it is not the headline
+
+The cross-arm comparison above has a confound we flagged: two different test sets. The
+obvious remedy is to stay inside one model and one test set and partition the test images
+by whether the person in them also appears in that model's training split. We ran it. It
+has a confound of its own, and it is worth showing why, because the same trap is waiting
+for anyone who repeats this on another patient dataset.
+
+At identity threshold 0.60, on the image-level arm (three seeds, per-image predictions):
+
+| | leaked | clean | difference | 95% CI |
+|---|---|---|---|---|
+| plain accuracy | 0.796 | 0.682 | +11.45 pts | [+10.47, +12.26] |
+| balanced accuracy | 0.855 | 0.712 | +14.36 pts | [+12.13, +16.20] |
+
+Consistent across all three seeds, tight intervals — and **inflated**, by roughly a factor
+of three against the cross-arm estimate. The reason is structural:
+
+| | leaked partition | clean partition |
+|---|---|---|
+| mild | 43.4% | 17.9% |
+| moderate | 45.4% | 38.8% |
+| severe | 8.6% | 20.9% |
+| very severe | 2.6% | 22.4% |
+| **severe + very severe** | **11.2%** | **43.3%** |
+
+**Severity is inversely related to how many times a subject was photographed** — 2.30
+images per person at mild, 1.21 at very severe (§5.5). A subject photographed once cannot
+have a twin in training, so rare-grade images leak far less, and the clean partition ends
+up enriched four-fold in the hard classes. A leaked-versus-clean split on this dataset is
+therefore also a severity split, and the aggregate difference between them is part leakage
+bonus and part class mix.
+
+Holding class fixed is the only comparison the partition permits:
+
+| grade | n leaked | n clean | recall leaked | recall clean | difference |
+|---|---|---|---|---|---|
+| mild | 66 | 12 | 0.889 | 0.889 | **+0.0** |
+| moderate | 69 | 26 | 0.686 | 0.551 | **+13.5** |
+| severe | 13 | 14 | 0.846 | 0.429 | **+41.8** *(n too small to quantify)* |
+| very severe | 4 | 15 | 1.000 | 0.978 | *(n too small)* |
+
+The two analyses agree on shape and disagree on magnitude, which is what you would expect
+if each is biased in a known direction. **Zero bonus on mild, a substantial one on
+moderate, and a large one on severe** — the same ordering the cross-arm comparison found,
+arrived at by a different route with a different confound.
+
+**We report the cross-arm +4.5 as the headline** because its confound (test-set
+difficulty) has no reason to align with class, whereas the within-model confound
+provably does. The within-model analysis is reported as corroboration of the mechanism,
+not as a second estimate of its size, and the severe-grade number is deliberately left
+unquantified: 13 images against 14 is not a measurement.
 
 
 ## 7. The labels are derived, and the derivation exposes the noise
