@@ -62,6 +62,11 @@ The four that most of this literature gets wrong, and that we bind ourselves to:
    ImageNet-pretrained backbone has seen 1.3M real images. We report from-scratch and
    pretrained separately.
 
+## Continuing this work elsewhere
+
+[`docs/HANDOFF.md`](docs/HANDOFF.md) holds a paste-ready directive for picking the
+project up in a fresh session on a machine with an accelerator and open network.
+
 ## Running it
 
 ```bash
