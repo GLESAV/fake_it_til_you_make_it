@@ -48,7 +48,14 @@ generator:
   lora_path: models/closed_set_lora
   regime: closed_set
   guidance_scale: 2.0      # see configs/arms/guidance_sweep.yaml
-  steps: 50
+  # 30, not 50. Measured on this machine 50 steps costs 22.63 s/image against 13.78 at
+  # 30 -- 39% of the runtime for a step count that is a well-established operating point.
+  # Fan et al. and Sariyildiz et al. both generated at 50, so this is a stated deviation.
+  # Resolution stays at 512: it is the larger lever (56%) but generating at 384 with a
+  # 512-trained LoRA visibly degrades composition and lesion definition
+  # (docs/examples/resolution_comparison.png), and lesion definition is the thing under
+  # test. Steps are the safe cut; resolution is not.
+  steps: 30
   n_images: 5000         # smaller pools suffice for selection
 
 train:
