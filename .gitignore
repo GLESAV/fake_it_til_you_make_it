@@ -1,22 +1,33 @@
+# Directory patterns below are ANCHORED with a leading slash on purpose.
+# A bare `data/` matches at every level, not just the repo root -- it silently
+# swallowed src/fitymi/data/, the package the whole codebase sits on, and the loss
+# was invisible because the working tree still had the files. Anything that names a
+# top-level artefact directory gets a leading slash.
+/data/
+/runs/
+/outputs/
+/results/
+/wandb/
+/.venv/
+/venv/
+.env
+
+# These are meant to match at any depth.
 __pycache__/
 *.py[cod]
-.venv/
-venv/
-.env
-data/
-runs/
-outputs/
-wandb/
+*.egg-info/
+.pytest_cache/
+.DS_Store
+
+# Model weights, wherever they land.
 *.ckpt
 *.safetensors
 *.pt
-.DS_Store
+
+# LaTeX build products.
 paper/*.aux
 paper/*.log
 paper/*.out
 paper/*.bbl
 paper/*.blg
 paper/*.pdf
-*.egg-info/
-.pytest_cache/
-results/
