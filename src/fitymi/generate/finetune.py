@@ -12,6 +12,7 @@ environments that have no model weights.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import logging
 from dataclasses import dataclass, asdict
@@ -71,18 +72,23 @@ def assert_no_leakage(train: Corpus, *held_out: Corpus) -> None:
             )
 
 
-def _require_diffusers():
-    try:
-        import accelerate  # noqa: F401
-        import diffusers  # noqa: F401
-        import peft  # noqa: F401
-        import transformers  # noqa: F401
-    except ImportError as exc:  # pragma: no cover - environment dependent
+def _require_diffusers() -> None:
+    """Check the optional generation stack without importing it.
+
+    Kept as a spec probe so the rest of the package stays importable in
+    environments that have no model weights and no way to fetch them.
+    """
+    missing = [
+        name
+        for name in ("accelerate", "diffusers", "peft", "transformers")
+        if importlib.util.find_spec(name) is None
+    ]
+    if missing:
         raise ImportError(
             "generator fine-tuning needs the optional extras: "
-            "pip install -e '.[generate]'. Note that model weights are downloaded "
-            "from HuggingFace, which some networks block."
-        ) from exc
+            f"pip install -e '.[generate]' (missing: {', '.join(missing)}). Note that "
+            "model weights are downloaded from HuggingFace, which some networks block."
+        )
 
 
 def build_caption_manifest(train: Corpus, output: str | Path) -> Path:

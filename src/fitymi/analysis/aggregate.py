@@ -8,6 +8,7 @@ and computes across-seed intervals. That way a sweep can be run in one process, 
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -51,7 +52,17 @@ def load_runs(root: str | Path, pattern: str = "**/run_*.json") -> pd.DataFrame:
                 "path": str(path),
             }
         )
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    if not df.empty and df["run_id"].duplicated().any():
+        # The real-subset controls are identical across generator arms and may be
+        # written under more than one output directory. Counting them twice would
+        # not move the mean but would halve the confidence intervals.
+        n_dupes = int(df["run_id"].duplicated().sum())
+        df = df.drop_duplicates(subset="run_id", keep="first").reset_index(drop=True)
+        logging.getLogger(__name__).info(
+            "dropped %d duplicate run records (same run_id under multiple paths)", n_dupes
+        )
+    return df
 
 
 def _tail_recall(split: dict) -> float:

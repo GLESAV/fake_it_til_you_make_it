@@ -8,8 +8,6 @@ from fitymi.data.records import Corpus, Record, Source
 
 
 def test_identical_files_land_in_one_group(tmp_path):
-    from PIL import Image
-
     from fitymi.data.toy import ToyConfig, render
 
     image = render(1, 42, ToyConfig(gap=0.0, size=32), synthetic=False)
@@ -86,3 +84,24 @@ def test_shipped_configs_parse():
     assert configs, "no configs to validate"
     for path in configs:
         ExperimentConfig.load(path)
+
+
+def test_duplicate_run_records_are_counted_once(tmp_path):
+    """Identical control-arm records under two output dirs must not halve the CIs."""
+    import json
+
+    from fitymi.analysis.aggregate import load_runs
+
+    record = {
+        "run_id": "shared_control_s0",
+        "arm": "realonly_p050",
+        "config": {"mix_kind": "real_subset", "synthetic_fraction": 0.5, "seed": 0},
+        "val": {"balanced_accuracy": 0.5, "per_class_recall": {}},
+    }
+    for sub in ("closed", "open"):
+        directory = tmp_path / sub
+        directory.mkdir()
+        (directory / "run_shared_control_s0.json").write_text(json.dumps(record))
+
+    runs = load_runs(tmp_path)
+    assert len(runs) == 1

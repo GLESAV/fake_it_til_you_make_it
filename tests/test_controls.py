@@ -1,6 +1,5 @@
 """The §8 controls. Without these the mixing curve is not interpretable."""
 
-import numpy as np
 import pytest
 
 from fitymi.controls.memorization import audit, nearest_neighbours, pixel_embedder

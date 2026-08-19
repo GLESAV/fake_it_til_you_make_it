@@ -6,6 +6,7 @@ scheduler without going through argument parsing.
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import asdict
 from pathlib import Path
@@ -97,8 +98,15 @@ def run_arm(
     pool: Corpus,
     config: ExperimentConfig,
     seed: int,
+    overwrite: bool = False,
 ) -> RunRecord:
-    """Train and evaluate one point on the mixing curve."""
+    """Train and evaluate one point on the mixing curve.
+
+    Skips a run whose record already exists unless `overwrite`. The full study is
+    around 250 runs; restarting from zero after a crash is not an acceptable
+    recovery story, and the real-subset controls are identical across generator
+    arms so re-running them is pure waste.
+    """
     train_config = TrainConfig(**{**asdict(config.train), "seed": seed})
     mixture = build_mixture(bundle.train, pool, MixSpec(**{**asdict(spec), "seed": seed}))
 
@@ -114,6 +122,16 @@ def run_arm(
         "seed": seed,
     }
     run_id = f"{config.name}_{spec.name}_s{seed}_{hash_obj(run_config)}"
+    record_path = Path(config.output_dir) / f"run_{run_id}.json"
+
+    if record_path.exists() and not overwrite:
+        existing = json.loads(record_path.read_text())
+        # A record written before --final-eval has no test block; that run must be
+        # redone rather than silently reused for a final result.
+        if not config.final_eval or existing.get("test") is not None:
+            log.info("skipping %s: record already exists", run_id)
+            return RunRecord(**existing)
+
     log.info("running %s: %s", run_id, mixture)
 
     model, history = train_model(mixture, bundle.val, train_config)
@@ -146,7 +164,7 @@ def run_arm(
         val=val_result.to_dict(),
         test=test_result,
     )
-    record.save(Path(config.output_dir) / f"run_{run_id}.json")
+    record.save(record_path)
     return record
 
 
