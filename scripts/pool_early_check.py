@@ -50,12 +50,28 @@ def main() -> None:
         pool = pool[: args.limit]
     if len(pool) < 20:
         raise SystemExit(f"only {len(pool)} images in {args.pool}; wait for more")
-    train = load_split(args.splits, "train")
+    train_records = [json.loads(line) for line in
+                     (Path(args.splits) / "train.jsonl").read_text().splitlines() if line.strip()]
+    train = [r["path"] for r in train_records]
     print(f"{len(pool)} generated images against {len(train)} real training images")
+
+    # Same-subject pairs are TRUE positives, not null. ACNE04's training split is 948
+    # photographs of 267 people, so most images have a twin that SSCD scores high -- and
+    # leaving those in the null pushes the calibrated threshold to 1.0, which is what the
+    # first run of this script did. The subject grouping already knows which pairs those
+    # are; the audit's own output is what makes the calibration correct.
+    by_group: dict[str, list[int]] = {}
+    for i, r in enumerate(train_records):
+        by_group.setdefault(r.get("group") or f"__{i}", []).append(i)
+    known_pairs = {(a, b) for members in by_group.values() if len(members) > 1
+                   for k, a in enumerate(members) for b in members[k + 1:]}
+    print(f"excluding {len(known_pairs)} same-subject pairs from the null "
+          f"({len(by_group)} subjects across {len(train)} images)")
 
     # -- memorisation, at a threshold calibrated on the real corpus, not inherited -------
     sscd = cached_embedder(sscd_embedder(device=args.device), "data/splits/sscd_real.npz")
     real_cal = calibrate(train, sscd, target_fpr=0.01, mode="per_item",
+                         known_pairs=known_pairs,
                          reference_threshold=SSCD_THRESHOLD, max_component_fraction=None)
     threshold = real_cal.threshold
     print(f"\n== memorisation ==")
