@@ -218,10 +218,18 @@ def run_sweep(config: ExperimentConfig) -> list[RunRecord]:
         if (splits_dir / "train.jsonl").exists()
         else prepare_data(config)
     )
-    pool = load_synthetic_pool(config)
-
     records: list[RunRecord] = []
     arms = build_arm_list(config)
+
+    # A sweep whose arms are all real-only -- the p=0 baseline, or the real-subset
+    # controls on their own -- needs no synthetic pool, and demanding one blocks the
+    # single most useful run to do first: establishing where the real arm lands before
+    # a generator exists. Load the pool only if some arm will actually draw from it.
+    needs_pool = any(spec.synthetic_fraction > 0 or spec.synthetic_multiplier > 0 for spec in arms)
+    pool = load_synthetic_pool(config) if needs_pool else Corpus([])
+    if not needs_pool:
+        log.info("no arm requests synthetic images; skipping the synthetic pool")
+
     total = len(arms) * len(config.sweep.seeds)
     log.info("sweep %s: %d arms x %d seeds = %d runs", config.name, len(arms), len(config.sweep.seeds), total)
 
