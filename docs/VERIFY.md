@@ -46,7 +46,7 @@ Everything else was read in full text or in the arXiv HTML rendering.
 
 1. Azizi et al. 2023 — FID 1.76 / IS 239 / CAS 64.96 & 69.24 all still [S].
 3. He et al. ICLR 2023 — still [S].
-4. Sagers et al. 2022 — still [S].
+
 5. Carlini et al. 2023 — the extraction rate, as opposed to the raw count of >1,000
    extracted examples, is still [S].
 7. The "4–15% hybrid-vs-real gain" range attributed to the dermatology-specific
