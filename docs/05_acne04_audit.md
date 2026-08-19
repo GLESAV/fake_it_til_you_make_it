@@ -373,6 +373,37 @@ Two consequences:
    image-level splits and on subject-disjoint splits. The difference is the leakage
    bonus, in points.
 
+### 5.5 How many people are in each grade
+
+Per-class claims are bounded by the number of distinct people in a class, not the number
+of photographs. Counting subjects per grade (on the 1,400 images that yield a face
+embedding, so the image counts here are slightly below the corpus totals):
+
+| grade | images | distinct people | images per person |
+|---|---|---|---|
+| mild | 509 | 221 | 2.30 |
+| moderate | 627 | 300 | 2.09 |
+| severe | 166 | **114** | 1.46 |
+| very severe | 98 | **81** | 1.21 |
+
+*(identity threshold 0.60; at the conservative 0.75 the subject counts are 280 / 376 /
+129 / 91.)*
+
+The correction is real but modest, and smaller in the tail than in the head — severe
+cases are rarer, so they are photographed fewer times each. A 20% test split of the
+severe grade holds roughly 23 distinct people rather than 33 independent images, and of
+the very-severe grade roughly 16 rather than 20. **We flag this rather than lean on it:
+the tail is noisy mainly because it is small, not mainly because it is redundant.**
+
+The number worth carrying forward is different. **27% of individuals (149 of 550) have
+images under more than one severity grade** — 15% even at the conservative threshold. For
+a criterion counted on half the face that is partly legitimate: one cheek can genuinely
+be worse than the other. But it means that for a quarter of the people in this dataset,
+the severity label is not a property of the person, and a model that identifies the
+person cannot infer the grade from that alone. It is the one piece of good news in this
+section, because it puts a ceiling on how much the subject leakage of §5.2 can inflate a
+score by identity recognition alone.
+
 ## 6. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
