@@ -67,7 +67,7 @@ settled:
 \end{enumerate}
 
 \TODO{state the acne-specific gap: the single fully-synthetic acne prior reports
-97.6\% training on synthetic and testing on real \citep{zaghbani2024}, roughly 11
+97.6\% training on synthetic and testing on real \citep{zein2024}, roughly 11
 points above the strongest real-trained ACNE04 results we are aware of, without
 budget control and with a synthetic healthy class. Frame replication under controls
 as a contribution in its own right.}
@@ -84,6 +84,11 @@ as a contribution in its own right.}
   \item Controls that bound the interpretation: a real/synthetic discriminability
         probe, a memorisation audit, a label-permutation control, and a real-subset
         control that sets the bar a synthetic arm must actually clear.
+  \item A data-quality audit of ACNE04 itself (\S\ref{sec:audit}), independent of the
+        synthetic-data question: 5.2\% byte-identical duplicates, 4.25\% mean
+        train/test leakage in the dataset's own published folds, and 78.9\% grade
+        agreement between the dataset's two annotations of the same photograph ---
+        below several accuracies reported on it.
 \end{itemize}
 
 \section{Related work}
@@ -91,6 +96,96 @@ as a contribution in its own right.}
 \TODO{condense docs/01\_related\_work.md. Three paragraphs: general vision; medical
 and dermatology; acne specifically. Every number must be promoted to a full-text
 verified citation first --- see docs/VERIFY.md.}
+
+\section{The benchmark is not clean}
+\label{sec:audit}
+
+Every number reported on ACNE04 --- ours included --- is computed against labels and
+splits that we found to be defective in ways no prior work we verified mentions. The
+audit needs no model, no GPU and no network; it is reproducible in minutes from the
+distributed archive with \texttt{scripts/audit\_acne04.py}.
+
+\paragraph{Exact duplicates.}
+Grouping all 1{,}457 files by MD5 of the file bytes yields 38 groups of size two:
+76 files, 5.2\% of the corpus, are byte-identical copies under two filenames, usually
+under two different \texttt{levleN} prefixes. Decoding to pixels and re-hashing
+recovers exactly the same 38 groups.
+
+\paragraph{The labels are derived, which turns the duplicates into a repeat-annotation
+experiment.}
+Each label row is \texttt{<file> <grade> <lesion\_count>}, and for all 1{,}457 records
+the grade is exactly the Hayashi banding of the count (1--5, 6--20, 21--50, $>$50),
+with no exceptions. The severity label therefore carries no information beyond the
+count, and all label noise originates in counting. Because the duplicates were
+annotated twice without the annotators knowing they were the same photograph, they
+measure that noise directly:
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Exact lesion-count agreement & 12/38 \quad (31.6\%) \\
+Median $|\Delta\text{count}|$ (max) & 1 \quad (16) \\
+\textbf{Severity-grade agreement} & \textbf{30/38 \quad (78.9\%)} \\
+95\% Wilson interval & 63.7--88.9\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+All eight grade disagreements are cases where the two counts fall in different Hayashi
+bands; four straddle the 5/6 boundary and four the 20/21 boundary. The latter are not
+boundary jitter but differences of a factor of 2.4--3 (9 vs.\ 21, 8 vs.\ 24, 7 vs.\ 22,
+9 vs.\ 24), and their filenames form consecutive runs, which is the signature of a
+block of images ingested and counted twice by different procedures.
+
+Published accuracies on this benchmark are 83.7\% \citep{wu2019}, 84.11\%
+\citep{lds2024}, 86.06\% \citep{kieglfn2022} and 87.33\%. They sit at or above the
+dataset's own reproducibility on images it annotated twice. We are careful about what
+this does and does not license: $n=38$ is small, the interval is wide, and duplicates
+need not be a random sample of the corpus. The defensible reading is not that these
+results are wrong, but that \emph{this benchmark cannot presently resolve differences
+of a few points}, and that a reported improvement of 0.4 points is far inside the
+label noise.
+
+\paragraph{The published splits leak.}
+ACNE04 ships fixed five-fold splits (1{,}165 train / 292 test). Intersecting the
+duplicate groups against them, \emph{every fold leaks}: on average 4.25\% of each test
+split is byte-identical to an image in the corresponding training split --- 3.56\%
+where the two labels agree, which a memorising model receives as free correct answers,
+and 0.68\% where they conflict, which it cannot get right. Across all five folds, 62
+distinct test images have a byte-identical twin in training. This is a systematic
+upward bias of a few points inside every published number on these splits.
+
+\paragraph{Filenames are not labels.}
+42 of 1{,}457 files carry a \texttt{levleN} prefix that disagrees with their labelled
+grade. Deriving labels from filenames --- the obvious shortcut given the naming scheme
+--- corrupts 2.9\% of the dataset.
+
+\paragraph{Deduplication instruments must be calibrated on this corpus, not inherited.}
+Every ACNE04 image is a half-face shot at roughly $70^\circ$ against a dark background,
+so generic perceptual and semantic embeddings have little signal to work with. At the
+common perceptual-hash setting (Hamming $\leq 8$) linkage percolates into a single
+cluster holding 14.7\% of the corpus, and inspection shows the linked pairs are
+different people in the same pose; CLIP ViT-B/32 fails identically, with a median
+pairwise cosine of 0.83 across the whole corpus and percolation beginning at 0.96.
+We use Hamming $\leq 2$ and cosine $\geq 0.98$, which give 1{,}398 groups with a
+largest cluster of three images, and we calibrate against the 38 byte-identical pairs,
+all of which sit at cosine 1.0000.
+
+\paragraph{What we do about it, and what remains open.}
+We discard the published folds and split after deduplication on a frozen seed
+(\S\ref{sec:method}), so our own test set is leak-free with respect to exact
+duplication. Two consequences follow for reading our results. First, our real-only arm
+should be expected to land \emph{below} the published band --- it has no leakage bonus,
+it is scored with balanced accuracy on an imbalanced test set, and deduplication
+removes training images --- and that is not evidence of a broken pipeline. Second,
+78.9\% grade reproducibility is a noise floor: a substitution effect smaller than the
+label noise is not an effect we can claim to have measured.
+
+The audit is also incomplete in one specific way we flag rather than bury. Neither
+perceptual hashing nor CLIP detects \emph{the same subject photographed twice}, and
+ACNE04's capture protocol makes repeat subjects plausible. A face-identity embedding
+would settle it. Until it is run, our splits and every published split carry an
+unmeasured same-subject leakage risk.
 
 \section{Method}
 \label{sec:method}
