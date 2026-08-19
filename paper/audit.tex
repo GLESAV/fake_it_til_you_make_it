@@ -346,6 +346,24 @@ no reason to land specifically on severe and very severe while being zero on mil
 moderate. A confound would have to reproduce, by coincidence, exactly the shape the
 mechanism singles out in advance.
 
+\paragraph{The within-model contrast carries the opposite confound.}
+The obvious remedy for the differing test sets is to stay inside one model and one test
+set, partitioning the test images by whether the person in them also appears in training.
+At cosine 0.60 that gives $+14.4$ balanced-accuracy points, consistent across seeds with
+tight intervals --- roughly three times the cross-arm estimate. The disagreement is the
+finding. Severity is inversely related to how many times a subject was photographed (2.30
+images per person at mild, 1.21 at very severe), so a subject photographed once cannot
+have a twin in training and rare-grade images leak far less. The clean partition is
+43.3\% severe-or-worse against the leaked partition's 11.2\% --- a four-fold enrichment in
+the hard classes. A leaked-versus-clean split is also a severity split.
+
+Holding class fixed, which is the only comparison that partition permits, gives $+0.0$ on
+mild, $+13.5$ on moderate, and $+41.8$ on severe at 13 images against 14 --- the same
+ordering the cross-arm comparison found, reached by a different route with a different
+bias, and the severe figure is deliberately left unquantified because 13 against 14 is not
+a measurement. We report the cross-arm $+4.5$ as the headline because its confound has no
+reason to align with class, whereas this one provably does.
+
 \paragraph{What this does not say.}
 It is not a claim that published ACNE04 results are overstated by 4.5 points. Those use
 plain accuracy on the dataset's own folds rather than balanced accuracy on ours, and carry
