@@ -180,6 +180,45 @@ severity is actually visible, scored by the real-trained p=0 classifier's agreem
 the requested label. That is a weak proxy and is labelled as one, but it distinguishes
 "synthetic data does not help" from "the generator did not draw acne."
 
+### 4.5.1 A CPU probe, before spending GPU-hours
+
+Run 2026-08-19 on CPU so it did not contend with training. **Nine images: three prompts
+× three guidance values, 25 steps, one seed, one severity grade.** This is a probe, not a
+result, and nothing below is a finding — it is the reason two things changed before the
+real sweep ran.
+
+![guidance probe](examples/guidance_probe_cpu.png)
+
+Three things were visible even at n=3:
+
+1. **Stable Diffusion 1.5 does not render acne at any of the guidance values tried.**
+   What it produces reads as freckles, moles and scattered dark spots rather than
+   inflammatory papules and pustules. If that survives at scale, the open-set arm's
+   substitution curve will be poor for a reason that has nothing to do with the
+   substitution question, and §4.5's grade-conditional fidelity measure exists precisely
+   to separate the two.
+2. **Low guidance costs more than diversity.** At 2.0 the failures were structural — a
+   multi-panel collage with a caption strip, and a face with deformed teeth — not merely
+   less prompt-adherent. The negative prompt also carries less weight at low guidance, so
+   the terms meant to suppress exactly those artefacts were doing less work.
+3. **The prompts pulled towards archival monochrome.** "Documentation photograph" is a
+   phrase Stable Diffusion associates with vintage imagery, and most outputs came back
+   black and white. A monochrome synthetic pool would be a confound with nothing to do
+   with acne.
+
+Two changes followed, both before any GPU time was spent:
+
+- Every capture template now says **colour** explicitly.
+- The negative prompt gained terms for monochrome and archival imagery, for collage and
+  caption artefacts, and for **freckles, moles and birthmarks** — which is what the model
+  reaches for when asked for facial lesions. A pool of freckled faces labelled "moderate
+  acne" is worse than no pool at all.
+
+What the probe does **not** license: it does not establish the guidance optimum, it does
+not show the fidelity–diversity trade inverts, and it says nothing about the closed-set
+arm, whose whole purpose is to supply the concept the base model lacks. Those are for the
+real sweep, on GPU, with the pre-committed reading in §4.5.
+
 ## 5. The mixing experiment (primary)
 
 ### 5.1 Budget-matched substitution — answers H1, H2

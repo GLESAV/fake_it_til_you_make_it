@@ -48,14 +48,30 @@ LIGHTING = (
     "even clinical lighting", "diffuse daylight", "overhead fluorescent lighting",
     "soft window light",
 )
+#: Every template says "colour" explicitly. A CPU probe of the untouched prompts
+#: (docs/examples/guidance_probe_cpu.png) returned mostly black-and-white, vintage-looking
+#: portraits: Stable Diffusion's prior for "documentation photograph" pulls towards
+#: archival imagery, and a monochrome training pool would be a confound with nothing to do
+#: with acne.
 CAPTURE = (
-    "clinical dermatology photograph", "close-up medical photograph",
-    "high-resolution dermatological documentation photograph",
+    "colour clinical dermatology photograph",
+    "colour close-up medical photograph",
+    "high-resolution colour dermatological documentation photograph",
 )
 
+#: Extended after the CPU probe. The monochrome and archival terms address Stable
+#: Diffusion's pull towards vintage documentation imagery; the collage and border terms
+#: address multi-panel outputs with caption strips, which appeared at low guidance where
+#: the negative prompt also carries less weight. Freckles and moles are named because
+#: they are what the model reaches for when asked for facial lesions, and a pool of
+#: freckled faces labelled "moderate acne" is worse than no pool at all.
 NEGATIVE_PROMPT = (
     "illustration, drawing, cartoon, 3d render, cgi, painting, text, watermark, "
-    "logo, blurry, distorted anatomy, deformed face, oversaturated, beauty filter"
+    "logo, caption, collage, multiple panels, split screen, border, frame, "
+    "black and white, monochrome, greyscale, sepia, vintage, film grain, "
+    "freckles, moles, birthmark, "
+    "blurry, distorted anatomy, deformed face, deformed teeth, extra teeth, "
+    "oversaturated, beauty filter"
 )
 
 
