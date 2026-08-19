@@ -358,6 +358,18 @@ artefact rather than on pathology. Report the AUC; it bounds how much of any obs
 effect could be artefact-driven.
 
 ### 8.2 Memorisation / privacy audit
+
+**Threshold calibration, added 2026-08-19.** The instrument is SSCD, as in Somepalli et
+al., but **not their absolute threshold of 0.5**. Measured on ACNE04, 5.3% of pairs of
+genuinely distinct real images exceed 0.5 and 82.6% of real images have some other real
+image above it; the maximum similarity between two distinct real images is 0.976. Their
+0.5 was calibrated on LAION, where two arbitrary images share nothing. Here it would
+report a false-positive rate.
+
+The threshold is therefore set from this corpus's own null — real versus unrelated real —
+at a **1% per-image false-positive rate, which is 0.824 on ACNE04**. Every memorisation
+rate is reported with the null distribution it was measured against; a rate without its
+null is not interpretable. See `docs/05_acne04_audit.md` §7.
 For every synthetic image, nearest neighbour in `G_closed`'s training set by CLIP and by
 SSCD copy-detection embedding. Report the distribution and the fraction above a
 replication threshold. Priors (arXiv:2301.13188, arXiv:2305.20086) put partial
@@ -575,3 +587,5 @@ licence terms for the closed-set arm.
 | 2026-08-19 | §8.10 added: identity diversity of every synthetic pool. | The audit showed ACNE04 is ~600 people, so a closed-set generator is fitted to ~450 identities. Identity collapse is invisible to FID and to per-image quality metrics, is distinct from memorisation, and would explain a substitution failure on its own. Measured with the same instrument as the subject-disjoint splitter so the two are calibrated together. |
 | 2026-08-19 | §4.5 added: the guidance optimum may be concept-dependent. | The 2.0 optimum comes from ImageNet classes Stable Diffusion renders well. Low guidance buys diversity by loosening prompt adherence, which may invert for a concept the generator renders badly -- the very failure Fan et al. name as the cause of supervised underperformance. Stated as an expectation before the sweep runs, with grade-conditional fidelity reported alongside accuracy so "did not help" is separable from "did not draw acne". |
 | 2026-08-19 | §4.6 added: closed-set fine-tuning budget cut from the reference 4,000 steps to 900 (~15 epochs), micro-batch 1 with 16-step accumulation. | 4,000 steps is ~67 epochs over 948 faces, which maximises the memorisation this study exists to audit, and measured 12 hours on this machine against a 54-GPU-hour sweep. Micro-batch 1 is 0.52 s/image against 0.73 at batch 4 on Apple Silicon. Checkpoints every 300 so the budget is selected on validation and the risk of under-training is measured rather than assumed. |
+| 2026-08-19 | §8.2 amended: memorisation threshold calibrated to a 1% per-image false-positive rate on the corpus (0.824 on ACNE04) rather than inherited as 0.5 from Somepalli et al. | Their 0.5 was calibrated on LAION. On ACNE04, 82.6% of real images have another real image above it and the maximum between two distinct real images is 0.976, so the published threshold reports a false-positive rate rather than a memorisation rate. |
+

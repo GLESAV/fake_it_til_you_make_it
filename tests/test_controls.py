@@ -53,3 +53,52 @@ def test_ita_bins_are_reported_coarsely(tmp_path):
     estimate = estimate_ita(str(path))
     assert estimate.coarse_bin in {"light", "intermediate", "dark"}
     assert 0.0 <= estimate.coverage <= 1.0
+
+
+def test_calibrate_threshold_adapts_to_a_homogeneous_corpus():
+    """A corpus where everything looks alike needs a higher threshold, not the paper's.
+
+    Two synthetic corpora with the same instrument: one where distinct items are nearly
+    orthogonal, one where they all share a dominant component. The calibrated threshold
+    must rise for the second, which is the whole point.
+    """
+    import numpy as np
+
+    from fitymi.controls.memorization import calibrate_threshold
+
+    rng = np.random.default_rng(0)
+
+    def embedder_for(vectors):
+        lookup = {f"x{i}.jpg": v for i, v in enumerate(vectors)}
+        return lambda paths: np.stack([lookup[p] for p in paths])
+
+    diverse = rng.normal(size=(120, 64)).astype(np.float32)
+    shared = diverse + 6.0 * rng.normal(size=(1, 64)).astype(np.float32)
+
+    paths = [f"x{i}.jpg" for i in range(120)]
+    a = calibrate_threshold(paths, embedder_for(diverse), target_per_image_fpr=0.05)
+    b = calibrate_threshold(paths, embedder_for(shared), target_per_image_fpr=0.05)
+
+    assert b["null_median"] > a["null_median"]
+    assert b["threshold"] > a["threshold"]
+    assert a["achieved_per_image_fpr"] <= 0.05 + 1e-9
+    assert b["achieved_per_image_fpr"] <= 0.05 + 1e-9
+
+
+def test_calibrate_threshold_excludes_known_duplicates_from_the_null():
+    """A duplicate inside the reference set is a true positive, not part of the null."""
+    import numpy as np
+
+    from fitymi.controls.memorization import calibrate_threshold
+
+    rng = np.random.default_rng(1)
+    vectors = rng.normal(size=(60, 32)).astype(np.float32)
+    vectors[1] = vectors[0]                      # an exact duplicate pair
+    paths = [f"x{i}.jpg" for i in range(60)]
+    lookup = {p: v for p, v in zip(paths, vectors)}
+    embed = lambda ps: np.stack([lookup[p] for p in ps])
+
+    naive = calibrate_threshold(paths, embed, target_per_image_fpr=0.05)
+    fixed = calibrate_threshold(paths, embed, target_per_image_fpr=0.05,
+                                exclude_pairs={(0, 1)})
+    assert naive["null_max"] > fixed["null_max"]

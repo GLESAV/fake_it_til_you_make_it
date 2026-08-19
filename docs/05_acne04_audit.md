@@ -569,7 +569,74 @@ not as a second estimate of its size, and the severe-grade number is deliberatel
 unquantified: 13 images against 14 is not a measurement.
 
 
-## 7. The labels are derived, and the derivation exposes the noise
+## 7. The published memorisation threshold does not survive contact with this corpus
+
+This one is about instrumentation rather than about ACNE04, and it generalises to any
+memorisation audit run on a homogeneous corpus.
+
+Somepalli et al. (CVPR 2023) measure that **1.88% of random Stable Diffusion v1.4
+generations exceed SSCD similarity 0.5** to a training image, and that number is the
+reference point every subsequent memorisation claim is compared against. We adopted their
+instrument and their threshold deliberately, so our rate would be comparable to theirs.
+
+Then we calibrated it on ACNE04, and the threshold turned out to be unusable here.
+
+**Positive control.** The 38 byte-identical pairs sit at similarity **1.0000**, min,
+median and max. The instrument works.
+
+**Negative control — pairs of genuinely distinct real images**, excluding those 38 pairs,
+1,060,658 pairs in total:
+
+| | |
+|---|---|
+| median similarity | 0.287 |
+| 99th percentile | 0.566 |
+| 99.99th percentile | 0.746 |
+| **maximum between two distinct real images** | **0.9763** |
+| pairs above 0.5 | **5.30%** |
+| **real images with *some* other real image above 0.5** | **82.6%** |
+
+**At the published threshold, 83% of real ACNE04 images are copies of another real
+image.** They are not. They are different people photographed the same way.
+
+The reason is not subtle once stated. SSCD's 0.5 was calibrated against LAION, where two
+arbitrary web images share essentially nothing — one is a cat, the next is a spreadsheet.
+Every ACNE04 image is a half-face photograph at roughly 70° under similar lighting, so the
+*null* distribution of similarity is shifted far to the right. An absolute threshold
+inherited from one corpus measures something different on the other.
+
+### 7.1 Calibrating to a false-positive rate instead
+
+The fix is to set the threshold from the corpus's own null — the distribution of
+similarity between a real image and an unrelated real image — at a stated false-positive
+rate:
+
+| target per-image false-positive rate | threshold on ACNE04 |
+|---|---|
+| 10% | 0.736 |
+| 5% | 0.768 |
+| **1%** | **0.824** |
+
+We use **1%, giving 0.824**, and report the null distribution alongside every
+memorisation rate, because a rate quoted without the null it was measured against is not
+interpretable.
+
+### 7.2 What this implies beyond this study
+
+Any memorisation or copy-detection audit that inherits an absolute similarity threshold
+from work calibrated on web-scale imagery, and applies it to a medical or face corpus
+where all images are the same kind of picture, is reporting a number dominated by its
+false-positive rate. On ACNE04 the error is not marginal — 82.6% against a true duplicate
+rate of 5.2%.
+
+This cuts both ways for us and we should say so. It means a naive audit would have made
+our closed-set generator look catastrophically memorising when it may not be. It also
+means the acne prior's anonymity claim (§4.1) — which rests entirely on generated faces
+not being copies — cannot be checked with an off-the-shelf threshold either, and was not
+checked with any.
+
+
+## 8. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
 grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
@@ -607,7 +674,7 @@ a random sample of the corpus. The correct reading is not "these papers are wron
 "this benchmark cannot currently resolve differences of a few points, and nobody has
 been reporting that."
 
-## 8. The filename prefix is not a label
+## 9. The filename prefix is not a label
 
 **42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
 (e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
@@ -616,7 +683,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 
 ---
 
-## 9. What this changes for our study
+## 10. What this changes for our study
 
 1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
    embedder enabled.** The shipped defaults were tuned for datasets where perceptual
@@ -636,7 +703,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 10. Publishability
+## 11. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%

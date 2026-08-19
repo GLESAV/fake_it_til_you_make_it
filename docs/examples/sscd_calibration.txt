@@ -1,0 +1,16 @@
+n = 1457 real ACNE04 images, 38 known-identical pairs
+
+POSITIVE control -- the 38 byte-identical pairs:
+  similarity min 1.0000  median 1.0000  max 1.0000
+
+NEGATIVE control -- all pairs of distinct real images:
+  percentiles {50: 0.287, 90: 0.467, 99: 0.566, 99.9: 0.641, 99.99: 0.746}
+  pairs >= 0.4: 260646 of 1060696 (24.5731%)
+  pairs >= 0.5: 56168 of 1060696 (5.2954%)
+  pairs >= 0.6: 3645 of 1060696 (0.3436%)
+  pairs >= 0.7: 254 of 1060696 (0.0239%)
+
+per-image: share of real images with ANY other real image above threshold
+  >= 0.5: 82.77% of images
+  >= 0.6: 67.06% of images
+  >= 0.7: 24.71% of images

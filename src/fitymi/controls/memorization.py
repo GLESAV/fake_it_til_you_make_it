@@ -160,3 +160,70 @@ def pixel_embedder(size: int = 32) -> Embedder:
         return out
 
     return embed
+
+def calibrate_threshold(
+    reference: Sequence[str],
+    embedder: Embedder,
+    target_per_image_fpr: float = 0.01,
+    exclude_pairs: set[tuple[int, int]] | None = None,
+) -> dict:
+    """Pick a similarity threshold from THIS corpus, not from the copy-detection paper.
+
+    Somepalli et al. report 1.88% of Stable Diffusion generations above SSCD similarity
+    0.5 to a training image. That threshold was calibrated against LAION, where two
+    arbitrary web images share almost nothing. It does not transfer to a corpus whose
+    images are all the same kind of picture.
+
+    Measured on ACNE04 -- 1,457 half-face photographs at one angle under similar lighting
+    -- 5.3% of pairs of *genuinely distinct* real images already exceed 0.5, and 82.6% of
+    real images have some other real image above it. The maximum similarity between two
+    distinct real images is 0.976. Reporting a memorisation rate at 0.5 on that corpus
+    would be reporting a false-positive rate.
+
+    So the threshold is set to a stated false-positive rate under the null distribution of
+    real-versus-unrelated-real similarity from the same corpus. On ACNE04, a 1% per-image
+    false-positive rate needs 0.824, not 0.5.
+
+    `exclude_pairs` removes known-identical index pairs from the null, since a duplicate
+    inside the reference set is a true positive and would otherwise inflate the threshold.
+
+    Returns the threshold alongside the null distribution's shape, because a memorisation
+    rate quoted without the null it was measured against is not interpretable.
+    """
+    emb = _normalise(np.asarray(embedder(list(reference)), dtype=np.float32))
+    n = len(emb)
+    if n < 3:
+        raise ValueError("need at least three reference images to estimate a null")
+    sim = emb @ emb.T
+
+    best = sim - np.eye(n) * 2.0
+    for a, b in exclude_pairs or ():
+        best[a, b] = -2.0
+        best[b, a] = -2.0
+    per_image_best = best.max(axis=1)
+
+    lo, hi = float(per_image_best.min()), 1.0
+    for _ in range(80):
+        mid = (lo + hi) / 2
+        if float((per_image_best >= mid).mean()) > target_per_image_fpr:
+            lo = mid
+        else:
+            hi = mid
+    threshold = float(hi)
+
+    upper = np.triu(np.ones((n, n), dtype=bool), k=1)
+    for a, b in exclude_pairs or ():
+        upper[min(a, b), max(a, b)] = False
+    null = sim[upper]
+
+    return {
+        "threshold": threshold,
+        "target_per_image_fpr": target_per_image_fpr,
+        "achieved_per_image_fpr": float((per_image_best >= threshold).mean()),
+        "n_reference": n,
+        "null_median": float(np.median(null)),
+        "null_p99": float(np.percentile(null, 99)),
+        "null_max": float(null.max()),
+        "published_threshold": 0.5,
+        "per_image_fpr_at_published_threshold": float((per_image_best >= 0.5).mean()),
+    }
