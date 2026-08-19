@@ -146,6 +146,49 @@ promoted to the main experiment; the sweep itself is reported as an appendix tab
 
 ---
 
+### 4.4.1 Amendment: how guidance is actually being selected, and why
+
+Recorded 2026-08-19, as a deviation from §4.4 rather than a quiet substitution.
+
+§4.4 says the guidance scale is selected on validation before use. Doing that properly
+means five pools large enough to train a p=1 arm — 5 × 948 = 4,740 images, 18 h — plus
+fifteen training runs, about 7 h. Selection would cost roughly what a main pool costs, and
+it would have to happen twice.
+
+**The closed-set pool is being generated at guidance 2.0 without that sweep.** The
+justification is specific and falsifiable rather than convenient:
+
+1. Two independently verified priors put the training-utility optimum at 2.0 for Stable
+   Diffusion — Fan et al. by direct sweep, and Sariyildiz et al.'s Table 1 where the same
+   change is worth 16.7 top-1 points. Neither is a weak result.
+2. §4.5 gives the one reason those priors might not transfer: low guidance loosens prompt
+   adherence, which is bad when the generator cannot render the concept. **For the
+   closed-set arm that reason does not apply** — the checkpoint comparison shows
+   fine-tuning supplied the concept the base model lacked, so diversity is the binding
+   constraint again, which is the regime the priors were measured in.
+
+That argument is exactly the one §4.5 predicts, so using it here is consistent rather than
+opportunistic — but it is still an argument standing in for a measurement, and the paper
+will say so.
+
+**The open-set arm gets the sweep**, because that is where §4.5's hypothesis is live: base
+Stable Diffusion demonstrably cannot render clinical acne (§4.5.1, and the checkpoint
+comparison's base row), so the optimum may sit well above 2.0 and the priors may invert.
+
+**The selection uses the cheap proxy first.** Grade-conditional fidelity — the fraction of
+generated images whose requested severity the real-trained p=0 classifier agrees with —
+costs 300 images per guidance value and no training runs, against 948 images plus three
+runs for the validation-accuracy version. §4.5 already commits to reporting that proxy
+alongside downstream accuracy, so this uses a number we owe anyway. It is a proxy and is
+labelled as one; where proxy and accuracy disagree, accuracy wins and the disagreement is
+reported.
+
+**What would falsify the shortcut.** If the open-set sweep's optimum lands at or below 2.0,
+the §4.5 hypothesis is wrong and the closed-set choice needed no special argument. If it
+lands well above, the hypothesis holds and the closed-set argument — that fine-tuning
+restores the priors' regime — becomes testable by running the closed-set sweep after all.
+We will run it if the open-set result makes it interesting, and say so either way.
+
 ### 4.5 The guidance optimum may not transfer to a concept the generator renders badly
 
 Added 2026-08-19.
@@ -691,4 +734,5 @@ licence terms for the closed-set arm.
 | 2026-08-19 | §8.2 amended: memorisation threshold calibrated to a 1% per-image false-positive rate on the corpus (0.824 on ACNE04) rather than inherited as 0.5 from Somepalli et al. | Their 0.5 was calibrated on LAION. On ACNE04, 82.6% of real images have another real image above it and the maximum between two distinct real images is 0.976, so the published threshold reports a false-positive rate rather than a memorisation rate. |
 | 2026-08-19 | Synthetic pool size set to 4,740 per generator (was a 20,000 placeholder). | 4,740 is 5x the 948-image training budget, the smallest pool from which five seeds drawing 948 each can be disjoint. A smaller pool makes the seeds share synthetic images and correlates them, understating the seed variance at the p=1 arm that carries the headline claim. |
 | 2026-08-19 | §4.9 added: the synthetic pool is not filtered, and filtering is an ablation rather than a default. | Filtering with a real-data-trained classifier selects synthetic images by a function of real data, so a "100% synthetic" arm curated that way has consumed real information through the back door. Akrout et al.'s pool is filtered by an ensemble pretrained on their real corpus, which their headline does not mention. |
+| 2026-08-19 | §4.4.1: closed-set pool generated at guidance 2.0 without the full validation sweep; open-set arm keeps it; selection uses the grade-conditional fidelity proxy first. | A proper sweep costs about what a main pool costs and would run twice. Two verified priors put the optimum at 2.0, and §4.5's reason they might not transfer -- the generator cannot render the concept -- demonstrably does not apply to the fine-tuned arm. Recorded as an argument standing in for a measurement, with the open-set sweep as the falsification test. |
 
