@@ -71,7 +71,7 @@ project up in a fresh session on a machine with an accelerator and open network.
 
 ```bash
 make install          # venv + package
-make test             # 71 unit tests, CPU, ~30s
+make test             # 77 unit tests, CPU, ~10s
 make smoke            # end-to-end pipeline check on procedural data, CPU, ~20 min
 make smoke-null       # the null: gap=0, mixing curve must come out flat
 ```
@@ -127,9 +127,22 @@ src/fitymi/
   analysis/    aggregation and figures
 configs/       one YAML per experimental arm
 scripts/       GPU-host driver scripts
-tests/         71 tests, no GPU or network required
+tests/         77 tests, no GPU or network required
+               (incl. repo-integrity checks: see below)
 paper/         arXiv manuscript (LaTeX)
 ```
+
+## A note on repository integrity
+
+`tests/test_repo_integrity.py` asserts that every source file is tracked and that no
+gitignore rule matches one. It exists because a bare `data/` pattern once excluded
+`src/fitymi/data/` — the package everything else sits on — and nothing caught it: the
+working tree still had the files, so the full suite and the smoke run passed against a
+tree the repository did not contain. A fresh clone failed at the first import.
+
+Every directory pattern in `.gitignore` that names a top-level artefact directory is
+now anchored with a leading slash. Test runs that back a claim are done against a
+fresh clone, not the directory the code was written in.
 
 ## A note on the literature review
 

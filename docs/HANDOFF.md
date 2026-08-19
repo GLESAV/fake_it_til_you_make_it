@@ -34,7 +34,7 @@ Work through these in order. Stop and tell me at each numbered boundary.
 1. SET UP AND VERIFY THE PIPELINE.
    python3.11 -m venv .venv && source .venv/bin/activate
    pip install -U pip && pip install -e '.[dev]'
-   make test      # 73 tests, no network, ~10s
+   make test      # 77 tests, no network, ~10s
    make smoke     # end-to-end on procedural data, CPU, ~18 min
    The smoke must PASS: the substitution curve has to slope down and the trend test
    has to detect it. Compare against docs/examples/, which holds the reference run.
