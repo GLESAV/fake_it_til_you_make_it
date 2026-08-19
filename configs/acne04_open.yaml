@@ -28,7 +28,7 @@ generator:
   model_path: runwayml/stable-diffusion-v1-5
   lora_path: null
   regime: open_set
-  guidance_scale: 3.0
+  guidance_scale: 2.0      # see configs/arms/guidance_sweep.yaml
   steps: 50
   n_images: 20000
 

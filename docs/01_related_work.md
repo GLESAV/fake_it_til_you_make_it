@@ -56,18 +56,42 @@ of an established result.
 
 ### 2.1 The optimistic wave (2022–2023)
 
-**Sariyildiz et al., "Fake it till you make it: Learning transferable
-representations from synthetic ImageNet clones," CVPR 2023**
-(arXiv:2212.08420) — the paper this repository is named after. Generates
-ImageNet "clones" with Stable Diffusion using only class names, trains
-classifiers from scratch, and finds that with minimal class-agnostic prompt
-engineering the synthetic-trained models close **a large part** — explicitly not
-all — of the gap to real-data training, while transferring surprisingly well to
-downstream tasks. **[S]**
+**Sariyildiz, Alahari, Larlus & Kalantidis, "Fake it till you make it: Learning
+transferable representations from synthetic ImageNet clones," CVPR 2023**
+(arXiv:2212.08420) — the paper this repository is named after. **[V]** — full text read
+2026-08-19. Generates ImageNet "clones" with Stable Diffusion using only class names
+plus WordNet hypernyms/definitions, trains classifiers from scratch, evaluates on real
+images.
 
-The framing matters for us: *transfer* performance held up better than
-*in-domain* performance. A representation can be good without the classifier
-being calibrated for the target distribution.
+**The verified numbers are much harsher than the abstract's framing.** On ImageNet-1K at
+matched scale (Table 1; testing on real images throughout):
+
+| Training set | guidance | prompt | IN-Val top-1 |
+|---|---|---|---|
+| ImageNet-1K (real, PyTorch ResNet-50) | — | — | **76.1%** |
+| ImageNet-1K (real, RSB-A1) | — | — | **80.1%** |
+| ImageNet-1K-SD (synthetic) | 7.5 | `c, dc` | 26.2% |
+| ImageNet-1K-SD (synthetic) | 7.5 | `c, hc inside b` | 30.1% |
+| ImageNet-1K-SD (synthetic) | **2.0** | `c, dc` | **42.9%** |
+
+Two things to take from this. First, **the in-domain substitution gap at matched budget
+is 33 points** (42.9 vs 76.1), and the paper says so plainly: the synthetic-trained model
+"lags behind in all cases when compared to the two models that are trained on the
+ImageNet-1K training set." The "closes a large part of the gap" claim is about *transfer*
+and about ImageNet-100, not about in-domain ImageNet-1K substitution. Citing this paper
+as evidence that synthetic can replace real is citing the abstract, not Table 1 — the
+same failure mode as Akrout et al. in §3.
+
+Second, and this is the design-relevant one: **dropping guidance from the 7.5 default to
+2.0 is worth 16.7 top-1 points** (26.2 → 42.9), holding everything else fixed. That is
+larger than any prompt-engineering effect they report. Combined with Fan et al.'s
+independently derived optimum of 2.0 for Stable Diffusion (§2.2), **two papers using
+different methods agree the training-utility optimum is ≈2.0 against an aesthetic default
+of 7.5.** Our guidance sweep is centred accordingly; a study generating at the default
+would be measuring a crippled generator and attributing the result to synthetic data.
+
+Scale helps but does not close it: at 10×, 20× and 50× the real set size (guidance 2)
+they reach 72.4 / 72.4 / 73.3 top-1 on ImageNet-**100**.
 
 **He et al., "Is synthetic data from generative models ready for image
 recognition?" ICLR 2023** (arXiv:2210.07574). Studies synthetic data in

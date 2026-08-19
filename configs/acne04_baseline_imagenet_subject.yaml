@@ -37,7 +37,9 @@ generator:
   model_path: runwayml/stable-diffusion-v1-5
   lora_path: models/closed_set_lora
   regime: closed_set
-  guidance_scale: 3.0      # selected on validation; see configs/arms/guidance_sweep.yaml
+  guidance_scale: 2.0      # provisional: two verified priors put the training-utility
+                           # optimum here, not at the 7.5 aesthetic default. Confirmed on
+                           # validation by configs/arms/guidance_sweep.yaml before use.
   steps: 50
   n_images: 20000
 

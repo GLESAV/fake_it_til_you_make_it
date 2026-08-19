@@ -1,11 +1,24 @@
 # Protocol §4.4 — guidance-scale selection.
 #
-# Fan et al. (CVPR 2024) found classifier-free guidance to be a first-order variable
-# for training utility, and it trades fidelity against diversity, so the aesthetic
-# default is the wrong choice for a data generator. Each value below produces its own
-# pool; the winner is picked on VALIDATION balanced accuracy and nothing else.
+# Classifier-free guidance is a first-order variable for training utility and trades
+# fidelity against diversity, so the aesthetic default is the wrong choice for a data
+# generator. Each value below produces its own pool; the winner is picked on VALIDATION
+# balanced accuracy and nothing else.
 #
-# Usage: for g in 1.5 3.0 5.0 7.5 10.0; do
+# The sweep is centred on 2.0, not on the 7.5 default, because two independently
+# verified results agree on that optimum (docs/01_related_work.md, both promoted to [V]
+# on 2026-08-19):
+#
+#   Fan et al. 2024 sweep CFG in [1.5, 10.0] for Stable Diffusion and find 2.0 optimal
+#   for supervised classifier training.
+#   Sariyildiz et al. CVPR 2023 Table 1: on ImageNet-1K, dropping guidance from 7.5 to
+#   2.0 moves synthetic-trained top-1 from 26.2% to 42.9% -- 16.7 points, larger than
+#   any prompt-engineering effect in that paper.
+#
+# The old grid {1.5, 3, 5, 7.5, 10} put only one point at or below the expected optimum
+# and four above it, which would have spent most of the compute on the wrong side.
+#
+# Usage: for g in 1.0 1.5 2.0 3.0 5.0; do
 #          fitymi generate --config configs/arms/guidance_sweep.yaml \
 #            --output-dir runs/guidance_$g   # after setting generator.guidance_scale
 #        done
@@ -28,7 +41,7 @@ generator:
   model_path: runwayml/stable-diffusion-v1-5
   lora_path: models/closed_set_lora
   regime: closed_set
-  guidance_scale: 3.0
+  guidance_scale: 2.0      # see configs/arms/guidance_sweep.yaml
   steps: 50
   n_images: 5000         # smaller pools suffice for selection
 

@@ -21,12 +21,12 @@ Verification pass 1 run 2026-08-19 on an unrestricted network (local M4 Max sess
 | 3 | Wang et al. 2025 (arXiv:2508.09550) | Exchange-rate methodology, closed-/open-set distinction. | **[V]** | local session, 2026-08-19 |
 | 4 | Fan et al. 2024 (arXiv:2312.04567) | Guidance-scale and scaling protocol. | **[V]** — CFG values confirmed; **CVPR 2024 acceptance NOT confirmed on the arXiv page** | local session, 2026-08-19 |
 | 5 | Wu et al. 2019, ICCV | ACNE04 splits, Hayashi mapping, image count. | **[V]** — via secondary full texts; thecvf.com returns 403 to our fetcher, see note below | local session, 2026-08-19 |
-| 6 | Sariyildiz et al. 2023, CVPR | Prompt strategy; how much of the gap closed. | **[S]** — abstract only; numbers still unverified | — |
+| 6 | Sariyildiz et al. 2023, CVPR | Prompt strategy; how much of the gap closed. | **[V]** — Table 1 read; in-domain gap is 33 points and guidance 7.5→2.0 is worth 16.7 | local session, 2026-08-19 |
 | 7 | Ktena et al. 2024, Nature Medicine | Fairness protocol; volume/pages. | **[V]** — Nat Med **30**, 1166–1173 (2024) confirmed | local session, 2026-08-19 |
 | 8 | Retracted acne-GAN paper (doi:10.3390/biomedinformatics4020059) | Whether anything adjacent is safe to cite. | **[V]** — reason obtained, see §4.1 | local session, 2026-08-19 |
 | 9 | Published ACNE04 severity baselines | Our real-only arm should land near this. | **[V]** — but the band is 83.7–87.3% and it is **plain accuracy on an imbalanced test set**, not balanced accuracy | local session, 2026-08-19 |
 | 10 | Carlini et al. 2023 / Somepalli et al. 2023 | The replication prior our memorisation audit compares against. | **[V] for Somepalli** (1.88%, lower bound); **[S] for Carlini** (rate not extracted) | local session, 2026-08-19 |
-| 11 | Shumailov et al. 2024, Nature | Volume and page numbers. | **[S]** | — |
+| 11 | Shumailov et al. 2024, Nature | Volume and page numbers. | **[V]** — Nature **631**, 755–759 (2024) confirmed | local session, 2026-08-19 |
 | 12 | "When Pretty Isn't Useful" (arXiv:2602.19946) | Author list was entirely unverified. | **[V]** — paper is real, authors resolved, CVPR 2026 | local session, 2026-08-19 |
 | 13 | Representation-conditioned generation (arXiv:2605.27495) | Claimed synthetic > real at 3× scale. | **[V]** — paper is real, authors resolved; claimed margin is **+2.0 pp**, not "3× scale" as previously written | local session, 2026-08-19 |
 
@@ -44,13 +44,10 @@ Everything else was read in full text or in the arXiv HTML rendering.
 
 ## Still outstanding
 
-1. Sariyildiz et al. CVPR 2023 — the actual accuracy numbers and prompt ablation.
-   Currently the review only makes a qualitative claim, which is safe but weak.
-2. Azizi et al. 2023 — FID 1.76 / IS 239 / CAS 64.96 & 69.24 all still [S].
+1. Azizi et al. 2023 — FID 1.76 / IS 239 / CAS 64.96 & 69.24 all still [S].
 3. He et al. ICLR 2023 — still [S].
 4. Sagers et al. 2022 — still [S].
-5. Shumailov et al. 2024 — volume/pages still [S].
-6. Carlini et al. 2023 — the extraction rate, as opposed to the raw count of >1,000
+5. Carlini et al. 2023 — the extraction rate, as opposed to the raw count of >1,000
    extracted examples, is still [S].
 7. The "4–15% hybrid-vs-real gain" range attributed to the dermatology-specific
    generators (Derm-T2IM, LesionGen, SkinDualGen, DermDiff) is still [S] and is a

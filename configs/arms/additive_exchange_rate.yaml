@@ -22,7 +22,7 @@ generator:
   model_path: runwayml/stable-diffusion-v1-5
   lora_path: models/closed_set_lora
   regime: closed_set
-  guidance_scale: 3.0
+  guidance_scale: 2.0      # see configs/arms/guidance_sweep.yaml
   steps: 50
   n_images: 40000        # 16x the largest real budget needs a deep pool
 
