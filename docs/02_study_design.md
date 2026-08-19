@@ -70,7 +70,7 @@ ACNE04  ──dedup──►  D_all
 Stratified by severity class. Split seed is fixed at `20260819` and committed.
 
 **Deduplication before splitting** is mandatory. ACNE04 images are half-face crops and
-the archive contains more files (1,513) than labelled images (1,457); near-duplicates
+the archive contains exactly 1,457 images, all of them labelled (the "1,513 files" figure in earlier drafts came from an unverified search summary and is wrong for `Classification.tar`); near-duplicates
 across splits would inflate every arm. Procedure: perceptual hash (pHash, Hamming ≤ 8)
 plus CLIP-embedding cosine ≥ 0.95, cluster, and assign whole clusters to a single split.
 The dedup report is a paper artefact.

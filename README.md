@@ -29,9 +29,10 @@ constant, and evaluate every arm on the *same sealed real test set*.
 | Environment audit | ✅ `docs/03_environment.md` |
 | Codebase | ✅ `src/fitymi/`, verified end-to-end — see `docs/examples/` |
 | **ACNE04 data audit** | ✅ **`docs/05_acne04_audit.md` — a finished result in its own right, drafted as `paper/audit.tex`** |
-| Real-only baseline | 🚧 running on Apple Silicon |
-| Generation + mixing sweep | ⛔ needs ~65 GPU-hours |
-| Paper | 🚧 `paper/main.tex` scaffold; `paper/audit.tex` complete but for one number |
+| Real-only baseline | ✅ balanced accuracy **0.747** subject-disjoint, **0.792** image-level (5 seeds each) |
+| Closed-set generator | 🚧 LoRA fine-tuning on Apple Silicon |
+| Generation + mixing sweep | ⛔ ~60 GPU-hours after that |
+| Paper | ✅ `paper/audit.tex` complete · 🚧 `paper/main.tex` awaits the sweep |
 
 ## The benchmark turned out to be broken, and that is the first result
 

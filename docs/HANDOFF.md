@@ -57,9 +57,10 @@ Work through these in order. Stop and tell me at each numbered boundary.
    Extract to data/acne04/. Do not commit the images.
    Then: make prepare CONFIG=configs/acne04_closed.yaml
    READ data/splits/dedup_report.json BEFORE CONTINUING. Check
-   largest_cluster_fraction and over_clustered. The archive ships more files (1,513)
-   than labelled images (1,457) and the images are half-face crops, so near-duplicates
-   are likely. If dedup over-clusters, tune phash_max_hamming and add a CLIP embedder
+   largest_cluster_fraction and over_clustered. VERIFIED 2026-08-19: the archive holds
+   exactly 1,457 images, all labelled -- the "1,513 files" figure in the original handoff
+   came from an unverified search summary and is wrong. The images are half-face crops,
+   so near-duplicates are likely, and they are: see docs/05_acne04_audit.md. If dedup over-clusters, tune phash_max_hamming and add a CLIP embedder
    rather than accepting a degenerate split — the code will refuse a starved split but
    it cannot pick the thresholds for you. The dedup report is a paper artefact.
 
