@@ -17,6 +17,11 @@ OUT=${OUT:-models/closed_set_lora}
 BASE=${BASE:-runwayml/stable-diffusion-v1-5}
 RANK=${RANK:-16}
 STEPS=${STEPS:-4000}
+# Intermediate checkpoints so the step count can be SELECTED on validation rather than
+# assumed. 4,000 optimizer steps at effective batch 16 is ~67 epochs over 948 images,
+# which is deep into the regime where a LoRA memorises its training set -- and this study
+# audits memorisation, so the amount of fine-tuning has to be a measured choice.
+CKPT=${CKPT:-1000}
 RES=${RES:-512}
 
 # The diffusers reference trainer is vendored, not resolved from the installed package:
@@ -51,6 +56,7 @@ test -f "$OUT/captions.jsonl" || { echo "no caption manifest at $OUT" >&2; exit 
   --learning_rate=1e-04 --lr_scheduler=cosine --lr_warmup_steps=0 \
   --rank="$RANK" \
   --seed=0 \
+  --checkpointing_steps="${CKPT:-1000}" \
   --output_dir="$OUT"
 
 echo "LoRA written to $OUT"
