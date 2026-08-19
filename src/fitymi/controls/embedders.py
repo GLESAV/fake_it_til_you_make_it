@@ -169,3 +169,68 @@ def face_embedder(
         return out
 
     return embed
+
+
+#: Facebook Research's SSCD copy-detection descriptor, the instrument Somepalli et al.
+#: used to measure that 1.88% of Stable Diffusion generations exceed similarity 0.5 to a
+#: training image. We adopt their instrument and their threshold so our memorisation rate
+#: is comparable to the only published prior rather than to a number of our own devising.
+SSCD_URL = "https://dl.fbaipublicfiles.com/sscd-copy-detection/sscd_disc_mixup.torchscript.pt"
+SSCD_THRESHOLD = 0.5
+
+
+def sscd_embedder(
+    weights_path: str = "models/sscd_disc_mixup.torchscript.pt",
+    device: str | None = None,
+    batch_size: int = 32,
+    size: int = 288,
+):
+    """The SSCD copy-detection descriptor, returning L2-normalised vectors.
+
+    Downloads the TorchScript model on first use (94 MB) and caches it at `weights_path`.
+
+    SSCD is trained to detect *copies under transformation* -- crop, re-encode, colour
+    shift, overlay -- which is the question a memorisation audit actually asks. CLIP
+    answers "is this the same kind of thing?" and a perceptual hash answers "is this the
+    same pixels?"; neither is the same question, and using either would produce a rate not
+    comparable to the published prior.
+
+    Resolution 288 and bicubic resizing follow the reference implementation. Getting this
+    wrong changes the similarity distribution and therefore the rate.
+    """
+    import urllib.request
+    from pathlib import Path
+
+    import torch
+    from PIL import Image
+    from torchvision import transforms
+
+    path = Path(weights_path)
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        log.info("downloading SSCD weights to %s (94 MB, once)", path)
+        urllib.request.urlretrieve(SSCD_URL, path)
+
+    dev = _resolve_device(device)
+    model = torch.jit.load(str(path), map_location=dev).eval()
+
+    preprocess = transforms.Compose([
+        transforms.Resize((size, size), interpolation=transforms.InterpolationMode.BICUBIC),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+    @torch.no_grad()
+    def embed(paths: Sequence[str]) -> np.ndarray:
+        out: list[np.ndarray] = []
+        for start in range(0, len(paths), batch_size):
+            batch = []
+            for p in paths[start : start + batch_size]:
+                with Image.open(p) as im:
+                    batch.append(preprocess(im.convert("RGB")))
+            vectors = model(torch.stack(batch).to(dev)).float().cpu().numpy()
+            out.append(vectors)
+        arr = np.concatenate(out, axis=0)
+        return arr / (np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12)
+
+    return embed
