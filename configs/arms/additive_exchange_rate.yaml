@@ -10,7 +10,7 @@ final_eval: false
 data:
   dataset: acne04
   root: data/acne04
-  splits_dir: data/splits
+  splits_dir: data/splits_subject
   audit_log: runs/test_unseal_audit.jsonl
   fractions: {train: 0.65, val: 0.15, test: 0.20}
   split_seed: 20260819
@@ -20,7 +20,7 @@ data:
   # across one measures memorisation of individuals rather than generalisation.
   subject_grouping: true
   subject_min_cosine: 0.60
-  subject_cache: data/splits/face_embeddings.npz
+  subject_cache: data/splits_subject/face_embeddings.npz
 
 generator:
   source: synth_closed

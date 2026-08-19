@@ -9,7 +9,7 @@ final_eval: false          # set via `fitymi sweep --final-eval` at the very end
 data:
   dataset: acne04
   root: data/acne04
-  splits_dir: data/splits
+  splits_dir: data/splits_subject
   audit_log: runs/test_unseal_audit.jsonl
   fractions: {train: 0.65, val: 0.15, test: 0.20}
   split_seed: 20260819     # frozen by the protocol; changing it invalidates results
@@ -19,14 +19,14 @@ data:
   # across one measures memorisation of individuals rather than generalisation.
   subject_grouping: true
   subject_min_cosine: 0.60
-  subject_cache: data/splits/face_embeddings.npz
+  subject_cache: data/splits_subject/face_embeddings.npz
   # Audited on the real archive, not inherited defaults: see docs/05_acne04_audit.md.
   # pHash 8 percolates to a 14.7% cluster of different people in the same pose; CLIP
   # 0.96 percolates to 27.8%. These values give 1,400 groups, largest cluster 3.
   phash_max_hamming: 2
   embed_min_cosine: 0.98
   embedder: clip
-  embed_cache: data/splits/embeddings.npz
+  embed_cache: data/splits_subject/embeddings.npz
 
 generator:
   source: synth_open
