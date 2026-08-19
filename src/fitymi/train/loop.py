@@ -93,7 +93,18 @@ def evaluate_corpus(
     corpus: Corpus,
     config: TrainConfig,
     device: torch.device | None = None,
-) -> EvalResult:
+    return_predictions: bool = False,
+):
+    """Evaluate `corpus`; optionally also return the per-image predictions.
+
+    Aggregate metrics cannot answer questions about *which* images a model got right,
+    and several of the controls are exactly that kind of question -- whether accuracy
+    differs between test images whose subject also appears in training and those whose
+    subject does not, or how errors distribute across skin tone. Recovering that after
+    the fact means retraining, so the predictions are kept.
+
+    The evaluation loader does not shuffle, so the returned arrays are in corpus order.
+    """
     device = device or config.resolve_device()
     loader = make_loader(
         corpus,
@@ -104,7 +115,10 @@ def evaluate_corpus(
         seed=config.seed,
     )
     y_true, y_pred, probs = predict(model, loader, device)
-    return evaluate(y_true, y_pred, probs, NUM_CLASSES)
+    result = evaluate(y_true, y_pred, probs, NUM_CLASSES)
+    if return_predictions:
+        return result, {"y_true": [int(v) for v in y_true], "y_pred": [int(v) for v in y_pred]}
+    return result
 
 
 def train_model(
@@ -194,6 +208,10 @@ class RunRecord:
     history: dict
     val: dict
     test: dict | None = None
+    #: Per-image validation predictions, in corpus order: images, y_true, y_pred.
+    #: Kept because several controls ask which images a model got right, not how many,
+    #: and recovering that after the fact means retraining.
+    val_predictions: dict | None = None
 
     def save(self, path: str | Path) -> None:
         path = Path(path)

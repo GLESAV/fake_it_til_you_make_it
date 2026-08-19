@@ -169,7 +169,12 @@ def run_arm(
     log.info("running %s: %s", run_id, mixture)
 
     model, history = train_model(mixture, bundle.val, train_config)
-    val_result = evaluate_corpus(model, bundle.val, train_config)
+    val_result, val_predictions = evaluate_corpus(
+        model, bundle.val, train_config, return_predictions=True
+    )
+    # Basenames, not full paths: the record is joined back to the corpus by filename and
+    # ACNE04's are unique, so the absolute path would be 200 runs' worth of duplication.
+    val_predictions["images"] = [Path(r.path).name for r in bundle.val]
 
     test_result = None
     if config.final_eval:
@@ -197,6 +202,7 @@ def run_arm(
         history=asdict(history),
         val=val_result.to_dict(),
         test=test_result,
+        val_predictions=val_predictions,
     )
     record.save(record_path)
     return record
