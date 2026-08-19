@@ -283,6 +283,42 @@ degrades below it, and our LoRA was fine-tuned at 512, so generating at 384 is o
 for the generator rather than merely smaller. **This one is settled by measurement, not by
 argument** (§4.7.1).
 
+### 4.8 What the full study costs, and what it would cost scaled down
+
+At 30 steps and 512px, measured:
+
+| stage | runs / images | hours |
+|---|---|---|
+| closed-set pool (4,740) | — | 18.1 |
+| open-set pool (4,740) | — | 18.1 |
+| guidance selection (5 values × 500 images, 3 seeds each) | 15 runs | 9.6 + 6.7 |
+| mixing sweep, 5 fractions × 5 seeds × 2 generators × 2 inits | 120 runs | 53.7 |
+| real-subset and §8 controls | ~20 runs | ~9 |
+| **total** | | **≈ 115 h** |
+
+Roughly five days of continuous compute on one machine. Recorded here so that any scaling
+decision is made against a number rather than a feeling, and so the reader of the eventual
+paper can see what the design cost.
+
+Two reductions are available and one is not.
+
+**Available: drop from 5 seeds to 3.** Halves the sweep to ~30 h. It costs statistical
+power exactly where the study is weakest — the tail grades, where the per-class intervals
+are already ±8 to ±10 points — so it is the reduction of last resort.
+
+**Available: shrink the open-set pool.** The CPU probe (§4.5.1) and the checkpoint
+comparison both indicate base Stable Diffusion cannot render clinical acne, so the
+open-set arm's curve is expected to sit near the floor. A large effect needs less
+resolution to measure than a small one. The cost is that closed-set and open-set pools
+would differ in size, which is a confound in the one comparison the two arms exist to
+support, so this is only acceptable if the arms are compared at matched draw counts and
+the asymmetry is stated.
+
+**Not available: dropping the scratch initialisation.** A "100% synthetic" arm on an
+ImageNet backbone has already consumed ~1.3M real photographs, and reporting only the
+pretrained arms would mean the study never actually tests the substitution claim it is
+named after.
+
 ## 5. The mixing experiment (primary)
 
 ### 5.1 Budget-matched substitution — answers H1, H2
