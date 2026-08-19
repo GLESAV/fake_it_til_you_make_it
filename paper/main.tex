@@ -180,6 +180,17 @@ budget control. If H1 is refuted, the contribution is larger and the controls in
 \S\ref{sec:results} become the load-bearing part of the argument. Do not reorganise
 the paper around whichever way it lands.}
 
+\paragraph{The prototype effect.} A synthetic arm that \emph{beats} the real arm is
+not by itself evidence that the generated images carry information the real data
+lacked. A generator that reduces within-grade variation yields cleaner prototypes of
+each class, and prototypes are easier to learn from. We encountered this directly:
+a simulator that narrowed within-grade distributions while preserving the
+label--image mapping produced synthetic-trained models that were measurably better.
+It is a plausible mechanism for the 97.6\% reported by \citet{zaghbani2024}. Any arm
+exceeding the $p=0$ baseline is therefore checked against within-class embedding
+variance, test-set difficulty stratification, and transfer to the external validation
+set before being reported as a win. \RESULT{outcome of these checks}
+
 \section{Limitations}
 \label{sec:limitations}
 \begin{itemize}

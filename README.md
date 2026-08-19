@@ -27,7 +27,7 @@ constant, and evaluate every arm on the *same sealed real test set*.
 | Literature review | ✅ `docs/01_related_work.md` |
 | Study protocol | ✅ `docs/02_study_design.md` |
 | Environment audit | ✅ `docs/03_environment.md` |
-| Codebase | ✅ `src/fitymi/`, verified end-to-end on procedural data |
+| Codebase | ✅ `src/fitymi/`, verified end-to-end — see `docs/examples/` |
 | Experiments | ⛔ needs a GPU host + ACNE04 (see `docs/03_environment.md`) |
 | Paper | 🚧 scaffold in `paper/`, results placeholders unfilled |
 
@@ -66,7 +66,7 @@ The four that most of this literature gets wrong, and that we bind ourselves to:
 
 ```bash
 make install          # venv + package
-make test             # 60 unit tests, CPU, ~8s
+make test             # 71 unit tests, CPU, ~30s
 make smoke            # end-to-end pipeline check on procedural data, CPU, ~20 min
 make smoke-null       # the null: gap=0, mixing curve must come out flat
 ```
@@ -85,6 +85,13 @@ moderate case. That matters: a first version only narrowed the within-grade
 distributions, and synthetic-trained models came out *better*, because cleaner
 prototypes of each class are easier to learn from. A gap that doesn't corrupt the
 label-image relationship isn't the gap this study is about.
+
+The most recent smoke run recovers the expected behaviour — balanced accuracy
+0.620 → 0.422 → 0.320 as the synthetic fraction rises, with the larger-gap open-set
+pool below the closed-set one at every point. Artefacts and commentary are in
+[`docs/examples/`](docs/examples/).
+
+![smoke substitution curve](docs/examples/smoke_substitution_curve.png)
 
 The real study needs a GPU host and ACNE04:
 
@@ -111,7 +118,7 @@ src/fitymi/
   analysis/    aggregation and figures
 configs/       one YAML per experimental arm
 scripts/       GPU-host driver scripts
-tests/         60 tests, no GPU or network required
+tests/         71 tests, no GPU or network required
 paper/         arXiv manuscript (LaTeX)
 ```
 

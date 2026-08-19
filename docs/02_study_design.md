@@ -275,7 +275,31 @@ beats this control** — that is the actual bar, and it is lower than "beats p=0
 Evaluate all final models on the external set (§3.4). Synthetic-trained models may
 degrade differently under shift than real-trained ones, in either direction.
 
-### 8.6 Skin-tone stratification
+### 8.6 Prototype-effect check
+
+If a synthetic arm *beats* the real arm, that is not automatically evidence that the
+generated images are good. A generator that reduces within-grade variation produces
+cleaner prototypes of each class, and prototypes are easier to learn from — the
+synthetic arm can win without the generator having contributed any information the
+real data lacked.
+
+We hit exactly this while building the pipeline: a simulator whose synthetic process
+narrowed the within-grade distributions but preserved the label–image mapping made
+synthetic-trained models measurably *better* (see `src/fitymi/data/toy.py`). It is a
+plausible mechanism for the acne prior's 97.6% (§4.1 of the related-work doc), where
+the synthetic classes may be cleaner and more separable than the real ones.
+
+So any arm that beats p=0 gets three follow-ups before it is reported as a win:
+
+1. **Within-class variance** of embeddings, real vs. synthetic, per grade. Lower
+   synthetic variance is the signature.
+2. **Real test-set difficulty stratification.** A prototype-trained model should do
+   disproportionately well on unambiguous test cases and badly on borderline ones.
+   Stratify the test set by inter-grade proximity and check.
+3. **Does the win survive on the external validation set** (§3.4)? A prototype effect
+   is tuned to one corpus's notion of a typical case and should not transfer.
+
+### 8.7 Skin-tone stratification
 Estimate individual typology angle (ITA) from each test image, bin into
 light/intermediate/dark, and report per-bin metrics. ACNE04 is expected to be heavily
 skewed towards lighter skin; the open-set generator can be prompted for tone diversity,
@@ -341,3 +365,4 @@ licence terms for the closed-set arm.
 | Date | Change | Reason |
 |---|---|---|
 | 2026-08-19 | v0.1 initial protocol | — |
+| 2026-08-19 | Added §8.6, the prototype-effect check | Found while building the pipeline: a synthetic process that narrows within-grade variation without breaking the label–image mapping *improves* measured performance. Any arm beating p=0 needs this ruled out before it is reported as a win. |

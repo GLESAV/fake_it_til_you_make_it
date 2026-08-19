@@ -1,0 +1,24 @@
+{
+  "total": 480,
+  "splits": {
+    "train": {
+      "n": 312,
+      "requested": 312.0,
+      "ratio": 1.0,
+      "missing_classes": []
+    },
+    "val": {
+      "n": 73,
+      "requested": 72.0,
+      "ratio": 1.0138888888888888,
+      "missing_classes": []
+    },
+    "test": {
+      "n": 95,
+      "requested": 96.0,
+      "ratio": 0.9895833333333334,
+      "missing_classes": []
+    }
+  },
+  "problems": []
+}

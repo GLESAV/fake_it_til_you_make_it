@@ -1,0 +1,3 @@
+{"timestamp": "2026-08-19T09:04:39.340881+00:00", "run_id": "smoke_synth_closed_sub_p000_s0_173f1efb6f009f30", "reason": "final evaluation of arm sub_p000 (seed 0)", "n_test": 95}
+{"timestamp": "2026-08-19T09:05:29.911287+00:00", "run_id": "smoke_synth_closed_sub_p000_s1_eaf03111da71bc47", "reason": "final evaluation of arm sub_p000 (seed 1)", "n_test": 95}
+{"timestamp": "2026-08-19T09:06:19.532796+00:00", "run_id": "smoke_synth_closed_sub_p000_s2_021c773513283bdb", "reason": "final evaluation of arm sub_p000 (seed 2)", "n_test": 95}
