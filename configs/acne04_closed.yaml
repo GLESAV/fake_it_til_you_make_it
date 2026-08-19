@@ -37,7 +37,18 @@ generator:
                            # optimum here, not at the 7.5 aesthetic default. Confirmed on
                            # validation by configs/arms/guidance_sweep.yaml before use.
   steps: 50
-  n_images: 20000
+  # 4,740 = 5 x the 948-image training budget, allocated across grades in proportion to
+  # the real training histogram (1665/2015/630/430).
+  #
+  # The p=1 arm trains on 948 synthetic images per seed. With five seeds that is 4,740
+  # draws, so a pool of exactly that size is the smallest one from which the seeds CAN be
+  # disjoint. Anything smaller and the seeds share synthetic images -- at a 3,000-image
+  # pool two seeds would overlap on about a third of their training set -- which
+  # correlates them and makes the reported seed variance understate the true variance at
+  # precisely the arm carrying the headline substitution claim.
+  #
+  # The committed 20,000 was a placeholder from before the training budget was known.
+  n_images: 4740
 
 train:
   arch: resnet50
