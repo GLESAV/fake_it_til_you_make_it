@@ -116,6 +116,55 @@ def load_synthetic_pool(config: ExperimentConfig) -> Corpus:
     return pool
 
 
+def build_run_config(
+    spec: MixSpec, train_config: TrainConfig, config: ExperimentConfig, seed: int, label: str
+) -> dict:
+    """The content that gives a run its identity.
+
+    Deliberately excludes `config.name`: an experiment's identity is its content, not the
+    file it was launched from. That is what lets the shared p=0 arm resolve to a single
+    run across the closed-set and open-set sweeps instead of being trained twice.
+
+    Deliberately includes the data configuration: two arms differing only in how the
+    corpus was split are different experiments.
+    """
+    return {
+        "arm": spec.name,
+        "mix_kind": spec.kind,
+        "synthetic_fraction": spec.synthetic_fraction,
+        "real_budget_fraction": spec.real_budget_fraction,
+        "synthetic_multiplier": spec.synthetic_multiplier,
+        # An arm holding no synthetic images is the same experiment whichever
+        # generator arm requested it. Labelling it "none" makes the run ids collide,
+        # so the resume path trains it once instead of once per generator.
+        "generator": label,
+        # The pool's identity, so two arms drawing from different synthetic pools
+        # (say, two guidance scales) never collide even though both are "synth_closed".
+        "pool": config.generator.pool_dir if label.startswith("synth") else None,
+        "arch": train_config.arch,
+        "init": train_config.init,
+        "seed": seed,
+        # The data the run is trained and scored on. Without this two arms differing only
+        # in how the corpus was split -- image-level versus subject-disjoint, v1 versus v2
+        # labels -- produce identical run ids, and the resume path would silently skip the
+        # second as already done if they ever shared an output directory. They are
+        # different experiments and must have different identities.
+        "data": {
+            "splits_dir": config.data.splits_dir,
+            "dataset": config.data.dataset,
+            "label_files": list(config.data.label_files),
+            "split_seed": config.data.split_seed,
+            "dedup": config.data.dedup,
+            "phash_max_hamming": config.data.phash_max_hamming,
+            "embed_min_cosine": config.data.embed_min_cosine,
+            "embedder": config.data.embedder,
+            "subject_grouping": config.data.subject_grouping,
+            "subject_min_cosine": config.data.subject_min_cosine,
+            "fractions": config.data.fractions,
+        },
+    }
+
+
 def run_arm(
     spec: MixSpec,
     bundle: SplitBundle,
@@ -135,23 +184,7 @@ def run_arm(
     mixture = build_mixture(bundle.train, pool, MixSpec(**{**asdict(spec), "seed": seed}))
     label = _generator_label(spec, mixture, config)
 
-    run_config = {
-        "arm": spec.name,
-        "mix_kind": spec.kind,
-        "synthetic_fraction": spec.synthetic_fraction,
-        "real_budget_fraction": spec.real_budget_fraction,
-        "synthetic_multiplier": spec.synthetic_multiplier,
-        # An arm holding no synthetic images is the same experiment whichever
-        # generator arm requested it. Labelling it "none" makes the run ids collide,
-        # so the resume path trains it once instead of once per generator.
-        "generator": label,
-        # The pool's identity, so two arms drawing from different synthetic pools
-        # (say, two guidance scales) never collide even though both are "synth_closed".
-        "pool": config.generator.pool_dir if label.startswith("synth") else None,
-        "arch": train_config.arch,
-        "init": train_config.init,
-        "seed": seed,
-    }
+    run_config = build_run_config(spec, train_config, config, seed, label)
     # Deliberately excludes config.name: the experiment's identity is its content, not
     # the file it was launched from. That is what lets the shared p=0 arm resolve to
     # one run across the closed-set and open-set sweeps instead of being trained twice.

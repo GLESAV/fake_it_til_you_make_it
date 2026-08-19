@@ -93,3 +93,59 @@ def test_provenance_is_recorded(tiny_study):
     assert provenance["config_hash"]
     assert provenance["dataset_hash"]
     assert "python" in provenance["packages"]
+
+
+def _run_config(config, seed=0, label="none"):
+    from dataclasses import asdict, replace
+
+    from fitymi.data.mixing import MixSpec
+    from fitymi.experiment import build_run_config
+    from fitymi.train.loop import TrainConfig
+
+    spec = MixSpec(kind="substitution", synthetic_fraction=0.0)
+    train_config = TrainConfig(**{**asdict(config.train), "seed": seed})
+    return build_run_config(spec, train_config, config, seed, label)
+
+
+def test_run_id_separates_arms_that_differ_only_in_the_split():
+    """Two arms differing only in how the corpus was split are different experiments.
+
+    Without the data block in the run config they hash identically, and the resume path
+    would skip the second as already done if they ever shared an output directory.
+    """
+    from dataclasses import replace
+
+    from fitymi.config import ExperimentConfig
+    from fitymi.utils.provenance import hash_obj
+
+    image_level = ExperimentConfig()
+    subject_disjoint = replace(
+        image_level,
+        data=replace(image_level.data, subject_grouping=True,
+                     splits_dir="data/splits_subject"),
+    )
+    assert hash_obj(_run_config(image_level)) != hash_obj(_run_config(subject_disjoint))
+
+
+def test_run_id_separates_the_two_label_sets():
+    """Protocol §8.9 repeats the headline under the second annotation team's labels."""
+    from dataclasses import replace
+
+    from fitymi.config import ExperimentConfig
+    from fitymi.utils.provenance import hash_obj
+
+    v1 = ExperimentConfig()
+    v2 = replace(v1, data=replace(v1.data, label_files=("NNEW_v2_all.txt",)))
+    assert hash_obj(_run_config(v1)) != hash_obj(_run_config(v2))
+
+
+def test_run_id_ignores_the_config_filename():
+    """The p=0 arm must resolve to one run across the closed- and open-set sweeps."""
+    from dataclasses import replace
+
+    from fitymi.config import ExperimentConfig
+    from fitymi.utils.provenance import hash_obj
+
+    closed = ExperimentConfig(name="acne04_closed")
+    reopened = replace(closed, name="acne04_open")
+    assert hash_obj(_run_config(closed)) == hash_obj(_run_config(reopened))
