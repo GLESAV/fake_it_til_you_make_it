@@ -404,6 +404,47 @@ person cannot infer the grade from that alone. It is the one piece of good news 
 section, because it puts a ceiling on how much the subject leakage of §5.2 can inflate a
 score by identity recognition alone.
 
+### 5.6 A property of group-aware splitting worth knowing about
+
+Grouping by identity and then splitting to hit image proportions does **not** split the
+people proportionally, and the gap is large:
+
+| split | images | distinct identities | images per identity | share of images | share of identities |
+|---|---|---|---|---|---|
+| train | 948 | 267 | 3.43 | 65.1% | **48.5%** |
+| val | 218 | 129 | 1.59 | 15.0% | **23.5%** |
+| test | 291 | 154 | 1.81 | 20.0% | **28.0%** |
+
+The mechanism is mechanical: a group-aware splitter fills the largest split first and
+cannot break a group, so high-multiplicity subjects land in training and the smaller
+splits end up holding many one-image subjects. Training holds 65% of the photographs but
+under half of the people.
+
+**We are recording this rather than correcting it, because its direction is favourable.**
+A test set with more distinct people per image is a *better* estimator of
+generalisation to a new patient — the images in it are closer to independent. The cost
+falls on the training side, where the effective diversity is lower than the image count
+suggests, which makes our real-only baseline if anything conservative.
+
+It does matter for one thing downstream. **A closed-set generator fine-tuned on this
+training split is learning from 267 distinct people**, and only 57 and 47 of them in the
+two tail grades:
+
+| grade | training images | distinct identities | effective identities |
+|---|---|---|---|
+| mild | 333 | 116 | 93.2 |
+| moderate | 403 | 126 | 89.8 |
+| severe | 126 | **57** | 46.9 |
+| very severe | 86 | **47** | 40.4 |
+
+That is the identity budget the synthetic pool has to work with, and it is the reason
+§8.10 of the protocol measures identity diversity of every generated pool. A generator
+asked to produce thousands of very-severe faces has 47 people to generalise from.
+
+An alternative splitter that stratifies group assignment by group size would equalise the
+subject proportions. We have not adopted it: it would change the frozen splits, and the
+current asymmetry costs us nothing we want.
+
 ## 6. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
