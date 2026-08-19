@@ -31,3 +31,6 @@ paper/*.out
 paper/*.bbl
 paper/*.blg
 paper/*.pdf
+
+# local run logs
+/runs_*.log

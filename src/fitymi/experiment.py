@@ -52,7 +52,19 @@ def prepare_data(config: ExperimentConfig) -> SplitBundle:
         raise ValueError(f"unknown dataset {data.dataset!r}")
 
     if data.dedup:
-        corpus, report = assign_groups(corpus, DedupConfig())
+        dedup_config = DedupConfig(
+            phash_max_hamming=data.phash_max_hamming,
+            embed_min_cosine=data.embed_min_cosine,
+            use_embeddings=data.embedder != "none",
+        )
+        embedder = None
+        if data.embedder == "clip":
+            from .controls.embedders import cached_embedder, clip_embedder
+
+            embedder = cached_embedder(clip_embedder(), data.embed_cache)
+        elif data.embedder != "none":
+            raise ValueError(f"unknown embedder {data.embedder!r}")
+        corpus, report = assign_groups(corpus, dedup_config, embedder=embedder)
         write_report(report, splits_dir / "dedup_report.json")
         log.info(
             "dedup: %d images -> %d groups (%d duplicate clusters, largest %.1f%%)",

@@ -14,6 +14,13 @@ data:
   fractions: {train: 0.65, val: 0.15, test: 0.20}
   split_seed: 20260819     # frozen by the protocol; changing it invalidates results
   dedup: true
+  # Audited on the real archive, not inherited defaults: see docs/05_acne04_audit.md.
+  # pHash 8 percolates to a 14.7% cluster of different people in the same pose; CLIP
+  # 0.96 percolates to 27.8%. These values give 1,400 groups, largest cluster 3.
+  phash_max_hamming: 2
+  embed_min_cosine: 0.98
+  embedder: clip
+  embed_cache: data/splits/embeddings.npz
 
 generator:
   source: synth_open

@@ -1,0 +1,208 @@
+# A data-quality audit of ACNE04
+
+**Run 2026-08-19** on the archive distributed from `github.com/xpwu95/LDL`
+(`Classification.tar`, 1.13 GB, SHA of the extracted image set recorded in
+`data/splits/dedup_report.json`). Every number below is reproducible from the scripts
+in this repository against that archive; none of it requires a model, a GPU, or a
+judgement call.
+
+We went looking for near-duplicates because our own splitter refused to proceed
+(§2). We found something larger, and it bears on every published number on this
+benchmark.
+
+---
+
+## Summary
+
+| Finding | Measurement |
+|---|---|
+| Byte-identical duplicate images | **38 groups, 76 of 1,457 files (5.2%)** |
+| Duplicate groups with **conflicting severity labels** | **8 of 38 (21%)** |
+| Duplicate groups with **conflicting lesion counts** | **26 of 38 (68%)** |
+| Grade agreement between two annotations of the *same image* | **78.9%** (95% Wilson CI **63.7–88.9%**) |
+| Exact lesion-count agreement on the same image | **31.6%** |
+| Mean train/test leakage in the **dataset's own published 5-fold splits** | **4.25%** of each test set |
+| — of which free correct answers (labels agree) | 3.56% |
+| — of which forced errors (labels conflict) | 0.68% |
+| Files whose `levleN` filename prefix disagrees with the label | **42 of 1,457** |
+| Published accuracy on this benchmark | **83.7–87.3%** |
+
+The last two rows are the point. **Reported ACNE04 accuracies sit at or above the
+dataset's own annotation self-consistency**, measured on images the dataset annotated
+twice without realising it.
+
+![ACNE04 audit](examples/acne04_audit.png)
+
+---
+
+## 1. The dataset contains 38 exact duplicates
+
+Grouping all 1,457 files by MD5 of the file bytes yields 38 groups of size 2 — 76
+files, 5.2% of the corpus. These are not near-duplicates or re-encodes; they are the
+same bytes under two filenames, and in most cases under two *different* filename
+prefixes (`levle0_120.jpg` and `levle1_486.jpg`).
+
+Decoding to pixels and hashing again yields exactly the same 38 groups, so there are
+no additional re-encoded copies hiding behind different compression.
+
+## 2. Generic perceptual and semantic embedders cannot find them safely
+
+Our splitter is group-aware: it refuses to break a duplicate cluster across splits.
+That makes it sensitive to over-clustering, and on ACNE04 with the shipped default
+(pHash Hamming ≤ 8) it produced a single cluster holding **214 images, 14.7% of the
+corpus**, and the guard fired.
+
+Sweeping the threshold shows a percolation transition rather than a plateau:
+
+| pHash Hamming ≤ | linked pairs | groups | largest cluster |
+|---|---|---|---|
+| 0 | 38 | 1,419 | 2 (0.1%) |
+| 2 | 42 | 1,415 | 2 (0.1%) |
+| 4 | 62 | 1,397 | 5 (0.3%) |
+| 6 | 193 | 1,281 | 31 (2.1%) |
+| **8** (shipped default) | **720** | **1,001** | **214 (14.7%)** |
+| 10 | 2,567 | 675 | 388 (26.6%) |
+| 12 | 7,256 | 480 | 922 (63.3%) |
+
+Visual inspection of sampled pairs at each distance settles what the numbers imply:
+at Hamming 0 the pairs are the byte-identical duplicates; at 4 roughly a third are the
+same subject and the rest are different people; at 6 and beyond they are overwhelmingly
+different people who happen to share the dataset's single pose. **pHash is matching the
+ACNE04 capture protocol — half-face at ~70°, dark background, similar lighting — not
+duplication.** Every image in this dataset looks like every other image to a perceptual
+hash.
+
+CLIP ViT-B/32 fails the same way for the same reason. The median pairwise cosine
+across the whole corpus is **0.83**, and percolation starts at 0.96:
+
+| CLIP cosine ≥ | linked pairs | groups | largest cluster |
+|---|---|---|---|
+| 0.99 | 40 | 1,417 | 2 (0.1%) |
+| 0.98 | 58 | 1,400 | 3 (0.2%) |
+| 0.97 | 255 | 1,246 | 35 (2.4%) |
+| 0.96 | 1,448 | 844 | 405 (27.8%) |
+| 0.95 | 6,335 | 525 | 688 (47.2%) |
+
+Calibration point: all 38 byte-identical pairs sit at CLIP cosine **1.0000**, so 0.99
+recovers exactly the exact duplicates plus two extra links.
+
+**Consequence for our protocol.** We set `phash_max_hamming: 2` and
+`embed_min_cosine: 0.98`, which together give 1,400 groups with a largest cluster of 3
+(0.2%) — comfortably inside the 5% guard — and we state the residual risk plainly:
+*neither instrument detects same-subject-different-photograph.* A face-identity
+embedding would, and ACNE04's capture protocol makes repeat subjects likely. Until
+that is run, our own splits carry an unmeasured same-subject leakage risk, and so does
+every other published result on this benchmark. This is a limitation of the audit, not
+a clean bill of health.
+
+## 3. The published 5-fold splits leak, in every fold
+
+ACNE04 ships fixed splits (`NNEW_trainval_{0..4}.txt` / `NNEW_test_{0..4}.txt`),
+1,165 train / 292 test each. Intersecting the 38 duplicate groups against each fold:
+
+| Fold | duplicate groups straddling train/test | leaked test images | free correct | forced errors |
+|---|---|---|---|---|
+| 0 | 12 | 12 (4.1%) | 7 (2.4%) | 5 (1.7%) |
+| 1 | 15 | 15 (5.1%) | 15 (5.1%) | 0 |
+| 2 | 12 | 12 (4.1%) | 10 (3.4%) | 2 (0.7%) |
+| 3 | 11 | 11 (3.8%) | 11 (3.8%) | 0 |
+| 4 | 12 | 12 (4.1%) | 9 (3.1%) | 3 (1.0%) |
+| **mean** | | **4.25%** | **3.56%** | **0.68%** |
+
+Across all five folds, 62 distinct images appear in some test split while a
+byte-identical copy sits in the corresponding training split.
+
+A model that memorises its training set therefore receives, on average, **3.56% of the
+test set for free** and is **guaranteed to fail on another 0.68%** where the duplicate
+carries a different label. Deep networks memorise small training sets readily, so the
+free fraction is not hypothetical. This does not explain the whole 83.7–87.3% band, but
+it is a systematic upward bias of a few points sitting inside every number ever reported
+on these splits, and no paper we verified mentions it.
+
+## 4. The labels are derived, and the derivation exposes the noise
+
+The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
+grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
+>50 → 3, with **zero** exceptions. The severity label carries no information beyond the
+count; all annotation noise originates in counting.
+
+That makes the duplicates a free repeat-annotation experiment. The same image, counted
+twice, without the annotators knowing it was the same image:
+
+- **Exact count agreement: 12 of 38 (31.6%).**
+- Median |Δcount| = 1, mean 3.0, maximum 16.
+- Median *relative* difference 22%.
+- **Grade agreement: 30 of 38 (78.9%)**, 95% Wilson CI **63.7–88.9%**.
+
+All 8 grade disagreements are cases where the two counts fall in different Hayashi
+bands. Four straddle the 5/6 boundary; four straddle 20/21. The 20/21 cases are not
+boundary jitter — they are (9 vs 21), (8 vs 24), (7 vs 22), (9 vs 24), differences of a
+factor of 2.4–3. Their filenames form consecutive runs
+(`levle1_16/20/22/23` ↔ `levle2_150/151/152/153`), which is the signature of a block of
+images ingested twice and counted by different procedures rather than of individual
+annotator slips.
+
+**This is the finding with teeth.** ACNE04's own labels reproduce at 78.9% when the
+identical photograph is annotated a second time. Published accuracies on the benchmark
+are 83.7% (Wu et al.'s baseline), 84.11% (Label Distribution Smoothing), 86.06%
+(KIEGLFN) and 87.33%. The upper end of the self-consistency confidence interval is
+88.9%, so these results are not *impossible* — but they are being scored against a
+label function that is itself unreliable at roughly the rate they are claiming to
+improve upon, and the 4.25% leakage pushes in the same direction. Reported
+improvements of 0.4 points (83.70 → 84.11) are far inside this noise.
+
+Caveat stated up front: n = 38 is small and the interval is wide. The 78.9% is an
+*estimate of annotation reproducibility*, not a hard ceiling, and duplicates may not be
+a random sample of the corpus. The correct reading is not "these papers are wrong" but
+"this benchmark cannot currently resolve differences of a few points, and nobody has
+been reporting that."
+
+## 5. The filename prefix is not a label
+
+**42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
+(e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
+labels from filenames — a natural shortcut given the naming scheme — gets 2.9% of the
+dataset wrong. Our loader reads the label files and ignores the prefix.
+
+---
+
+## 6. What this changes for our study
+
+1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
+   embedder enabled.** The shipped defaults were tuned for datasets where perceptual
+   hashing has signal; on a single-pose face corpus they do not.
+2. **We do not use the published folds.** Protocol §3.2 already required splitting
+   after deduplication on our own seed; this audit turns that from hygiene into a
+   necessity, since the published folds leak.
+3. **The comparison to the 83.7–87.3% band is now heavily qualified.** Our real-only
+   arm is trained on de-duplicated, leak-free splits and is scored with balanced
+   accuracy. It should be expected to land *below* the published band for three
+   compounding reasons — no leakage bonus, a harder metric, and a smaller training set
+   after deduplication — and that is not evidence of a broken pipeline.
+4. **The annotation-noise estimate becomes a reference line in our results.** If the
+   synthetic-substitution curve's decline is smaller than the label noise, we cannot
+   claim to have measured it. 78.9% grade reproducibility is the number to beat before
+   any effect of a few points is interpretable.
+5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
+   one channel that could still be inflating both our numbers and the literature's.
+
+## 7. Publishability
+
+Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
+data question: a benchmark used by a substantial acne-grading literature contains 5.2%
+exact duplicates, leaks ~4.25% of every published test split, has 21% grade
+disagreement on its own repeated images, and ships 42 misleading filenames. None of it
+requires a model. All of it is checkable in minutes by anyone with the archive.
+
+Two things to do before claiming priority: search for an existing ACNE04 audit (we
+found none in the 2026-08-19 literature pass, but absence of evidence from one pass is
+weak), and run the same-subject analysis in §6.5 so the audit is complete rather than
+partial.
+
+## Reproducing
+
+```
+make prepare CONFIG=configs/acne04_closed.yaml   # writes data/splits/dedup_report.json
+python scripts/audit_acne04.py                   # the tables above
+python scripts/make_acne04_audit_figure.py       # docs/examples/acne04_audit.png
+```

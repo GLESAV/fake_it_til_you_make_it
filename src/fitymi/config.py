@@ -30,6 +30,17 @@ class DataConfig:
     )
     split_seed: int = 20260819
     dedup: bool = True
+    #: Deduplication thresholds. The library defaults were tuned for corpora where
+    #: perceptual hashing has signal. ACNE04 is a single-pose face corpus where it does
+    #: not: at Hamming 8 pHash links 720 pairs and percolates into a cluster holding
+    #: 14.7% of the dataset, and the pairs it links are different people in the same
+    #: pose. See docs/05_acne04_audit.md for the threshold sweep these values come from.
+    phash_max_hamming: int = 2
+    embed_min_cosine: float = 0.98
+    #: "clip" uses CLIP ViT-B/32 (needs transformers + a one-time model download);
+    #: "none" disables embedding-based linkage and leaves only perceptual hashing.
+    embedder: str = "clip"
+    embed_cache: str = "data/splits/embeddings.npz"
     #: Toy-mode knobs, ignored for acne04.
     toy_n_real: int = 600
     toy_n_synth: int = 1200
