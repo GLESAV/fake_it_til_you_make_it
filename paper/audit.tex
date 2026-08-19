@@ -372,10 +372,81 @@ defensible statement is narrower and still substantial: on this dataset, with th
 architecture and budget, image-level splitting is worth $+4.5$ balanced-accuracy points,
 concentrated almost entirely in the two clinically important grades.
 
+\section{The instruments need calibrating too}
+\label{sec:calibration}
+
+Three times in this audit a published or library default threshold turned out to be wrong
+for ACNE04, in the same way each time. The pattern is not about acne and we state it
+generally, because it applies to any dataset audit that groups or flags by embedding
+similarity, and medical imaging corpora are exactly where it bites --- they are
+homogeneous by construction.
+
+\begin{center}
+\begin{tabular}{llr}
+\toprule
+instrument & usual threshold & what it does on ACNE04 \\
+\midrule
+perceptual hash & Hamming $\leq 8$ & one cluster holding 14.7\% of the corpus \\
+CLIP ViT-B/32 & cosine $\geq 0.95$ & percolates at 0.96; corpus median cosine is 0.83 \\
+SSCD \citep{somepalli2023} & $\geq 0.5$ & flags 82.6\% of real images as copies \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Each of those thresholds was chosen on a heterogeneous corpus --- web images, ImageNet,
+LAION --- where two arbitrary items share almost nothing. Every ACNE04 image is a half-face
+photograph at roughly $70^\circ$ under similar lighting, so the \emph{null} distribution of
+similarity between unrelated items sits far to the right and an absolute threshold carried
+across corpora measures a different thing on each.
+
+\paragraph{Calibrating to a stated error rate.}
+The remedy is to take the threshold from the corpus's own null --- the similarity between
+an item and an unrelated item of the same kind --- at a stated false-positive rate. On
+ACNE04, holding the per-image rate at 1\% requires \textbf{0.824} against the published
+0.5. We report the null's shape alongside every rate, because a rate quoted without the
+null it was measured against is not interpretable.
+
+Two details decide whether this works, and we got both wrong before getting them right.
+
+\emph{Per item or per pair.} Counting per pair reads reassuringly small on any large
+corpus: 5.3\% of ACNE04 pairs exceed SSCD 0.5, which sounds tolerable until one notices it
+means 82.6\% of \emph{images} have a false match. Per-item is the right denominator when
+each item is asked an independent question, as in memorisation. It is the wrong one when
+most items are \emph{expected} to have a true match --- for identity grouping, 84\% of
+ACNE04 images genuinely belong to a multi-image subject, so the per-item maximum measures
+the true positive and the calibration returns a threshold of 1.0.
+
+\emph{An error rate alone is not sufficient for grouping.} Grouping takes the transitive
+closure of the links, so individually rare false links chain. A 1\% per-pair rate on ACNE04
+permits an identity threshold of 0.318, which merges 89.5\% of the corpus into one cluster.
+Both constraints have to bind. Applied to the identity embedder, the procedure recommends a
+minimum of 0.458; the 0.60 we chose by stability sweep and visual inspection sits above it
+with a four-fold margin on the error budget.
+
+\paragraph{Why this is not a footnote.}
+An audit that inherits an absolute similarity threshold from web-scale copy-detection work
+and applies it to a medical or face corpus reports a number dominated by its false-positive
+rate. On ACNE04 the error is not marginal: 82.6\% against a true duplicate rate of 5.2\%.
+
+It cuts both ways, and the direction matters for how such results should be read. A naive
+audit of our own closed-set generator reports \textbf{12.00\%} of generated images as
+near-copies of a training image at the published threshold. Calibrated on the corpus, the
+figure is \textbf{0.00\%}, and the maximum similarity between any generated image and any
+training image is 0.584 --- against 0.976 between two genuinely distinct real photographs.
+The uncalibrated number would have condemned a generator that memorised nothing.
+
+The same argument applies to the acne prior of \S\ref{sec:audit}, whose stated motivation
+is anonymity and which reports no nearest-neighbour audit at all: on this corpus, that
+claim cannot be checked with an off-the-shelf threshold either.
+
 \section{Limitations}
 
 The within-release reproducibility estimate rests on $n=38$ duplicate pairs, and those
-pairs need not be a random sample of the corpus. The cross-team comparison cannot
+pairs need not be a random sample of the corpus. The calibration procedure of
+\S\ref{sec:calibration} assumes the corpus's own null is a good proxy for the null the
+audit cares about; where a genuinely related pair sits inside the reference set it must be
+excluded by hand, and failing to do so returns a threshold of 1.0 rather than an obviously
+wrong answer. The cross-team comparison cannot
 separate ``team A missed lesions'' from ``team B over-segmented'' without a third
 annotation; our claim is symmetric and does not require assigning fault. Identity
 clustering rests on an ArcFace threshold; we report the full threshold sweep and the
@@ -393,6 +464,8 @@ python scripts/audit_acne04_subjects.py         # identity structure and leakage
 python scripts/compare_acne04_versions.py --v2 <acne04v2>/Acne04-v2_annotations.json
 python scripts/make_acne04_audit_figure.py
 python scripts/make_acne04_leakage_figure.py
+fitymi calibrate --embedder sscd            # threshold calibration, per instrument
+fitymi calibrate --embedder face --fpr 0.01
 \end{verbatim}
 
 \section*{Ethics}
