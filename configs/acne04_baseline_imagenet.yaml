@@ -1,3 +1,9 @@
+# DELIBERATELY IMAGE-LEVEL. This is the leakage CONTROL arm, not a study arm: it splits
+# the way every published ACNE04 result does, which carries 74.5% subject leakage, so
+# that the matched pair against acne04_baseline_imagenet_subject.yaml measures what that
+# leakage is worth. Protocol §8.8 forbids image-level splits for anything reported as a
+# study result. Do not copy this file as a template.
+#
 # Real-only baseline, imagenet init. No synthetic pool involved: this establishes
 # where a leak-free, deduplicated ACNE04 arm actually lands, which is the anchor
 # every substitution arm is measured against. See docs/05_acne04_audit.md for why

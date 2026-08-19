@@ -5,13 +5,13 @@
 # split only, then used to produce the synthetic pool. Answers "can a generator
 # recycle a small real dataset into a larger useful one?"
 name: acne04_baseline_scratch
-output_dir: runs/acne04_baseline
+output_dir: runs/acne04_baseline_scratch
 final_eval: false          # set via `fitymi sweep --final-eval` at the very end
 
 data:
   dataset: acne04
   root: data/acne04
-  splits_dir: data/splits
+  splits_dir: data/splits_subject
   audit_log: runs/test_unseal_audit.jsonl
   fractions: {train: 0.65, val: 0.15, test: 0.20}
   split_seed: 20260819     # frozen by the protocol; changing it invalidates results
@@ -22,7 +22,11 @@ data:
   phash_max_hamming: 2
   embed_min_cosine: 0.98
   embedder: clip
-  embed_cache: data/splits/embeddings.npz
+  embed_cache: data/splits_subject/embeddings.npz
+  # Protocol §8.8: subject-disjoint, like every study arm.
+  subject_grouping: true
+  subject_min_cosine: 0.60
+  subject_cache: data/splits_subject/face_embeddings.npz
 
 generator:
   source: synth_closed

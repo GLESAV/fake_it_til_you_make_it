@@ -17,6 +17,12 @@ data:
   fractions: {train: 0.65, val: 0.15, test: 0.20}
   split_seed: 20260819
   dedup: true
+  # Protocol §8.8, mandatory. ACNE04 is ~600 people in 1,457 photographs; an image-level
+  # split puts 77% of the test set's faces in the training set too, so a curve measured
+  # across one measures memorisation of individuals rather than generalisation.
+  subject_grouping: true
+  subject_min_cosine: 0.60
+  subject_cache: data/splits/face_embeddings.npz
 
 generator:
   source: synth_closed
