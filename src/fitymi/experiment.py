@@ -47,7 +47,7 @@ def prepare_data(config: ExperimentConfig) -> SplitBundle:
     elif data.dataset == "acne04":
         from .data.acne04 import load_acne04
 
-        corpus = load_acne04(data.root)
+        corpus = load_acne04(data.root, label_files=tuple(data.label_files))
     else:
         raise ValueError(f"unknown dataset {data.dataset!r}")
 

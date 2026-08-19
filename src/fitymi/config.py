@@ -23,6 +23,10 @@ class DataConfig:
     #: "acne04" for the real study, "toy" for the pipeline smoke test.
     dataset: str = "acne04"
     root: str = "data/acne04"
+    #: Which label files the ACNE04 loader reads. The default pair covers all 1,457
+    #: images. Protocol §8.9 uses ["NNEW_v2_all.txt"] to repeat the headline comparison
+    #: under the independent ACNE04-v2 annotations; see scripts/make_v2_labels.py.
+    label_files: tuple[str, ...] = ("NNEW_trainval_0.txt", "NNEW_test_0.txt")
     splits_dir: str = "data/splits"
     audit_log: str = "runs/test_unseal_audit.jsonl"
     fractions: dict[str, float] = field(
