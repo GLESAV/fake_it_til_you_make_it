@@ -16,12 +16,20 @@ CONFIG=${CONFIG:-configs/acne04_closed.yaml}
 OUT=${OUT:-models/closed_set_lora}
 BASE=${BASE:-runwayml/stable-diffusion-v1-5}
 RANK=${RANK:-16}
-STEPS=${STEPS:-4000}
-# Intermediate checkpoints so the step count can be SELECTED on validation rather than
-# assumed. 4,000 optimizer steps at effective batch 16 is ~67 epochs over 948 images,
-# which is deep into the regime where a LoRA memorises its training set -- and this study
-# audits memorisation, so the amount of fine-tuning has to be a measured choice.
-CKPT=${CKPT:-1000}
+# 900 optimizer steps at effective batch 16 is ~15 epochs over the 948-image training
+# split. The reference script's 4,000 would be ~67 epochs, which is both deep into the
+# regime where a LoRA memorises its training set -- and this study audits memorisation --
+# and, measured on this machine, a twelve-hour job for one of two generators.
+STEPS=${STEPS:-900}
+# Checkpoints so the step count is SELECTED on validation rather than assumed
+# (protocol §4.4 treats generation hyperparameters as swept, not defaulted).
+CKPT=${CKPT:-300}
+
+# Batch size is 1 with accumulation, not 4, because on Apple Silicon the larger
+# micro-batch is measurably SLOWER per image at 512px: 0.52 s/image at batch 1 against
+# 0.73 s/image at batch 4. Effective batch is unchanged at 16.
+MICRO=${MICRO:-1}
+ACCUM=${ACCUM:-16}
 RES=${RES:-512}
 
 # The diffusers reference trainer is vendored, not resolved from the installed package:
@@ -51,7 +59,7 @@ test -f "$OUT/captions.jsonl" || { echo "no caption manifest at $OUT" >&2; exit 
   --train_data_dir="$OUT/train" \
   --caption_column=text \
   --resolution="$RES" --center_crop --random_flip \
-  --train_batch_size=4 --gradient_accumulation_steps=4 \
+  --train_batch_size="$MICRO" --gradient_accumulation_steps="$ACCUM" \
   --max_train_steps="$STEPS" \
   --learning_rate=1e-04 --lr_scheduler=cosine --lr_warmup_steps=0 \
   --rank="$RANK" \

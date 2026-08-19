@@ -219,6 +219,36 @@ not show the fidelity–diversity trade inverts, and it says nothing about the c
 arm, whose whole purpose is to supply the concept the base model lacks. Those are for the
 real sweep, on GPU, with the pre-committed reading in §4.5.
 
+### 4.6 Fine-tuning budget for the closed-set generator
+
+Set 2026-08-19, from measurement rather than from the reference script's defaults.
+
+**900 optimizer steps at effective batch 16**, which is roughly 15 epochs over the
+948-image training split, with checkpoints every 300 so the step count is selected on
+validation like every other generation hyperparameter (§4.4).
+
+The diffusers reference recipe's 4,000 steps would be ~67 epochs. Two reasons that is the
+wrong number here, and they point the same way:
+
+1. **This study audits memorisation.** A rank-16 LoRA given 67 passes over 948 faces is
+   deep into the regime where it reproduces its training set, and the closed-set arm's
+   whole claim rests on the synthetic pool not being a laundered copy of the real one.
+   Choosing the number that maximises memorisation and then measuring memorisation is not
+   a control, it is a foregone conclusion.
+2. **It is not affordable.** Measured on this machine, 4,000 steps is a twelve-hour job
+   for one of two generators, against a mixing sweep that needs ~54 GPU-hours.
+
+Micro-batch is 1 with 16-step accumulation rather than 4 with 4, because on Apple Silicon
+the larger micro-batch is measurably *slower per image* at 512px — 0.52 s/image at batch 1
+against 0.73 s/image at batch 4. Effective batch is identical either way.
+
+**What this costs us.** An under-trained generator is a confound in the opposite
+direction: if the closed-set arm underperforms, "we did not fine-tune enough" becomes a
+live alternative to "synthetic cannot substitute." The checkpoint sweep is what
+distinguishes them — if validation performance is still climbing at 900 steps we say so
+and extend, and if it has plateaued the budget was sufficient. Reporting the checkpoint
+curve is not optional.
+
 ## 5. The mixing experiment (primary)
 
 ### 5.1 Budget-matched substitution — answers H1, H2
@@ -544,3 +574,4 @@ licence terms for the closed-set arm.
 | 2026-08-19 | Dedup thresholds changed from the library defaults to phash ≤ 2, CLIP cosine ≥ 0.98. | At Hamming 8 perceptual hashing percolates into a cluster holding 14.7% of ACNE04 and links different people in the same pose; CLIP percolates at 0.96. |
 | 2026-08-19 | §8.10 added: identity diversity of every synthetic pool. | The audit showed ACNE04 is ~600 people, so a closed-set generator is fitted to ~450 identities. Identity collapse is invisible to FID and to per-image quality metrics, is distinct from memorisation, and would explain a substitution failure on its own. Measured with the same instrument as the subject-disjoint splitter so the two are calibrated together. |
 | 2026-08-19 | §4.5 added: the guidance optimum may be concept-dependent. | The 2.0 optimum comes from ImageNet classes Stable Diffusion renders well. Low guidance buys diversity by loosening prompt adherence, which may invert for a concept the generator renders badly -- the very failure Fan et al. name as the cause of supervised underperformance. Stated as an expectation before the sweep runs, with grade-conditional fidelity reported alongside accuracy so "did not help" is separable from "did not draw acne". |
+| 2026-08-19 | §4.6 added: closed-set fine-tuning budget cut from the reference 4,000 steps to 900 (~15 epochs), micro-batch 1 with 16-step accumulation. | 4,000 steps is ~67 epochs over 948 faces, which maximises the memorisation this study exists to audit, and measured 12 hours on this machine against a 54-GPU-hour sweep. Micro-batch 1 is 0.52 s/image against 0.73 at batch 4 on Apple Silicon. Checkpoints every 300 so the budget is selected on validation and the risk of under-training is measured rather than assumed. |
