@@ -272,6 +272,20 @@ even when trained on a fully synthetic dataset" — is true only at top-4/top-5,
 all four arms are within 0.2 points of each other because the metric has saturated on
 a six-class problem. **Do not cite the abstract's framing; cite Table 4.**
 
+**Their fully synthetic arm is curated by real data, which the framing does not
+mention.** The generation pipeline has two filtering stages: a binary skin/non-skin
+EfficientNet, and then an ensemble of EfficientNetV2, RegNetZ and Swin-Transformer that
+predicts the disease label and keeps only the correctly-labelled images. That ensemble is
+"pretrained on the macroscopic dataset" — their real corpus. So every synthetic image in
+their 500-image "fully synthetic" set survived a selection function computed from real
+data.
+
+That is not fraud and it is not even unusual; it is what everyone does. But it means the
+arm is not 100% synthetic in the sense the substitution question asks about, any more than
+an ImageNet-pretrained backbone is. Real information enters through the curation rather
+than through the pixels, in a quantity nobody measures. Our protocol §4.9 declines to
+filter for this reason and reports the artefact rate instead.
+
 One further observation from their §3.3 that we should treat as a finding rather than
 an aside: early stopping triggered **only** on the fully-synthetic arm, and its
 validation accuracy peaked at 89% while its real-test top-1 was 47.29%. They read this

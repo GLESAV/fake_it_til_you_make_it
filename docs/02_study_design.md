@@ -319,6 +319,37 @@ ImageNet backbone has already consumed ~1.3M real photographs, and reporting onl
 pretrained arms would mean the study never actually tests the substitution claim it is
 named after.
 
+### 4.9 We do not filter the synthetic pool, and that is a decision
+
+Stated 2026-08-19, because the alternative is standard practice and looks like an
+improvement.
+
+A visible minority of generated images are artefacts — multi-panel composites, distorted
+anatomy, extreme crops — even with a negative prompt that names them. The obvious response
+is to filter: run the pool through a classifier and keep the images whose predicted label
+matches the requested one. Akrout et al. do exactly this, in two stages, and it is why
+their synthetic pool looks as clean as it does.
+
+**We do not, because filtering with a real-data-trained model leaks real data into the
+synthetic arm.** Their filter is an ensemble "pretrained on the macroscopic dataset" —
+their real corpus. Every synthetic image that survives it has been selected by a function
+of real data. A "100% synthetic" arm curated that way has consumed real information
+through the back door, in the same way an ImageNet-pretrained backbone has: not in its
+training images, but in the choices that shaped them. The quantity is smaller and much
+harder to see, which is exactly why it should be named.
+
+So the pool goes into the mixing experiment as generated, artefacts included, and we
+report the artefact rate as a property of the generator rather than removing it and
+reporting a cleaner number. If the closed-set arm underperforms, "the pool contained
+junk" is a live explanation — and it is the *correct* explanation to be left with, because
+a generator that produces junk at rate *r* is worth less than one that does not, and a
+substitution study should say so rather than curating the difference away.
+
+**The filtered variant is available as an ablation and is labelled as one.** If we run it,
+it is reported as "synthetic, curated by a real-data model", never as "synthetic", and its
+comparison to the unfiltered arm measures the value of the curation rather than of the
+generator.
+
 ## 5. The mixing experiment (primary)
 
 ### 5.1 Budget-matched substitution — answers H1, H2
@@ -659,4 +690,5 @@ licence terms for the closed-set arm.
 | 2026-08-19 | §4.6 added: closed-set fine-tuning budget cut from the reference 4,000 steps to 900 (~15 epochs), micro-batch 1 with 16-step accumulation. | 4,000 steps is ~67 epochs over 948 faces, which maximises the memorisation this study exists to audit, and measured 12 hours on this machine against a 54-GPU-hour sweep. Micro-batch 1 is 0.52 s/image against 0.73 at batch 4 on Apple Silicon. Checkpoints every 300 so the budget is selected on validation and the risk of under-training is measured rather than assumed. |
 | 2026-08-19 | §8.2 amended: memorisation threshold calibrated to a 1% per-image false-positive rate on the corpus (0.824 on ACNE04) rather than inherited as 0.5 from Somepalli et al. | Their 0.5 was calibrated on LAION. On ACNE04, 82.6% of real images have another real image above it and the maximum between two distinct real images is 0.976, so the published threshold reports a false-positive rate rather than a memorisation rate. |
 | 2026-08-19 | Synthetic pool size set to 4,740 per generator (was a 20,000 placeholder). | 4,740 is 5x the 948-image training budget, the smallest pool from which five seeds drawing 948 each can be disjoint. A smaller pool makes the seeds share synthetic images and correlates them, understating the seed variance at the p=1 arm that carries the headline claim. |
+| 2026-08-19 | §4.9 added: the synthetic pool is not filtered, and filtering is an ablation rather than a default. | Filtering with a real-data-trained classifier selects synthetic images by a function of real data, so a "100% synthetic" arm curated that way has consumed real information through the back door. Akrout et al.'s pool is filtered by an ensemble pretrained on their real corpus, which their headline does not mention. |
 
