@@ -1,0 +1,47 @@
+# Closed-set generator arm: the diffusion model is fine-tuned on the real training
+# split only, then used to produce the synthetic pool. Answers "can a generator
+# recycle a small real dataset into a larger useful one?"
+name: acne04_closed
+output_dir: runs/acne04_closed
+final_eval: false          # set via `fitymi sweep --final-eval` at the very end
+
+data:
+  dataset: acne04
+  root: data/acne04
+  splits_dir: data/splits
+  audit_log: runs/test_unseal_audit.jsonl
+  fractions: {train: 0.65, val: 0.15, test: 0.20}
+  split_seed: 20260819     # frozen by the protocol; changing it invalidates results
+  dedup: true
+
+generator:
+  source: synth_closed
+  pool_dir: data/synthetic/closed
+  model_path: runwayml/stable-diffusion-v1-5
+  lora_path: models/closed_set_lora
+  regime: closed_set
+  guidance_scale: 3.0      # selected on validation; see configs/arms/guidance_sweep.yaml
+  steps: 50
+  n_images: 20000
+
+train:
+  arch: resnet50
+  init: imagenet           # also run with init: scratch; never pool the two
+  image_size: 224
+  batch_size: 32
+  epochs: 60
+  lr: 0.0003
+  weight_decay: 0.05
+  label_smoothing: 0.05
+  patience: 15
+  num_workers: 8
+  seed: 0
+  device: auto
+  balanced_loss: true
+  amp: true
+
+sweep:
+  fractions: [0.0, 0.25, 0.5, 0.75, 1.0]
+  seeds: [0, 1, 2, 3, 4]
+  include_real_subset_controls: true
+  include_additive: false

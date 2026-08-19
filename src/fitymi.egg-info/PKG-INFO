@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: fitymi
+Version: 0.1.0
+Summary: Can generated images train a traditional classifier? A controlled study on acne severity grading.
+Requires-Python: >=3.10
+Requires-Dist: numpy
+Requires-Dist: pillow
+Requires-Dist: pyyaml
+Requires-Dist: scipy
+Requires-Dist: scikit-learn
+Requires-Dist: pandas
+Requires-Dist: matplotlib
+Requires-Dist: imagehash
+Requires-Dist: torch
+Requires-Dist: torchvision
+Provides-Extra: generate
+Requires-Dist: diffusers>=0.27; extra == "generate"
+Requires-Dist: transformers; extra == "generate"
+Requires-Dist: accelerate; extra == "generate"
+Requires-Dist: peft; extra == "generate"
+Requires-Dist: safetensors; extra == "generate"
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"

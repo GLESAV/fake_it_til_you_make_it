@@ -1,0 +1,48 @@
+# Protocol §4.4 — guidance-scale selection.
+#
+# Fan et al. (CVPR 2024) found classifier-free guidance to be a first-order variable
+# for training utility, and it trades fidelity against diversity, so the aesthetic
+# default is the wrong choice for a data generator. Each value below produces its own
+# pool; the winner is picked on VALIDATION balanced accuracy and nothing else.
+#
+# Usage: for g in 1.5 3.0 5.0 7.5 10.0; do
+#          fitymi generate --config configs/arms/guidance_sweep.yaml \
+#            --output-dir runs/guidance_$g   # after setting generator.guidance_scale
+#        done
+name: acne04_guidance_sweep
+output_dir: runs/guidance_sweep
+final_eval: false        # never selected on test
+
+data:
+  dataset: acne04
+  root: data/acne04
+  splits_dir: data/splits
+  audit_log: runs/test_unseal_audit.jsonl
+  split_seed: 20260819
+  dedup: true
+
+generator:
+  source: synth_closed
+  pool_dir: data/synthetic/closed_g3.0
+  model_path: runwayml/stable-diffusion-v1-5
+  lora_path: models/closed_set_lora
+  regime: closed_set
+  guidance_scale: 3.0
+  steps: 50
+  n_images: 5000         # smaller pools suffice for selection
+
+train:
+  arch: resnet50
+  init: imagenet
+  image_size: 224
+  epochs: 40
+  patience: 10
+  num_workers: 8
+  seed: 0
+  device: auto
+
+sweep:
+  fractions: [1.0]       # judge each generator on the fully-synthetic arm
+  seeds: [0, 1]
+  include_real_subset_controls: false
+  include_additive: false

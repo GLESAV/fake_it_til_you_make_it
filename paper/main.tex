@@ -1,0 +1,221 @@
+% Fake It Til You Make It? -- arXiv manuscript scaffold.
+%
+% Structure and framing are fixed here BEFORE the experiments run, so the writing
+% cannot quietly reorganise itself around whatever the numbers turn out to be.
+% Every \RESULT{...} is a placeholder that must be filled from results/, and the
+% macro renders in red so an unfilled one cannot survive a proofread.
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\newcommand{\RESULT}[1]{\textcolor{red}{\textbf{[#1]}}}
+\newcommand{\TODO}[1]{\textcolor{orange}{\textit{[TODO: #1]}}}
+
+\title{Fake It Til You Make It? Measuring the Real-to-Synthetic Exchange Rate
+for Acne Severity Classification}
+
+\author{%
+  Gregory Savage\\
+  \texttt{gregory.leonardo.savage@gmail.com}
+}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Diffusion-generated images are widely reported to improve medical image classifiers
+when used as augmentation. Whether they can \emph{substitute} for real images, and at
+what rate, is much less clear: the two questions are routinely conflated, and the
+comparisons that would separate them---matched training budgets, a test set the
+generator never saw, variance across seeds---are usually absent. We study acne
+severity grading on ACNE04, training a fixed classifier on mixtures of real and
+generated images at $0$, $25$, $50$, $75$ and $100$ percent synthetic while holding
+the total number of training images constant, and evaluating every arm on the same
+sealed real test set. We run two generator regimes that the literature tends to
+merge: \emph{closed-set}, a diffusion model fine-tuned only on the real training
+split, and \emph{open-set}, an off-the-shelf model that has never seen the dataset.
+We report \RESULT{headline substitution result}, and estimate the exchange
+rate---how many synthetic images are worth one real image---at \RESULT{k}. We further
+find \RESULT{memorisation rate}, which bears directly on the claim that synthetic
+dermatological faces are anonymous. Code, configurations and the test-set unsealing
+audit log are released.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Three questions are asked about generated training data, and only the first is
+settled:
+
+\begin{enumerate}
+  \item \textbf{Augmentation.} Does adding synthetic images to real ones help?
+        Broadly yes, including in dermatology \citep{sagers2022,ktena2024}.
+  \item \textbf{Substitution.} Can synthetic images \emph{replace} real ones at a
+        matched budget? Evidence from general vision says no, though the gap has
+        narrowed \citep{sariyildiz2023,fan2024}.
+  \item \textbf{Exchange rate.} How many synthetic images buy one real image, and
+        does that number grow without bound? Barely measured \citep{wang2025}.
+\end{enumerate}
+
+\TODO{state the acne-specific gap: the single fully-synthetic acne prior reports
+97.6\% training on synthetic and testing on real \citep{zaghbani2024}, roughly 11
+points above the strongest real-trained ACNE04 results we are aware of, without
+budget control and with a synthetic healthy class. Frame replication under controls
+as a contribution in its own right.}
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item The first substitution curve for acne severity grading: performance as a
+        continuous function of the synthetic fraction, at a matched training budget,
+        against a sealed real test set.
+  \item An estimate of the real-to-synthetic exchange rate $k(n)$ as a function of
+        the real-data budget $n$, including the regime where $k$ is unbounded.
+  \item A separation of closed-set from open-set generation, which we argue explains
+        part of why published numbers in this area do not reconcile.
+  \item Controls that bound the interpretation: a real/synthetic discriminability
+        probe, a memorisation audit, a label-permutation control, and a real-subset
+        control that sets the bar a synthetic arm must actually clear.
+\end{itemize}
+
+\section{Related work}
+\label{sec:related}
+\TODO{condense docs/01\_related\_work.md. Three paragraphs: general vision; medical
+and dermatology; acne specifically. Every number must be promoted to a full-text
+verified citation first --- see docs/VERIFY.md.}
+
+\section{Method}
+\label{sec:method}
+
+\subsection{Task and data}
+ACNE04 \citep{wu2019}: \RESULT{n images after deduplication}, Hayashi severity in
+four ordinal grades. Deduplicated by perceptual hash and embedding cosine before
+splitting, with whole duplicate clusters assigned to a single split
+(\RESULT{n duplicate clusters}). Splits: \RESULT{n train} / \RESULT{n val} /
+\RESULT{n test}.
+
+\subsection{The sealed test set}
+The real test split is used exactly once per reported model. It is excluded from
+classifier training, early stopping, generator training, prompt selection, guidance
+selection and hyperparameter search. This is enforced in code rather than by
+convention, and every unsealing is appended to an audit log released with the paper
+(\RESULT{n unsealings}).
+
+\subsection{Generators}
+\textbf{Closed-set.} \RESULT{base model}, LoRA rank \RESULT{rank}, fine-tuned on the
+real training split only. \textbf{Open-set.} \RESULT{base model}, no fine-tuning,
+prompted across age, sex, skin tone (Fitzpatrick I--VI), view, lighting and capture
+style. Guidance scale selected on validation from
+$\{1.5, 3, 5, 7.5, 10\}$: \RESULT{selected scale}.
+
+\subsection{Mixtures}
+For synthetic fraction $p$, the training set holds $(1-p)N$ real and $pN$ synthetic
+images, with $N$ fixed and the real class histogram preserved. Real subsets are
+nested across $p$. The additive design holds the real budget fixed and adds synthetic
+at $k \in \{0,1,2,4,8,16\}$ times that budget, from which $k(n)$ is read off.
+
+\subsection{Classifier}
+ResNet-50, held fixed across arms. Initialisation is an experimental condition, not a
+default: an ImageNet-pretrained backbone has consumed roughly 1.3M real photographs,
+so a ``100\% synthetic'' arm built on one is not 100\% synthetic. Scratch and
+pretrained results are reported separately and never pooled.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Substitution at matched budget}
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=0.75\textwidth]{../results/final/fig1_substitution.png}
+  \caption{Balanced accuracy against synthetic fraction at a fixed training budget,
+  for both generator regimes and both initialisations. Bands are 95\% intervals
+  across \RESULT{n} seeds.}
+  \label{fig:substitution}
+\end{figure}
+
+\RESULT{H1: 100\% synthetic vs 100\% real, with paired bootstrap CI}.
+\RESULT{H2: trend slope and CI}.
+
+\subsection{The exchange rate}
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\textwidth]{../results/final/fig2_additive.png}
+  \caption{Additive scaling at four real budgets. $k(n)$ is the multiplier at which
+  the synthetic curve reaches real-only performance at the next budget up.}
+  \label{fig:additive}
+\end{figure}
+
+\RESULT{k(n) table, including budgets where k is unbounded}.
+
+\subsection{The severe tail}
+\RESULT{per-class recall for severe and very severe against synthetic fraction}.
+Overall metrics can hold up while the rare grades collapse; the tail is where
+mode-dropping shows first and where the clinical stakes are.
+
+\subsection{Controls}
+\textbf{Discriminability.} Real vs.\ synthetic AUC \RESULT{auc}, bounding how much of
+any effect could be artefact-driven. \textbf{Memorisation.} \RESULT{rate}\% of
+generated images exceed the replication threshold against the generator's training
+set. \textbf{Real-subset control.} \RESULT{comparison} --- the bar a synthetic arm
+must clear is real-only data of the same reduced size, not the full-data arm.
+\textbf{Label permutation.} \RESULT{result}.
+
+\subsection{Skin tone}
+\RESULT{per-ITA-bin metrics}. Reported as a proxy: ITA measures pixels under a given
+illuminant, not people, and acne erythema itself perturbs it.
+
+\section{Discussion}
+\label{sec:discussion}
+\TODO{Write only after the numbers exist. If H1 holds, the contribution is the
+exchange rate and the demonstration that the acne prior does not replicate under
+budget control. If H1 is refuted, the contribution is larger and the controls in
+\S\ref{sec:results} become the load-bearing part of the argument. Do not reorganise
+the paper around whichever way it lands.}
+
+\section{Limitations}
+\label{sec:limitations}
+\begin{itemize}
+  \item Test set of \RESULT{n} images: powered for roughly 5-point differences in
+        balanced accuracy, not 1--2 point differences.
+  \item ACNE04 is a single-source corpus skewed towards lighter skin; the external
+        validation set partly addresses this.
+  \item Conclusions are tied to the generators evaluated. \citet{fan2024} attribute
+        the synthetic-to-real gap to generator capability rather than to anything
+        fundamental, so these numbers are a measurement at a point in time.
+  \item ITA is a proxy for skin tone, not ground truth.
+  \item No clinical claim is made. This is a methods paper about training data.
+\end{itemize}
+
+\section*{Ethics and data release}
+ACNE04 is academic-use only and is not redistributed. Synthetic faces depicting a
+visible dermatological condition are sensitive even when the subjects are fictional;
+released images carry provenance metadata and are labelled synthetic. Release is
+gated on the memorisation audit: if replication is material, we release metrics and
+code but not images.
+
+\section*{Reproducibility}
+Code, configurations, split seeds, per-run provenance records and the test-set
+unsealing audit log are released at \url{https://github.com/GLESAV/fake_it_til_you_make_it}.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Guidance-scale sweep}
+\RESULT{table: validation balanced accuracy by guidance scale, both regimes}.
+
+\section{Prompt ablation}
+\RESULT{minimal vs diversified prompts, open-set arm}.
+
+\section{Architecture robustness}
+\RESULT{ViT-B/16 and EfficientNet-B0 substitution curves}.
+
+\end{document}

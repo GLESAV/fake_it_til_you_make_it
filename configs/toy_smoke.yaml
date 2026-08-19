@@ -1,0 +1,47 @@
+# Pipeline check on the procedural toy process. No GPU, no dataset, no weights.
+# Runs the same code paths as the real study; see docs/03_environment.md for why
+# that split exists.
+name: toy_smoke
+output_dir: runs/toy_smoke
+final_eval: true
+
+data:
+  dataset: toy
+  root: data/toy
+  splits_dir: data/toy/splits
+  audit_log: runs/toy_smoke/test_unseal_audit.jsonl
+  fractions: {train: 0.65, val: 0.15, test: 0.20}
+  split_seed: 20260819
+  # Toy images are independent by construction; pHash over-clusters low-texture
+  # 64px renders and would starve the val split. See src/fitymi/smoke.py.
+  dedup: false
+  toy_n_real: 480
+  toy_n_synth: 700
+  toy_gap: 0.6
+  toy_image_size: 64
+
+generator:
+  source: synth_closed
+  pool_dir: data/toy/synth_closed
+  regime: closed_set
+  n_images: 700
+
+train:
+  arch: tinycnn
+  init: scratch
+  image_size: 64
+  batch_size: 32
+  epochs: 18
+  lr: 0.002
+  weight_decay: 0.0001
+  patience: 18
+  num_workers: 0
+  seed: 0
+  device: cpu
+  amp: false
+
+sweep:
+  fractions: [0.0, 0.5, 1.0]
+  seeds: [0, 1, 2]
+  include_real_subset_controls: true
+  include_additive: false

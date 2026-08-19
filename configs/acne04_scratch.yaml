@@ -1,0 +1,51 @@
+# The same closed-set arm on a randomly initialised backbone.
+#
+# This is the arm that actually answers "can generated images train a classifier".
+# On ImageNet-pretrained weights a "100% synthetic" arm has still consumed ~1.3M real
+# photographs, so the two initialisations are reported separately and never pooled
+# (protocol §6.1). Absolute numbers here will be low on ~1.4k images; the comparison
+# between arms is the point, not the ceiling.
+name: acne04_closed_scratch
+output_dir: runs/acne04_closed_scratch
+final_eval: false
+
+data:
+  dataset: acne04
+  root: data/acne04
+  splits_dir: data/splits
+  audit_log: runs/test_unseal_audit.jsonl
+  fractions: {train: 0.65, val: 0.15, test: 0.20}
+  split_seed: 20260819
+  dedup: true
+
+generator:
+  source: synth_closed
+  pool_dir: data/synthetic/closed
+  model_path: runwayml/stable-diffusion-v1-5
+  lora_path: models/closed_set_lora
+  regime: closed_set
+  guidance_scale: 3.0
+  steps: 50
+  n_images: 20000
+
+train:
+  arch: resnet50
+  init: scratch
+  image_size: 224
+  batch_size: 32
+  epochs: 120        # from scratch needs longer than fine-tuning
+  lr: 0.001
+  weight_decay: 0.05
+  label_smoothing: 0.05
+  patience: 25
+  num_workers: 8
+  seed: 0
+  device: auto
+  balanced_loss: true
+  amp: true
+
+sweep:
+  fractions: [0.0, 0.25, 0.5, 0.75, 1.0]
+  seeds: [0, 1, 2, 3, 4]
+  include_real_subset_controls: true
+  include_additive: false

@@ -1,0 +1,2 @@
+[console_scripts]
+fitymi = fitymi.cli:main

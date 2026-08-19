@@ -27,9 +27,9 @@ constant, and evaluate every arm on the *same sealed real test set*.
 | Literature review | ✅ `docs/01_related_work.md` |
 | Study protocol | ✅ `docs/02_study_design.md` |
 | Environment audit | ✅ `docs/03_environment.md` |
-| Codebase | 🚧 next |
-| Experiments | ⛔ needs a GPU host (see `docs/03_environment.md`) |
-| Paper | ⛔ |
+| Codebase | ✅ `src/fitymi/`, verified end-to-end on procedural data |
+| Experiments | ⛔ needs a GPU host + ACNE04 (see `docs/03_environment.md`) |
+| Paper | 🚧 scaffold in `paper/`, results placeholders unfilled |
 
 ## What we found in the literature
 
@@ -62,12 +62,56 @@ The four that most of this literature gets wrong, and that we bind ourselves to:
    ImageNet-pretrained backbone has seen 1.3M real images. We report from-scratch and
    pretrained separately.
 
+## Running it
+
+```bash
+make install          # venv + package
+make test             # 60 unit tests, CPU, ~8s
+make smoke            # end-to-end pipeline check on procedural data, CPU, ~20 min
+```
+
+`make smoke` runs the *same code paths* as the real study — dedup, group-stratified
+splitting, sealed-test enforcement, budget-matched mixing, training, evaluation,
+statistics, figures — against a procedural generative process whose synthetic arm is
+mis-specified by a tunable `gap`. It checks two things: with `gap=0` the mixing curve
+must be flat, and with `gap>0` it must slope down and the trend test must detect it.
+If those fail, the analysis code isn't fit to point at real data.
+
+The real study needs a GPU host and ACNE04:
+
+```bash
+make prepare CONFIG=configs/acne04_closed.yaml   # dedup, split, seal the test set
+make finetune                                     # closed-set generator (GPU)
+make generate                                     # sample the synthetic pool (GPU)
+make sweep                                        # mixing sweep, validation only
+make controls                                     # §8 controls
+make final                                        # unseals the test set. Once.
+make analyse
+```
+
 ## Layout
 
 ```
-docs/     literature review, protocol, environment audit
-paper/    arXiv manuscript (LaTeX)
+docs/          literature review, protocol, environment audit, citation checklist
+src/fitymi/
+  data/        records, ACNE04 loader, dedup, splits, mixing, toy simulator
+  generate/    prompts, closed-set fine-tuning, sampling
+  train/       backbones and the fixed training recipe
+  eval/        metrics and statistics
+  controls/    discriminability probe, memorisation audit, skin-tone stratification
+  analysis/    aggregation and figures
+configs/       one YAML per experimental arm
+scripts/       GPU-host driver scripts
+tests/         60 tests, no GPU or network required
+paper/         arXiv manuscript (LaTeX)
 ```
+
+## A note on the literature review
+
+Every claim in `docs/01_related_work.md` carries a `[V]`/`[S]`/`[?]` verification tag,
+and **all of them are currently `[S]`** — sourced from search summaries, because the
+authoring environment blocked every publisher host. `docs/VERIFY.md` is the checklist
+for promoting them. Nothing goes into the manuscript at `[S]`.
 
 ## Licence
 

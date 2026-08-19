@@ -1,0 +1,48 @@
+# Open-set generator arm: an off-the-shelf text-to-image model that has never seen
+# ACNE04, prompted with diversified dermatological descriptions. Answers "does the
+# world knowledge in a foundation generator substitute for collecting a dataset?"
+# This is the commercially interesting arm and the one we expect to fail hardest.
+name: acne04_open
+output_dir: runs/acne04_open
+final_eval: false          # set via `fitymi sweep --final-eval` at the very end
+
+data:
+  dataset: acne04
+  root: data/acne04
+  splits_dir: data/splits
+  audit_log: runs/test_unseal_audit.jsonl
+  fractions: {train: 0.65, val: 0.15, test: 0.20}
+  split_seed: 20260819     # frozen by the protocol; changing it invalidates results
+  dedup: true
+
+generator:
+  source: synth_open
+  pool_dir: data/synthetic/open
+  model_path: runwayml/stable-diffusion-v1-5
+  lora_path: null
+  regime: open_set
+  guidance_scale: 3.0
+  steps: 50
+  n_images: 20000
+
+train:
+  arch: resnet50
+  init: imagenet           # also run with init: scratch; never pool the two
+  image_size: 224
+  batch_size: 32
+  epochs: 60
+  lr: 0.0003
+  weight_decay: 0.05
+  label_smoothing: 0.05
+  patience: 15
+  num_workers: 8
+  seed: 0
+  device: auto
+  balanced_loss: true
+  amp: true
+
+sweep:
+  fractions: [0.0, 0.25, 0.5, 0.75, 1.0]
+  seeds: [0, 1, 2, 3, 4]
+  include_real_subset_controls: true
+  include_additive: false
