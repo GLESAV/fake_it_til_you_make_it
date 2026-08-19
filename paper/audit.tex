@@ -1,0 +1,305 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,allcolors=blue!50!black}
+
+\newcommand{\TODO}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\RESULT}[1]{\textcolor{blue}{[#1]}}
+
+\title{ACNE04 is 600 people, not 1{,}457 photographs:\\
+a data-quality audit of the standard acne severity benchmark}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+ACNE04 \citep{wu2019} is the de-facto benchmark for automated acne severity grading,
+and reported accuracies on it cluster between 83.7\% and 87.3\%. We audit the
+distributed archive and find four independent defects, none of which requires a model or
+a GPU to verify. (i)~The archive contains 38 groups of byte-identical duplicate images,
+76 of 1{,}457 files; eight groups carry conflicting severity labels and 26 carry
+conflicting lesion counts. (ii)~All five of the dataset's own published cross-validation
+folds leak: on average 4.25\% of each test split is byte-identical to an image in the
+corresponding training split. (iii)~Face-identity embedding shows the 1{,}457 images are
+approximately 550--750 distinct individuals, most photographed two or three times.
+Consequently \textbf{15.9\% of every published test fold is a photograph of a person who
+also appears in the training fold} at an identity threshold where only 0.019\% of all
+image pairs qualify by chance, rising to 77.5\% at the ordinary operating point. Every
+published result on this benchmark therefore measures within-subject rather than
+between-subject generalisation. (iv)~The severity label is exactly the Hayashi banding
+\citep{hayashi2008} of a lesion count, and the release does not state which lesions were
+counted; an independent expert re-annotation of 1{,}204 of the same photographs
+\citep{acneai2024} counts $3.2\times$ more lesions, ranks the images differently
+(Spearman $\rho = 0.471$), and agrees with the original grade on 30.1\% of images ---
+58.2\% after being granted an arbitrary monotone recalibration that removes the entire
+definitional difference. We quantify the cost of (iii) by training an identical
+classifier on image-level and subject-disjoint splits, and we release the scripts that
+reproduce every number from public data.
+\end{abstract}
+
+\section{Introduction}
+
+Automated acne severity grading is evaluated almost universally on ACNE04
+\citep{wu2019}: 1{,}457 facial photographs with 18{,}983 lesion bounding boxes and
+four ordinal severity grades. Methods are compared on it at a resolution of one to three
+accuracy points, and the leading reported figures --- 83.70\% \citep{wu2019}, 84.11\%
+\citep{lds2024}, 86.06\% \citep{kieglfn2022} --- sit within four points of one another.
+
+Comparable audits exist for other dermatology benchmarks. \citet{fitzpatrick_audit2024}
+document duplicates, train/test leakage and label errors in HAM10000, DermaMNIST and
+Fitzpatrick17k; \citet{cleanpatrick2025} build a cleaning benchmark on Fitzpatrick17k
+and report 21\% near-duplicates and 32\% label errors. Neither covers ACNE04, and we
+are aware of no audit of it.
+
+We report one. Our findings do not require reproducing anyone's model. Three of the four
+require nothing but the archive and a hash function.
+
+\section{Data and instruments}
+
+We audit \texttt{Classification.tar} as distributed from the ACNE04 release
+\citep{wu2019}: 1{,}457 JPEG images and ten label files giving a fixed five-fold split
+(1{,}165 train / 292 test per fold). Each label row is
+\texttt{<file> <grade> <lesion\_count>}.
+
+\paragraph{The grade is derived, not annotated.}
+For all 1{,}457 records the grade is exactly the Hayashi banding of the count ---
+1--5 $\rightarrow$ 0, 6--20 $\rightarrow$ 1, 21--50 $\rightarrow$ 2, $>$50 $\rightarrow$
+3 --- with zero exceptions. The severity label carries no information beyond the count,
+so all label noise originates in counting. This makes every repeated annotation of the
+same image a direct measurement of that noise.
+
+\paragraph{Deduplication instruments must be calibrated on this corpus.}
+Every ACNE04 image is a half-face shot at roughly $70^\circ$ against a dark background,
+so generic perceptual and semantic embeddings have little to work with. At the common
+perceptual-hash setting (Hamming $\leq 8$), linkage percolates into a single cluster
+holding 14.7\% of the corpus, and the linked pairs are different people in the same
+pose. CLIP ViT-B/32 fails identically: the median pairwise cosine across the whole
+corpus is 0.83 and percolation begins at 0.96. We use Hamming $\leq 2$ and cosine
+$\geq 0.98$, calibrated against the 38 byte-identical pairs, all of which sit at cosine
+1.0000.
+
+\paragraph{Face detection needs padding, or it silently fails.}
+For the identity analysis we embed with ArcFace (InsightFace \texttt{buffalo\_l}).
+Detection succeeds on \textbf{9.3\%} of ACNE04 images as distributed and \textbf{96.1\%}
+after padding the border by 60\% of the long side: these are close crops in which the
+face fills the frame, and the detector expects a face to occupy a fraction of the image.
+We record this because a pipeline that omits the padding concludes, silently and
+wrongly, that the dataset contains almost no faces.
+
+\section{Exact duplicates and fold leakage}
+
+Grouping all 1{,}457 files by MD5 of the file bytes yields 38 groups of size two: 76
+files, 5.2\% of the corpus, are byte-identical copies under two filenames, usually under
+two different \texttt{levleN} prefixes. Decoding to pixels and re-hashing recovers
+exactly the same 38 groups.
+
+Intersecting those groups against the dataset's own folds, \emph{every fold leaks}
+(Table~\ref{tab:folds}). On average 4.25\% of each 292-image test split is byte-identical
+to an image in the corresponding training split: 3.56\% where the two labels agree,
+which a memorising model receives as free correct answers, and 0.68\% where they
+conflict, which it cannot get right. Across all five folds, 62 distinct test images have
+a byte-identical twin in training.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lccccc c}
+\toprule
+& fold 0 & 1 & 2 & 3 & 4 & mean \\
+\midrule
+leaked test images & 12 & 15 & 12 & 11 & 12 & \\
+as \% of the 292-image test split & 4.1 & 5.1 & 4.1 & 3.8 & 4.1 & \textbf{4.25} \\
+\quad labels agree (free correct) & 2.4 & 5.1 & 3.4 & 3.8 & 3.1 & 3.56 \\
+\quad labels conflict (forced error) & 1.7 & 0.0 & 0.7 & 0.0 & 1.0 & 0.68 \\
+\bottomrule
+\end{tabular}
+\caption{Byte-identical duplicate leakage in ACNE04's published five-fold splits.}
+\label{tab:folds}
+\end{table}
+
+Separately, 42 of 1{,}457 files carry a \texttt{levleN} filename prefix that disagrees
+with their labelled grade, so deriving labels from filenames --- the obvious shortcut
+given the naming scheme --- corrupts 2.9\% of the dataset.
+
+\section{The dataset is about 600 people}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../docs/examples/acne04_leakage.png}
+\caption{\textbf{A.} Union-find over ArcFace cosine: the number of distinct subjects is
+stable from 0.75 down to 0.50 and percolates only at 0.45. \textbf{B.} Subject leakage,
+counting only direct links (no transitive closure), against the chance rate --- the
+share of all image pairs above the same threshold. The published folds and our own
+image-level splits are indistinguishable and two to three orders of magnitude above
+chance. \textbf{C.} Lesion counts for the 1{,}204 images annotated by both teams, log
+scale, with the Hayashi grade boundaries marked.}
+\label{fig:leakage}
+\end{figure}
+
+Union-find over ArcFace cosine gives 550--750 distinct individuals across the 1{,}457
+photographs, with 84\% of images belonging to a subject that appears more than once and
+a largest subject of 22 images. The clustering is stable across the whole band from
+cosine 0.75 to 0.50 and percolates only at 0.45 (Figure~\ref{fig:leakage}A), which is
+the signature of real structure rather than a threshold artefact; the 38 byte-identical
+pairs sit at cosine 1.000, calibrating the instrument. Visual inspection of the largest
+clusters confirms them: each is one individual photographed from several angles across
+several sessions.
+
+We report leakage in the most conservative form available. A test image counts as leaked
+only if \emph{it is itself} above threshold to some individual training image --- no
+clusters, no chaining --- and we give alongside it the chance rate, the share of all
+image pairs in the corpus above that threshold, so the false-positive budget is visible
+(Table~\ref{tab:subject}).
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lcccccc}
+\toprule
+cosine $\geq$ & chance rate & published folds & ours, image-level & ours, subject-disjoint \\
+\midrule
+0.85 & 0.019\% & \textbf{15.9\%} & 8.3\% & 0.0\% \\
+0.80 & 0.058\% & 37.1\% & 28.1\% & 0.0\% \\
+0.75 & 0.120\% & 57.5\% & 50.7\% & 0.0\% \\
+0.70 & 0.191\% & 67.4\% & 63.3\% & 0.0\% \\
+0.60 & 0.273\% & \textbf{77.5\%} & 74.5\% & 0.0\% \\
+0.50 & 0.303\% & 79.4\% & 76.6\% & 3.2\% \\
+\bottomrule
+\end{tabular}
+\caption{Share of test images sharing an identity with the training split, direct links
+only. At cosine 0.85 fewer than one image pair in five thousand qualifies by chance, and
+one published test image in six is a person who is also in training.}
+\label{tab:subject}
+\end{table}
+
+Our own perceptually deduplicated splits leak just as badly, because deduplication and
+identity grouping answer different questions. Grouping by identity as well gives 604
+subjects and eliminates the leakage above the grouping threshold, with splits still
+well formed (948 / 218 / 291, all classes present in all splits). The residual 3.2\% at
+cosine 0.50 is reported rather than tuned away: grouping at threshold $T$ guarantees
+disjointness above $T$ only.
+
+\paragraph{Why this is worse than duplicate leakage.}
+Severity is graded from lesion counts on \emph{half} the face, so two photographs of one
+person from different sides legitimately carry different grades. The leakage is
+therefore not label copying, which would be easy to dismiss as a rounding error. It is
+that a model can learn an individual's skin, complexion, hair, background and capture
+session and carry that to the test set, where the same person reappears with a different
+lesion count. Published ACNE04 accuracies answer ``given other photographs of this
+person, can you grade this one?'' --- not ``given a new patient, can you grade them?''
+Only the second is what an acne grader is for.
+
+\section{The label is a property of the annotation team}
+
+\subsection{Within the release}
+The 38 byte-identical pairs were annotated twice without the annotators knowing they
+were the same photograph. Exact lesion-count agreement is 12/38 (31.6\%), the median
+absolute count difference is 1 and the maximum is 16, and grade agreement is
+\textbf{30/38 (78.9\%)}, 95\% Wilson interval 63.7--88.9\%. All eight grade
+disagreements are cases where the two counts fall in different Hayashi bands; four
+straddle 5/6 and four straddle 20/21. The latter are not boundary jitter but differences
+of a factor of 2.4--3, and their filenames form consecutive runs, the signature of a
+block ingested and counted twice by different procedures.
+
+Reported accuracies on this benchmark sit at or above the dataset's own reproducibility
+on images it annotated twice. With $n = 38$ the interval is wide and duplicates need not
+be a random sample, so the defensible reading is not that published results are wrong
+but that \emph{this benchmark cannot presently resolve differences of a few points}.
+
+\subsection{Between teams}
+A far better powered measurement is available. \citet{acneai2024} independently
+re-annotated 1{,}204 of the same photographs, releasing 32{,}443 lesion annotations
+against the original's 18{,}983 and preserving the original filenames. They count
+$3.2\times$ more lesions (mean 26.9 vs.\ 8.4 per image, more on 90.1\% of shared
+images), and the share of images ACNE04's labelling function would grade severe or worse
+moves from 11.7\% to 46.4\%. Pearson $r$ is 0.550 and Spearman $\rho$ is 0.471.
+
+Part of this is definitional and entirely legitimate. Hayashi's bands are defined over
+\emph{inflammatory} eruptions --- papules plus pustules --- and \citet{hayashi2008}
+report explicitly that global severity did not correlate with comedone counts.
+\citet{acneai2024} annotate ``all lesions, either acne or non-acne lesions that look like
+acne,'' including the tiny ones. \textbf{The problem is not that the teams disagree; it
+is that ACNE04 publishes a count and a grade without stating which lesions were counted},
+so the label depends on a convention the release never specifies.
+
+The definitional account does not survive contact with the data. A constant change of
+lesion definition would give a roughly constant ratio and preserve rank order. Instead
+the per-image ratio has an interquartile range of 2.00--6.64 and a
+10th-to-90th-percentile span of $11.5\times$, it falls monotonically with severity
+(median $8.00\times$ where v1 counted 1--2 lesions, $2.00\times$ at 11--64), and on
+8.3\% of images the second team counted \emph{fewer}. Granting the second annotation an
+arbitrary monotone recalibration --- re-banding its counts by quantile matching so its
+grade histogram equals the original's by construction, which removes the definitional
+component entirely --- leaves:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+& grade agreement & quadratic weighted $\kappa$ \\
+\midrule
+v2 counts under ACNE04's own Hayashi banding & 30.1\% & 0.296 \\
+v2 counts after optimal monotone rescaling & \textbf{58.2\%} & \textbf{0.480} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+38.5\% of images then differ by one grade and 3.2\% by two or more, and $\rho$ does not
+recover on the images with the most lesions, where relative counting noise should be
+smallest ($\rho = 0.376$ for v1 count $\geq 5$, $0.297$ for $\geq 20$).
+
+We are explicit that applying Hayashi bands to the second team's counts is \emph{our}
+construction, not theirs --- they use a continuous 0--100 severity score and report
+ICC 0.8 for their own method --- and that it is clinically incorrect on its face
+precisely because their counts include comedones. That is the demonstration rather than
+a flaw in it. It does not require deciding which team is right: two expert annotations of
+the same 1{,}204 photographs do not induce the same severity ordering, and ACNE04 gives
+no basis for preferring one.
+
+\section{What the leakage is worth, in points}
+
+\RESULT{pending: five seeds each}
+An identical ResNet-50, identical hyperparameters, identical training budget and the
+same five seeds, trained and evaluated on (a)~perceptually deduplicated image-level
+splits carrying 74.5\% subject leakage and (b)~subject-disjoint splits carrying none.
+The difference is the leakage bonus.
+
+\section{Limitations}
+
+The within-release reproducibility estimate rests on $n=38$ duplicate pairs, and those
+pairs need not be a random sample of the corpus. The cross-team comparison cannot
+separate ``team A missed lesions'' from ``team B over-segmented'' without a third
+annotation; our claim is symmetric and does not require assigning fault. Identity
+clustering rests on an ArcFace threshold; we report the full threshold sweep and the
+chance rate rather than a single operating point, and the most conservative figure
+(15.9\% at cosine 0.85) is the one we would defend. 57 of 1{,}457 images yield no face
+embedding and are excluded from the identity analysis.
+
+\section{Reproducibility}
+
+All findings reproduce from the public archive and the public v2 annotations:
+
+\begin{verbatim}
+python scripts/audit_acne04.py                  # duplicates, fold leakage, noise
+python scripts/audit_acne04_subjects.py         # identity structure and leakage
+python scripts/compare_acne04_versions.py --v2 <acne04v2>/Acne04-v2_annotations.json
+python scripts/make_acne04_audit_figure.py
+python scripts/make_acne04_leakage_figure.py
+\end{verbatim}
+
+\section*{Ethics}
+ACNE04 contains identifiable facial photographs of patients and is released for academic
+use only. We do not redistribute the images. The identity analysis in \S4 is performed
+solely to detect and remove train/test leakage; we do not release face embeddings, do not
+attempt to identify any individual, and report only aggregate cluster statistics. We note
+that the dataset's subject structure --- multiple photographs per individual --- is
+itself a privacy consideration that its release does not discuss.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
