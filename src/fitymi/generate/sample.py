@@ -57,6 +57,26 @@ def target_counts(reference: Corpus, total: int) -> list[int]:
     return largest_remainder(total, hist).tolist()
 
 
+def resolve_device() -> str:
+    """CUDA, then Apple Silicon, then CPU.
+
+    The training loop has resolved MPS since this repository moved to Apple Silicon; this
+    one still said `"cuda" if available else "cpu"`, so every image was generated on the
+    CPU while a 40-core GPU sat idle. It was not slow enough to look broken -- 50 s/image
+    against a benchmarked 13.8 -- just slow enough to turn an 18-hour pool into a 66-hour
+    one, which is the kind of gap that gets attributed to "MPS is slow" and never
+    investigated.
+    """
+    import torch
+
+    if torch.cuda.is_available():
+        return "cuda"
+    mps = getattr(torch.backends, "mps", None)
+    if mps is not None and mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 def _build_pipeline(config: SampleConfig):
     try:
         import torch
@@ -77,7 +97,7 @@ def _build_pipeline(config: SampleConfig):
         DPMSolverMultistepScheduler if config.scheduler == "dpmpp" else DDIMScheduler
     )
     pipe.scheduler = scheduler_cls.from_config(pipe.scheduler.config)
-    pipe = pipe.to("cuda" if torch.cuda.is_available() else "cpu")
+    pipe = pipe.to(resolve_device())
     pipe.set_progress_bar_config(disable=True)
     return pipe
 

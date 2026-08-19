@@ -60,6 +60,7 @@ def cmd_generate(args) -> int:
         regime=config.generator.regime,
         guidance_scale=config.generator.guidance_scale,
         steps=config.generator.steps,
+        batch_size=config.generator.batch_size,
         seed=config.train.seed,
         source=config.generator.source,
     )

@@ -72,3 +72,31 @@ def test_leakage_check_passes_on_disjoint_splits(toy_real):
 def test_closed_set_generator_refuses_synthetic_training_data(tmp_path, toy_synth):
     with pytest.raises(ValueError, match="real images only"):
         build_caption_manifest(toy_synth, tmp_path / "captions.jsonl")
+
+
+def test_generation_uses_the_accelerator_when_there_is_one():
+    """The sampler must not fall back to CPU on a machine with a GPU.
+
+    This regressed silently: the pipeline said `"cuda" if available else "cpu"` while the
+    training loop had long since learned about MPS, so generation ran on CPU at roughly
+    four times the cost and looked merely slow rather than broken.
+    """
+    import torch
+
+    from fitymi.generate.sample import resolve_device
+
+    device = resolve_device()
+    if torch.cuda.is_available():
+        assert device == "cuda"
+    elif getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        assert device == "mps", "an accelerator is available but generation chose CPU"
+    else:
+        assert device == "cpu"
+
+
+def test_device_resolution_agrees_with_the_training_loop():
+    """Two device resolvers that disagree is how one of them gets forgotten."""
+    from fitymi.generate.sample import resolve_device
+    from fitymi.train.loop import TrainConfig
+
+    assert resolve_device() == TrainConfig(device="auto").resolve_device().type

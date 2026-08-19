@@ -56,6 +56,9 @@ generator:
   # (docs/examples/resolution_comparison.png), and lesion definition is the thing under
   # test. Steps are the safe cut; resolution is not.
   steps: 30
+  # Explicit, because the generator block previously had none and inherited the dataclass
+  # default of 8 while `batch_size: 32` in the train block looked like it applied here.
+  batch_size: 4
   n_images: 5000         # smaller pools suffice for selection
 
 train:

@@ -67,6 +67,10 @@ class GeneratorConfig:
     lora_path: str | None = None
     regime: str = "closed_set"
     guidance_scale: float = 3.0
+    #: Generation batch size. Explicit here because the generator block had none and
+    #: silently inherited the sampler's default of 8, while `batch_size: 32` sitting in
+    #: the train block looked like it applied to generation too.
+    batch_size: int = 4
     steps: int = 50
     n_images: int = 20_000
 
