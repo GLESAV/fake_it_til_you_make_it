@@ -61,12 +61,18 @@ def test_every_source_file_is_tracked():
 
 
 def test_no_source_file_is_gitignored():
-    """The specific failure: a bare directory pattern matching a source package."""
+    """The specific failure: a bare directory pattern matching a source package.
+
+    `--no-index` is load-bearing. Without it `git check-ignore` stays silent about
+    files that are already tracked, since ignore rules do not apply to them -- so the
+    test would pass on a repository whose rules would swallow the next source file
+    added to that directory, which is precisely how this happened.
+    """
     candidates = sorted(_source_files_on_disk())
     if not candidates:
         pytest.skip("no source files found")
     result = subprocess.run(
-        ["git", "-C", str(REPO), "check-ignore", "--stdin"],
+        ["git", "-C", str(REPO), "check-ignore", "--no-index", "--stdin"],
         input="\n".join(candidates),
         capture_output=True,
         text=True,
