@@ -89,6 +89,11 @@ as a contribution in its own right.}
         train/test leakage in the dataset's own published folds, and 78.9\% grade
         agreement between the dataset's two annotations of the same photograph ---
         below several accuracies reported on it.
+  \item Evidence that the ACNE04 severity label is a property of the annotation team
+        rather than of the photograph: an independent expert re-annotation of 1{,}204 of
+        the same images counts $3.2\times$ more lesions, ranks them differently
+        ($\rho = 0.471$), and after being granted any monotone recalibration still
+        agrees with the original grade on only 58\% of images.
 \end{itemize}
 
 \section{Related work}
@@ -145,6 +150,67 @@ need not be a random sample of the corpus. The defensible reading is not that th
 results are wrong, but that \emph{this benchmark cannot presently resolve differences
 of a few points}, and that a reported improvement of 0.4 points is far inside the
 label noise.
+
+\paragraph{Two expert teams do not induce the same severity ordering.}
+The duplicates measure reproducibility on 38 images. A far better powered measurement
+is available. The AcneAI team \citep{acneai2024} independently re-annotated 1{,}204 of
+the same photographs and released ACNE04-v2 with 32{,}443 lesion annotations against
+the original's 18{,}983; original filenames are preserved, so the two annotations join
+image by image.
+
+They count \textbf{3.2$\times$ more lesions} (mean 26.9 vs.\ 8.4 per image; more on
+90.1\% of shared images), and the share of images that ACNE04's own labelling function
+would grade severe or worse moves from 11.7\% to 46.4\%. Pearson $r$ between the two
+counts is 0.550 and Spearman $\rho$ is 0.471.
+
+Part of this is definitional and entirely legitimate. Hayashi's bands are defined over
+\emph{inflammatory} eruptions --- papules plus pustules --- and that paper reports
+explicitly that global severity did not correlate with comedone counts
+\citep{hayashi2008}. AcneAI annotate ``all lesions, either acne or non-acne lesions
+that look like acne,'' including the tiny ones. \emph{The problem is not that the teams
+disagree; it is that ACNE04 publishes a count and a grade without stating which lesions
+were counted}, so the label depends on a convention the release never specifies.
+
+The definitional account does not survive contact with the data. A constant change of
+lesion definition would give a roughly constant ratio and preserve rank order. Instead
+the per-image ratio has an interquartile range of 2.00--6.64, a 10th-to-90th-percentile
+span of $11.5\times$, and falls monotonically with severity (median $8.00\times$ on
+images v1 counted at 1--2 lesions, $2.00\times$ at 11--64); on 8.3\% of images v2
+counted \emph{fewer}. To remove the definitional component entirely we grant the second
+annotation an arbitrary monotone recalibration, re-banding its counts by quantile
+matching so its grade histogram equals v1's by construction:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+& grade agreement & QWK \\
+\midrule
+v2 counts under ACNE04's own Hayashi banding & 30.1\% & 0.296 \\
+v2 counts after optimal monotone rescaling & \textbf{58.2\%} & \textbf{0.480} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+After the rescaling, 38.5\% of images differ by one grade and 3.2\% by two or more, and
+$\rho$ does not recover on the images with the most lesions, where relative counting
+noise should be smallest ($\rho = 0.376$ for v1 count $\geq 5$, $0.297$ for
+$\geq 20$).
+
+We are explicit about the construction: applying Hayashi bands to AcneAI's counts is
+\emph{our} operation, not theirs --- they use a continuous 0--100 score and report
+ICC 0.8 for their own method --- and it is clinically wrong on its face precisely
+because their counts include comedones. That is the demonstration. It shows how much
+the benchmark's published label depends on an unstated counting convention, and it does
+not require deciding which team is right: two expert annotations of the same 1{,}204
+photographs do not induce the same severity ordering, and ACNE04 gives no basis for
+preferring one.
+
+The consequence for the literature is not that reported accuracies are wrong but that
+they measure something narrower than they are read as measuring: agreement with one
+team's counting convention on one set of photographs. Differences of one to three
+points between methods are differences in fitting that convention. This bears directly
+on our own study, where it sets a noise floor below which a substitution effect is not
+measurable (\S\ref{sec:results}).
 
 \paragraph{The published splits leak.}
 ACNE04 ships fixed five-fold splits (1{,}165 train / 292 test). Intersecting the

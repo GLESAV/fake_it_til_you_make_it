@@ -25,11 +25,26 @@ benchmark.
 | — of which free correct answers (labels agree) | 3.56% |
 | — of which forced errors (labels conflict) | 0.68% |
 | Files whose `levleN` filename prefix disagrees with the label | **42 of 1,457** |
+| **Independent expert re-annotation (ACNE04-v2, n=1,204 shared images)** | |
+| — lesions counted per image, v1 vs v2 | **8.4 vs 26.9 (3.2× more)** |
+| — Spearman *rho* between the two counts | **0.471** |
+| — grade agreement under ACNE04's own labelling function | **30.1%** (QWK 0.296) |
+| — grade agreement after optimal monotone rescaling | **58.2%** (QWK 0.480) |
+| — share graded severe or worse, v1 vs v2 | **11.7% vs 46.4%** |
 | Published accuracy on this benchmark | **83.7–87.3%** |
 
-The last two rows are the point. **Reported ACNE04 accuracies sit at or above the
-dataset's own annotation self-consistency**, measured on images the dataset annotated
-twice without realising it.
+Two things are the point.
+
+**Reported ACNE04 accuracies sit at or above the dataset's own annotation
+self-consistency** (78.9%), measured on images the dataset annotated twice without
+realising it.
+
+And more seriously: **the severity label is a property of the annotation team, not of
+the photograph.** A second expert team re-annotating the same 1,204 images counts 3.2×
+more lesions, ranks the images differently (Spearman *rho* 0.471), and — after being
+granted any monotone recalibration it likes, which removes the entire definitional
+component — still agrees with the original grade on only 58% of images. An ACNE04
+accuracy figure measures agreement with one team's counting convention. §4.
 
 ![ACNE04 audit](examples/acne04_audit.png)
 
@@ -119,7 +134,122 @@ free fraction is not hypothetical. This does not explain the whole 83.7–87.3% 
 it is a systematic upward bias of a few points sitting inside every number ever reported
 on these splits, and no paper we verified mentions it.
 
-## 4. The labels are derived, and the derivation exposes the noise
+## 4. Two expert teams, the same 1,204 photographs, and a 3.2x difference in lesion count
+
+The duplicates give a within-release reproducibility estimate on 38 images. A second,
+independent measurement is available and is far better powered.
+
+The AcneAI team (Gazeau, Nguyen et al., MICCAI 2024) re-annotated ACNE04 and released
+**ACNE04-v2**: 1,204 of the original images with **32,443 lesion annotations**, against
+the original's 18,983 across 1,457 images. Original filenames are preserved, so the two
+annotations can be joined image by image. All 1,204 v2 filenames are present in v1.
+
+| | v1 (Wu et al., ICCV 2019) | v2 (AcneAI, MICCAI 2024) |
+|---|---|---|
+| lesions per image, mean | 8.4 | **26.9** |
+| lesions per image, median | 6 | **19** |
+| maximum | 64 | **434** |
+| images graded severe or worse | 11.7% | **46.4%** |
+
+**v2 finds 3.2x more lesions on average, and more on 90.1% of the shared images.**
+Pearson *r* between the two counts is **0.550**; Spearman *rho* is **0.471**.
+
+### 4.1 Part of this is definitional, and that part is legitimate
+
+The two teams were not counting the same thing, and both are internally reasonable.
+
+Hayashi et al. (*J Dermatol* 35:255-260, 2008) established the grading criterion ACNE04
+uses by correlating dermatologists' global severity judgements against lesion counts on
+half the face. The bands are 0-5 mild, 6-20 moderate, 21-50 severe, >50 very severe,
+and they are defined over **inflammatory eruptions -- papules plus pustules**. The paper
+is explicit that global severity **did not correlate with the number of comedones**,
+which is why comedones are excluded.
+
+AcneAI states a deliberately different protocol: they annotate "all lesions, either acne
+or non-acne lesions that look like acne," including "all acne lesions, even the tiny
+ones," with comedones named explicitly among the small lesions marked with a circle.
+
+So a large gap is expected. **The problem is not that the teams disagree; it is that
+ACNE04's release specifies a count and a grade without specifying which lesions were
+counted**, so a second expert team could not reproduce the first team's numbers even
+approximately, and neither the dataset nor any downstream paper we verified states the
+lesion definition the labels depend on.
+
+### 4.2 The definitional part does not explain the disagreement
+
+If the difference were purely a matter of counting additional lesion types, the ratio
+would be roughly constant and the *rank order* of images by severity would be preserved.
+Neither holds.
+
+The per-image ratio has a median of 3.50 but an interquartile range of 2.00-6.64 and a
+10th-to-90th-percentile span of **11.5x**. On **8.3% of images v2 found fewer lesions
+than v1**. The ratio is also strongly count-dependent:
+
+| v1 count band | n | median v2/v1 ratio |
+|---|---|---|
+| 1-2 | 345 | **8.00** |
+| 2-5 | 310 | 5.50 |
+| 5-7 | 264 | 3.00 |
+| 7-11 | 360 | 2.65 |
+| 11-64 | 272 | **2.00** |
+
+To remove the definitional component entirely, we allow an *arbitrary monotone
+rescaling*: re-band the v2 counts by quantile matching so that the v2 grade
+distribution is identical to v1's by construction. Any residual disagreement cannot be
+attributed to "they counted more lesion types."
+
+| | grade agreement | quadratic weighted kappa |
+|---|---|---|
+| v2 counts under ACNE04's own Hayashi banding | **30.1%** | 0.296 |
+| v2 counts after optimal monotone rescaling | **58.2%** | **0.480** |
+
+After the rescaling, 58.2% of images get the same grade, **38.5% differ by one grade
+and 3.2% by two or more**. A weighted kappa of 0.48 is moderate agreement. Restricting
+to images with more lesions -- where relative counting noise should be smaller -- does
+not help: Spearman *rho* is 0.376 on images with v1 count >= 5 and 0.297 on those with
+count >= 20. (Range restriction attenuates *rho*, so these are not directly comparable
+to the full-sample 0.471; the point is only that the disagreement does not vanish on the
+images where counting should be most stable.)
+
+### 4.3 What this means for the benchmark
+
+Applying ACNE04's own labelling function to a second expert team's counts changes the
+grade of **70% of the images** and moves the share of severe-or-worse cases from 11.7%
+to 46.4%. Even after granting the second team any monotone recalibration they like,
+the two labellings agree on 58%.
+
+A model trained and evaluated on ACNE04 therefore predicts *the grade that Wu et al.'s
+counting protocol assigns*, not acne severity in any transferable sense. That is a
+perfectly valid object of study, but it is not what the benchmark is used to claim, and
+it bounds what an ACNE04 accuracy figure can support:
+
+- **Cross-dataset and clinical-deployment claims are unsupported by ACNE04 accuracy
+  alone.** The label does not transfer to another expert team's reading of the same
+  photographs.
+- **Differences of one to three accuracy points between methods are not interpretable**
+  as differences in severity assessment. They are differences in fitting one team's
+  counting threshold.
+- **The tail is where it is worst.** v1 grades 11.7% of shared images severe or worse;
+  v2's counts put 46.4% there. Per-class results on the severe grades, which is where
+  the clinical value sits, rest on the least stable part of the labelling.
+
+### 4.4 Limits of this comparison
+
+We compute v2 grades by applying the Hayashi banding to v2's counts. **AcneAI does not
+do this** -- they use a continuous 0-100 severity score built from per-lesion severity
+and area, and report ICC 0.8 for their own method. Applying Hayashi bands to their
+counts is our construction, not theirs, and it is clinically incorrect on its face
+precisely because their counts include comedones. That is the intended demonstration:
+it shows how much the benchmark's published label depends on an unspecified counting
+convention. It is not a criticism of AcneAI's annotations, which are more complete than
+v1's by design and by their own account.
+
+We also cannot separate "team A missed lesions" from "team B over-segmented" without a
+third annotation. The claim here is symmetric and does not require assigning fault:
+**two expert annotations of the same 1,204 photographs do not induce the same severity
+ordering**, and the benchmark provides no basis for preferring one.
+
+## 5. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
 grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
@@ -157,7 +287,7 @@ a random sample of the corpus. The correct reading is not "these papers are wron
 "this benchmark cannot currently resolve differences of a few points, and nobody has
 been reporting that."
 
-## 5. The filename prefix is not a label
+## 6. The filename prefix is not a label
 
 **42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
 (e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
@@ -166,7 +296,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 
 ---
 
-## 6. What this changes for our study
+## 7. What this changes for our study
 
 1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
    embedder enabled.** The shipped defaults were tuned for datasets where perceptual
@@ -186,7 +316,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 7. Publishability
+## 8. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%
