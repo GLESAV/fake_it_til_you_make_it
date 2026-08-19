@@ -151,6 +151,20 @@ pairs sit at cosine 1.000, calibrating the instrument. Visual inspection of the 
 clusters confirms them: each is one individual photographed from several angles across
 several sessions.
 
+\paragraph{Negative control: identity, or shared capture conditions?}
+The obvious objection to any embedding-based leakage claim is that the model may be
+scoring the photo shoot rather than the person. On this corpus the objection has teeth:
+76\% of images share one resolution, 97.8--99.7\% of linked pairs sit inside a single
+resolution group against a 63.2\% chance baseline, and only 4\% of identity clusters span
+more than one resolution. That pattern has a benign reading (one person, one session, one
+camera) and a fatal one (the model is scoring capture conditions), and they are separable.
+Restricting to the dominant resolution group --- 1{,}107 images, one camera, one setup ---
+the median pairwise cosine is \textbf{0.103}, the 99th percentile is 0.342, and only
+\textbf{0.423\%} of pairs clear 0.60 with \textbf{0.029\%} clearing 0.85. Had capture
+conditions driven the similarity, the distribution inside that homogeneous group would be
+shifted high and unimodal. It is low with a thin distinct tail, so the clusters are people
+and the resolution concentration is the benign reading.
+
 We report leakage in the most conservative form available. A test image counts as leaked
 only if \emph{it is itself} above threshold to some individual training image --- no
 clusters, no chaining --- and we give alongside it the chance rate, the share of all

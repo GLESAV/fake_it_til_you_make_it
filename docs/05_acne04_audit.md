@@ -309,6 +309,34 @@ same-identity operating point the figure is 57–78%.
 This dwarfs the byte-duplicate leakage of §3. It is not a handful of images: it is most
 of the test set.
 
+### 5.2.1 Negative control: is this identity, or shared capture conditions?
+
+The obvious objection to any embedding-based leakage claim is that the model may be
+matching the photo shoot rather than the person — same camera, same lighting, same
+background. On this corpus that objection has teeth, because 76% of the images share one
+resolution and **97.8–99.7% of the linked pairs sit inside a single resolution group**
+against a 63.2% chance baseline, with only 4% of identity clusters spanning more than one
+resolution.
+
+That pattern has a benign reading (one person, one session, one camera) and a fatal one
+(the model is scoring capture conditions). They are separable: restrict the analysis to
+the dominant resolution group — 1,107 images, one camera, one setup — and ask whether the
+separation survives. If capture conditions drove the similarity, the distribution inside
+that group would be shifted high and unimodal.
+
+| within the 1,107-image group | value |
+|---|---|
+| median pairwise cosine | **0.103** |
+| 90th / 99th percentile | 0.220 / 0.342 |
+| share of pairs ≥ 0.60 | **0.423%** |
+| share of pairs ≥ 0.85 | **0.029%** |
+| subjects at cosine 0.60 | 319, largest cluster 22 |
+
+The distribution stays low and the identity tail stays thin and distinct: within one
+capture setup, fewer than half a percent of pairs clear 0.60. The clusters are people,
+not photo shoots, and the resolution concentration is the benign reading — a subject was
+photographed once, in one session, on one camera.
+
 ### 5.3 Our first splits leaked too
 
 Our deduplicated image-level splits carry 8.3% / 50.7% / 74.5% at cosine 0.85 / 0.75 /

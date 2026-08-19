@@ -95,6 +95,8 @@ def main() -> None:
                   " ".join(f"{100 * r:5.1f}" for r in rates) +
                   f" {100 * np.mean(rates):>6.1f}%")
 
+    capture_condition_control(paths, emb, detected)
+
     for split_dir in args.splits:
         d = Path(split_dir)
         if not (d / "train.jsonl").exists():
@@ -116,6 +118,42 @@ def main() -> None:
         for t in THRESHOLDS:
             print(f"  cosine >= {t:.2f}: {100 * (best >= t).mean():5.1f}% of test images "
                   f"share a face with training")
+
+
+def capture_condition_control(paths, emb, detected, thresholds=THRESHOLDS) -> None:
+    """Separate identity from shared capture conditions.
+
+    The obvious objection to an embedding-based leakage claim is that the model may be
+    scoring the photo shoot rather than the person. Restricting to the dominant
+    resolution group -- one camera, one setup -- decides it: if capture conditions drove
+    the similarity, the distribution inside that group would be shifted high and
+    unimodal rather than keeping a thin identity tail.
+    """
+    from collections import Counter
+
+    from PIL import Image
+
+    keep = np.where(detected)[0]
+    sizes = []
+    for i in keep:
+        with Image.open(paths[i]) as im:
+            sizes.append(f"{im.size[0]}x{im.size[1]}")
+    sizes = np.array(sizes)
+    dominant, n = Counter(sizes).most_common(1)[0]
+    sel = np.where(sizes == dominant)[0]
+
+    emb_keep = emb[keep]
+    cos = emb_keep[sel] @ emb_keep[sel].T
+    upper = np.triu_indices(len(sel), k=1)
+    d = cos[upper]
+
+    print(f"\n== capture-condition control: {dominant}, {n} images, one camera ==")
+    print("  median cosine {:.3f}   p90 {:.3f}   p99 {:.3f}".format(
+        float(np.median(d)), float(np.percentile(d, 90)), float(np.percentile(d, 99))))
+    for t in (0.85, 0.60):
+        print(f"  share of pairs >= {t:.2f}: {100 * float((d >= t).mean()):.3f}%")
+    print("  A high, unimodal distribution here would mean the links are capture "
+          "conditions.\n  A low one with a thin tail means they are identity.")
 
 
 if __name__ == "__main__":
