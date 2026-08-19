@@ -249,6 +249,40 @@ distinguishes them — if validation performance is still climbing at 900 steps 
 and extend, and if it has plateaued the budget was sufficient. Reporting the checkpoint
 curve is not optional.
 
+### 4.7 Generation budget, measured
+
+Measured 2026-08-19 on the M4 Max, closed-set LoRA loaded, per image at batch 4:
+
+| precision | steps | resolution | s/image | hours for a 4,740 pool |
+|---|---|---|---|---|
+| fp32 | 50 | 512 | 22.63 | 29.8 |
+| fp32 | 30 | 512 | 13.78 | **18.1** |
+| fp32 | 20 | 512 | 9.51 | 12.5 |
+| fp32 | 50 | 384 | 9.95 | 13.1 |
+| fp32 | 30 | 384 | 6.10 | 8.0 |
+| fp16 | 50 | 512 | 21.06 | 27.7 |
+| fp16 | 30 | 512 | 12.56 | 16.5 |
+| fp16 | 30 | 384 | 5.30 | 7.0 |
+
+Three conclusions, in decreasing order of confidence.
+
+**Mixed precision is not worth having here.** fp16 buys 7–8% on MPS, not the 1.5–2× it
+buys on CUDA. That makes the trade easy in the direction we already preferred: we stay in
+fp32 and carry none of the numerical risk, at a cost of under a tenth of the runtime. This
+is a measurement, not a principle — on a CUDA host the calculation would go the other way.
+
+**Steps are the safe lever.** 50 → 30 saves 39% of the runtime, and 30 sampling steps
+with the default scheduler is a well-established operating point. The comparability cost
+is real but small: Fan et al. and Sariyildiz et al. both generated at 50, so a step count
+of 30 is a stated deviation rather than a silent one.
+
+**Resolution is the big lever and the risky one.** 512 → 384 saves 56%, far more than
+anything else. Two arguments pull against each other: the classifier only ever sees 224px,
+so anything above that is discarded before training — but SD 1.5 is trained at 512 and
+degrades below it, and our LoRA was fine-tuned at 512, so generating at 384 is off-recipe
+for the generator rather than merely smaller. **This one is settled by measurement, not by
+argument** (§4.7.1).
+
 ## 5. The mixing experiment (primary)
 
 ### 5.1 Budget-matched substitution — answers H1, H2
