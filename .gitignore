@@ -17,3 +17,6 @@ paper/*.out
 paper/*.bbl
 paper/*.blg
 paper/*.pdf
+*.egg-info/
+.pytest_cache/
+results/
