@@ -92,26 +92,52 @@ def _require_diffusers() -> None:
 
 
 def build_caption_manifest(train: Corpus, output: str | Path) -> Path:
-    """Write the image/caption manifest the fine-tuning script consumes."""
+    """Write the image/caption manifest the fine-tuning script consumes.
+
+    Also materialises an ``imagefolder`` next to it, because that is what the trainer
+    actually reads. ``--train_data_dir`` is loaded by HuggingFace ``datasets``, which
+    requires a directory containing the images themselves plus a ``metadata.jsonl``
+    whose ``file_name`` values are relative to that directory. A manifest of absolute
+    paths under any other filename is silently not a dataset, and the trainer fails
+    after the caption step has already reported success.
+
+    The images are symlinked rather than copied: ACNE04 is 1.1 GB and academic-use only,
+    so duplicating it into a model directory is both wasteful and a licensing hazard if
+    that directory is ever released.
+    """
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    with open(output, "w") as fh:
-        for record in train:
-            if record.source is not Source.REAL:
-                raise ValueError(
-                    "the closed-set generator must be trained on real images only; "
-                    f"found {record.source.value} at {record.path}"
-                )
-            fh.write(
-                json.dumps(
-                    {
-                        "file_name": record.path,
-                        "text": closed_set_prompt(record.label).text,
-                        "label": record.label,
-                    }
-                )
-                + "\n"
+    imagefolder = output.parent / "train"
+    imagefolder.mkdir(parents=True, exist_ok=True)
+
+    rows = []
+    for record in train:
+        if record.source is not Source.REAL:
+            raise ValueError(
+                "the closed-set generator must be trained on real images only; "
+                f"found {record.source.value} at {record.path}"
             )
+        source = Path(record.path).resolve()
+        link = imagefolder / source.name
+        if link.is_symlink() or link.exists():
+            link.unlink()
+        link.symlink_to(source)
+        rows.append(
+            {
+                "file_name": source.name,
+                "text": closed_set_prompt(record.label).text,
+                "label": record.label,
+            }
+        )
+
+    with open(imagefolder / "metadata.jsonl", "w") as fh:
+        for row in rows:
+            fh.write(json.dumps(row) + "\n")
+    with open(output, "w") as fh:
+        for row, record in zip(rows, train):
+            fh.write(json.dumps({**row, "file_name": record.path}) + "\n")
+
+    log.info("caption manifest: %d images, imagefolder at %s", len(rows), imagefolder)
     return output
 
 

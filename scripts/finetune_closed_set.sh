@@ -43,7 +43,7 @@ test -f "$OUT/captions.jsonl" || { echo "no caption manifest at $OUT" >&2; exit 
 .venv/bin/accelerate launch --mixed_precision="$PRECISION" \
   "$TRAINER" \
   --pretrained_model_name_or_path="$BASE" \
-  --train_data_dir="$OUT" \
+  --train_data_dir="$OUT/train" \
   --caption_column=text \
   --resolution="$RES" --center_crop --random_flip \
   --train_batch_size=4 --gradient_accumulation_steps=4 \
