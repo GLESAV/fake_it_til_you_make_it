@@ -1,6 +1,6 @@
 # Related Work: Can Generated Images Train a Traditional Classifier?
 
-**Status:** literature scan completed 2026-08-19. See [§0 Provenance](#0-provenance-and-verification-status) for how these claims were sourced and which ones still need full-text verification before they go into an arXiv submission.
+**Status:** literature scan completed 2026-08-19; **full-text verification pass 1 completed 2026-08-19**. See [§0 Provenance](#0-provenance-and-verification-status) for how these claims were sourced and which ones still need full-text verification before they go into an arXiv submission.
 
 ---
 
@@ -20,9 +20,15 @@ Each claim is tagged:
 - **[?]** — we believe this is true but could not locate a citable source; treat as a
   hypothesis, not a fact.
 
-At the time of writing, **everything is [S] or [?]**. `docs/VERIFY.md` tracks the
-re-verification checklist. Do not paste a number from this file into the paper
-without promoting it to [V] first.
+**Verification pass 1 was run on 2026-08-19** from an unrestricted network. The
+design-critical claims — the acne prior, the closest medical analogue, the exchange-rate
+methodology, the guidance protocol, the ACNE04 statistics, the memorisation prior and
+the retraction — are now **[V]**, and several changed materially on contact with the
+primary sources (a wrong author attribution, a cherry-picked headline number, a results
+table that contradicts its own abstract, and an accuracy band that is not the metric we
+report). `docs/VERIFY.md` lists what is verified, what is still [S], and the two hosts
+that refused our fetcher. Do not paste a number from this file into the paper without
+checking its tag.
 
 ---
 
@@ -82,20 +88,36 @@ anything we will fine-tune, and it *still* frames synthetic data as augmentation
 ### 2.2 The corrective wave (2024–2026)
 
 **Fan et al., "Scaling Laws of Synthetic Images for Model Training … for Now,"
-CVPR 2024** (arXiv:2312.04567). The most important prior for our design. Studies
-how performance scales with synthetic dataset size for both CLIP-style and
-supervised classifier training. Findings: prompt strategy, classifier-free
-guidance scale, and choice of generator all materially change the scaling
-exponent; after tuning, synthetic scales *nearly* as well as real for CLIP but
-**significantly underperforms for supervised classifiers**. The stated cause is
-that off-the-shelf text-to-image models simply cannot render certain concepts.
-**[S]**
+2024** (arXiv:2312.04567; Lijie Fan, Kaifeng Chen, Dilip Krishnan, Dina Katabi,
+Phillip Isola, Yonglong Tian). **[V]** — full text read 2026-08-19. *Note: the arXiv
+page carries no CVPR 2024 acceptance note; verify the venue before citing it as CVPR.*
+The most important prior for our design. Findings: prompt strategy, classifier-free
+guidance scale, and choice of generator all materially change the scaling exponent;
+after tuning, synthetic scales *nearly* as well as real for CLIP but **significantly
+underperforms for supervised classifiers**. The stated cause is that off-the-shelf
+text-to-image models cannot render certain concepts.
 
-The "…for Now" in the title is the whole argument: the gap is attributed to
-generator capability, not to something fundamental about synthetic data.
+**The directly actionable number: the guidance scale that maximises training utility
+is far below the aesthetic default.** They sweep CFG ∈ [1.5, 10.0] for Stable
+Diffusion, [1.0, 2.0] for Imagen and [0.1, 1.0] for Muse, and the optima for
+supervised classifier training are **SD 2.0**, Imagen 1.5, Muse 0.3. **[V]** Stable
+Diffusion's usual default is 7.5. Higher CFG improves text–image alignment and
+aesthetics while cutting diversity, and diversity is what training wants. **Our
+guidance sweep should be centred on 2.0 and should not extend far above 5.0**; a study
+that generated at 7.5 because it is the default would be measuring a handicapped
+generator and calling the result a property of synthetic data.
 
-**"When Pretty Isn't Useful: Investigating Why Modern Text-to-Image Models Fail
-as Reliable Training Data Generators"** (arXiv:2602.19946). Argues that visual
+The "…for Now" in the title is the whole argument: the gap is attributed to generator
+capability, not to something fundamental about synthetic data.
+
+**Adamkiewicz, Moser, Frolov, Nauen, Raue & Dengel, "When Pretty Isn't Useful:
+Investigating Why Modern Text-to-Image Models Fail as Reliable Training Data
+Generators," CVPR 2026** (arXiv:2602.19946). **[V]** — the paper is real and the
+author list, previously a placeholder, is now resolved. Trains classifiers purely on
+synthetic sets from state-of-the-art T2I models released 2022–2025 and finds that
+**accuracy on real test data consistently *declines* with newer generators**, which
+converge on "a narrow, aesthetic-centric distribution that undermines diversity and
+real data distribution coverage." Argues that visual
 fidelity and *training utility* have decoupled — newer, prettier models are not
 better data generators, because they concentrate mass on a narrow region of the
 real manifold. The fidelity–diversity trade-off is named as the mechanism. **[S]**
@@ -105,21 +127,54 @@ the newest/best-looking generator is the best generator for this study, and we
 should sweep guidance scale rather than fixing it at the aesthetic default.
 
 **Wang et al., "Exploring the Equivalence of Closed-Set Generative and Real Data
-Augmentation in Image Classification," 2025** (arXiv:2508.09550). The closest
-existing work to our **Q3**. Distinguishes *closed-set* augmentation (generator
-trained only on the given training set) from *open-set* (generator saw outside
-data), and derives an empirical "equivalent scale" — how many synthetic images
-are worth one real image — noting the exchange rate varies with baseline
-training-set size. Evaluated on natural **and medical** images. **[S]**
+Augmentation in Image Classification," 2025** (arXiv:2508.09550; Haowen Wang, Guowei
+Zhang, Xiang Zhang, Zeyuan Chen, Haiyang Xu, Dou Hoon Kwark, Zhuowen Tu). **[V]** —
+full text read 2026-08-19. The closest existing work to our **Q3**.
 
-Their closed-set/open-set distinction is the correct axis and we adopt it
-directly (see §6).
+Definitions, verified: **closed-set** = the generative model is trained from scratch on
+the classification dataset itself, with no external data; **open-set** = the generator
+was trained or pre-trained on a large external corpus (e.g. LAION-5B), as with Stable
+Diffusion. We adopt this axis directly (see §6). Their closed-set generators are EDM
+(CIFAR-10, BloodMNIST) and DiT-XL/2 (ImageNet-100); open-set is SD 1.4/2.0/3.0.
 
-**Representation-conditioned generation** (arXiv:2605.27495) reports that
-classifiers trained on synthetic data can *outperform* real-data baselines once
-the synthetic set is scaled to ~3× the real set size, when generation is
-conditioned on representations rather than text. **[S]** If this replicates it is
-a strong argument that the bottleneck is conditioning, not synthesis.
+They fit an empirical equivalence of the form
+`n_syn/n_base ≃ c₁^(n_base/k) × (c₂^(n_real⁺/n_base) − 1)`, and the **c₂ term is the
+exchange rate**: how many synthetic images it takes to match the benefit of one real
+image. Verified values: **[V]**
+
+| Dataset | Setting | Exchange rate (c₂) |
+|---|---|---|
+| CIFAR-10 | closed | 2.53× |
+| CIFAR-10 | open | 2.93× |
+| **BloodMNIST (medical)** | **closed** | **3.88×** |
+| ImageNet-100 | closed | 37.84× |
+| ImageNet-100 | open | 1.68× |
+
+Their headline is unambiguous: **"real images are always more advantageous than using
+synthetic data."** Closed-set scales better as the base training set grows.
+
+**Two things to be careful about when we position against this work.** First, the
+spread from 1.68× to 37.84× means there is no transferable constant — the exchange rate
+is a property of the dataset and generator, which is the argument for measuring it on
+acne rather than importing a number. Second, and more importantly for our gap
+statement: **this is augmentation-equivalence, not substitution.** Their quantity is
+"how much synthetic must I *add* to match *adding* n real images," with the real base
+held fixed. Ours is "what happens when synthetic *displaces* real at a fixed total
+budget." Akrout et al.'s table above shows these two questions have different answers —
+the marginal synthetic image is worth ~1 real image when added and <0.5 when
+substituted. Wang et al. do not measure the substitution end, and our §4.2 gap
+statement stands.
+
+**Karthikeyan, Unger & Eilertsen, "Representation-Conditioned Diffusion Models for
+Guided Training Data Generation"** (arXiv:2605.27495). **[V]** Conditioning latent
+diffusion on DINOv2/DINOv3/CLIP representations rather than on class labels improves
+ImageNet-100 top-1 by **+10.76 pp** over class-conditioned generation, and scaling the
+synthetic set lets it **exceed the real-data baseline by 2.0 pp**. *Correction: our
+earlier draft attributed the win to "~3× the real set size"; the verified claim is a
++2.0 pp margin under scaling, and the headline number is the +10.76 pp conditioning
+effect.* If this replicates it is a strong argument that the bottleneck is
+conditioning, not synthesis — and it is the one result in this section pointing the
+other way.
 
 ### 2.3 The failure mode nobody should ignore
 
@@ -154,10 +209,51 @@ including dermatology. **[S]**
 
 **Akrout et al., "Diffusion-based Data Augmentation for Skin Disease
 Classification: Impact Across Original Medical Datasets to Fully Synthetic
-Images," 2023** (arXiv:2301.04802). Notable because the title explicitly reaches
-the *fully synthetic* regime — the closest medical analogue to our Q2. **[S]**
-**Full text is a required read before we finalise the design; our sandbox could
-not retrieve it.**
+Images," 2023** (arXiv:2301.04802). **[V]** — full text and results table read
+2026-08-19. The closest medical analogue to our Q2, and **its own numbers contradict
+its abstract**, which is why reading it mattered.
+
+Setup: Stable Diffusion embeddings learned by textual inversion for six skin
+conditions on a proprietary macroscopic dataset; 30,000 images generated per class,
+filtered by a non-skin classifier and then by a pretrained ensemble; four balanced
+training sets built from the survivors; evaluation on **3,582 real images**.
+
+| Training set | Real | Synthetic | Top-1 | Top-2 | Top-3 |
+|---|---|---|---|---|---|
+| real-small | 250 | 0 | 53.41% | 73.51% | 83.22% |
+| real | 500 | 0 | 54.05% | 73.95% | 84.84% |
+| hybrid | 250 | 250 | 54.13% | 73.23% | 85.01% |
+| **synthetic** | **0** | **500** | **47.29%** | 70.71% | 84.09% |
+
+Read the top-1 column, which is the only one not saturated:
+
+- **At matched budget (500 vs 500) the fully synthetic arm loses 6.76 points.** This is
+  a clean Q2 substitution result and it is negative.
+- **500 synthetic images are worth less than 250 real ones** — the synthetic arm is
+  6.1 points below real-small, which has half the budget. The exchange rate at the
+  fully-synthetic end is worse than 2:1 *against*.
+- **But the hybrid arm at 250 real + 250 synthetic matches the 500-real arm** (54.13
+  vs 54.05). So the marginal synthetic image is worth roughly one real image when it
+  is *added alongside* real data, and worth well under half a real image when it
+  *replaces* real data. The exchange rate is not a constant — it collapses as the real
+  fraction goes to zero. This is exactly the curvature our sweep is designed to
+  measure, and it is the strongest existing evidence that a single-point comparison
+  cannot characterise substitution.
+
+The abstract's claim — that the approach "maintains a similar classification accuracy
+even when trained on a fully synthetic dataset" — is true only at top-4/top-5, where
+all four arms are within 0.2 points of each other because the metric has saturated on
+a six-class problem. **Do not cite the abstract's framing; cite Table 4.**
+
+One further observation from their §3.3 that we should treat as a finding rather than
+an aside: early stopping triggered **only** on the fully-synthetic arm, and its
+validation accuracy peaked at 89% while its real-test top-1 was 47.29%. They read this
+as synthetic data "allowing for faster training and convergence." The alternative
+reading is the one our §8.6 control formalises: the synthetic set is narrower and more
+prototypical, so it is easier to fit and its held-out synthetic validation score is
+inflated, while generalisation to real images is worse. A 42-point validation-to-test
+gap on the synthetic arm versus a much smaller one elsewhere is the prototype effect
+with a number attached.
 
 **Derm-T2IM** (arXiv:2401.05159), **LesionGen** (arXiv:2507.23001),
 **SkinDualGen** (arXiv:2507.19970), **DermDiff** (arXiv:2503.17536) — a steady
@@ -188,58 +284,134 @@ our protocol is designed to avoid:
 ## 4. Acne specifically
 
 **Wu et al., "Joint Acne Image Grading and Counting via Label Distribution
-Learning," ICCV 2019.** Introduces **ACNE04**: 1,457 facial images (1,513 files
-in the distributed archive), 18,983 lesion bounding boxes, severity graded on the
-**Hayashi** criterion into 4 ordinal levels (mild / moderate / severe / very
-severe), shot at roughly 70° from frontal per the Hayashi protocol's half-face
-requirement. Distributed via `github.com/xpwu95/LDL`, "free for academic usage."
-**[S]** This is the de-facto benchmark.
+Learning," ICCV 2019.** Introduces **ACNE04**: 1,457 facial images, 18,983 lesion
+bounding boxes, severity graded on the **Hayashi** criterion into 4 ordinal levels,
+shot at roughly 70° from frontal per the Hayashi protocol's half-face requirement.
+Distributed via `github.com/xpwu95/LDL`; the README states verbatim: *"This work is
+free for academic usage. For other purposes, please contact Xiaoping Wu."* **[V]**
 
-**Reported ACNE04 performance** in follow-up work clusters around 85–86%
-accuracy for severity grading — e.g. one system reports precision 85.31%,
-sensitivity 84.83%, specificity 94.66%, accuracy 86.06%. **[S]** The MICCAI 2024
-**AcneAI** work reports ICC 0.8 for severity via a UNet/EfficientNet lesion
-segmentation route. **[S]** **Label Distribution Smoothing** (arXiv:2403.00268,
-ISBI 2024) is the current strong ordinal baseline. **[S]**
+The **Hayashi thresholds are lesion counts**, verified: mild **1–5**, moderate
+**6–20**, severe **21–50**, very severe **>50**. **[V]**
 
-This ~86% figure is the number our real-only ceiling should be compared against.
-If our real-only baseline lands far below it, our pipeline is broken, not the
-synthetic data.
+**The class distribution is severely imbalanced, and this is the single most
+consequential fact about ACNE04 for our study.** Under the standard 80/20 split
+(1,165 train / 292 test): **[V]**
+
+| Grade | Lesions | Train | Test | Total | Share |
+|---|---|---|---|---|---|
+| Mild | 1–5 | 410 | 103 | 513 | 35.2% |
+| Moderate | 6–20 | 506 | 127 | 633 | 43.4% |
+| Severe | 21–50 | 146 | 36 | 182 | 12.5% |
+| Very severe | >50 | 103 | 26 | 129 | 8.9% |
+
+Three consequences we have to design around:
+
+1. **The two clinically load-bearing classes have 182 and 129 images in total.** After
+   sealing a test split and carving a validation split, the severe and very-severe
+   *training* pools are on the order of 110 and 80 images. A closed-set generator
+   fine-tuned per class is being asked to learn a distribution from ~100 examples,
+   which is precisely the regime where memorisation, not synthesis, is the likely
+   outcome. Our memorisation audit is therefore not a formality — it is the load-
+   bearing control for the tail classes.
+2. **Tail metrics will be noisy no matter what we do.** With 36 and 26 test images in
+   the two tail classes, the binomial standard error on per-class recall is roughly
+   ±8 and ±10 points. Any per-class tail claim needs the interval attached, and
+   differences smaller than ~15 points on those classes are not interpretable from a
+   single test set.
+3. **Plain accuracy on this test set is dominated by the two majority classes**
+   (78.6% of the data). A model that never predicts "very severe" loses at most 8.9
+   points of accuracy. This is why we report **balanced accuracy** as the primary
+   metric — and why the comparison in the next paragraph is not apples-to-apples.
+
+**Reported ACNE04 performance.** The published band is **83.7–87.3% plain accuracy**:
+Wu et al.'s own baseline is **83.70 ± 1.53%**, Label Distribution Smoothing (ISBI 2024,
+arXiv:2403.00268) reports **84.11 ± 1.94%** under pre-defined 5-fold cross-validation,
+KIEGLFN reports **86.06%** (precision 85.31%, sensitivity 84.83%, specificity 94.66%),
+and an LDL-family framework reports **87.33%**. **[V]** The MICCAI 2024 **AcneAI** work
+reports ICC 0.8 via a lesion-segmentation route. **[S]**
+
+**Caveat that our earlier draft got wrong:** these are *plain accuracy on the
+imbalanced test set*, not balanced accuracy. Our real-only arm reports balanced
+accuracy and will legitimately land well below 84% while being a perfectly healthy
+pipeline. The sanity check on our real-only baseline must therefore be run on **plain
+accuracy** against this band, with balanced accuracy reported alongside it. Comparing
+our balanced accuracy to their plain accuracy and concluding "our pipeline is broken"
+would be a self-inflicted wound.
 
 ### 4.1 The one existing acne-synthetic result — and why it needs replication
 
-**Zaghbani / Boukhris et al., "Generative Adversarial Networks for anonymous
-Acneic face dataset generation," PLOS ONE 2024** (arXiv:2211.04214,
-PMC11020863). Trains StyleGAN2-ADA per severity level to produce 1024×1024
-synthetic acneic faces (mild/moderate/severe plus a synthetic healthy class), with
-**anonymity** as the stated motivation. Reports a CNN "trained using the generated
-synthetic acneic face images and tested using authentic face images" reaching
-**97.6% accuracy with InceptionResNetV2**. **[S]**
+**Zein, Chantaf, Fournier & Nait-Ali, "Generative adversarial networks for anonymous
+acneic face dataset generation," PLOS ONE 19(4): e0297958, 2024** (arXiv:2211.04214,
+PMC11020863). **[V]** — full text read 2026-08-19.
 
-**We should treat this number as the central target of our study, and we should
-expect it not to hold.** Reasons for scepticism, all of which our design controls
-for:
+> **Attribution correction.** Earlier drafts of this review cited this work as
+> "Zaghbani / Boukhris et al." That attribution was wrong and was never checked; it
+> came from a search summary. The authors are Hazem Zein, Samer Chantaf, Régis
+> Fournier and Amine Nait-Ali. `refs.bib` has been corrected.
 
-- 97.6% on real test images exceeds every *real-trained* ACNE04 severity result
-  we found (~86%). A synthetic-trained model beating the real-trained
-  state-of-the-art by 11 points is an extraordinary claim.
-- Adding a **synthetic healthy class** changes the task. Discriminating
-  "GAN-generated clear face" from "real acne face" can be solved by
-  generator-artefact detection rather than by dermatological features. If the
-  healthy class is synthetic and the acne classes are also synthetic but the
-  *test* set is real, the class structure and the real/synthetic axis may be
-  entangled.
-- The training faces are StyleGAN2 samples fine-tuned from a face prior; the test
-  faces are real. No statement of whether generator training data and classifier
-  test data were disjoint was retrievable from the abstract.
+What the paper actually does: StyleGAN2-ADA is trained per severity level to produce
+1024×1024 synthetic acneic faces (mild / moderate / severe), plus a fourth
+StyleGAN2-generated **healthy** class. Three CNNs are then trained on synthetic images
+only and evaluated on real faces. Anonymity is the stated motivation.
 
-A separate 2024 paper on GANs for acne dataset generation in *BioMedInformatics*
-(doi:10.3390/biomedinformatics4020059) is marked **RETRACTED**. **[S]** We should
-find out why before building on anything adjacent to it.
+Verified specifics, all of which weaken the headline:
 
-**ACNEDIT** (Springer 2025) does non-destructive acne editing with dynamic
-intensity tuning — an *editing* rather than *de novo* generation approach, which
-is a third arm worth considering: paste synthetic lesions onto real skin.
+- **The generator's real training set is 1,473 images: 1,073 from ACNE04 plus 400
+  scraped from Google Images.** It is not "ACNE04" as our earlier draft implied, and
+  the 400 web images have no stated provenance or licence.
+- **The 97.6% is the best of three numbers, and the other two are far lower.**
+  Figure 9 reports, on the same real test images: InceptionResNetV2 **97.6%**,
+  ResNet152V2 **82.7%**, ResNet50V2 **76.03%**. A 21.6-point spread across three
+  closely related ImageNet backbones trained on identical data is not a property of
+  the data; it is a symptom of a small and/or unstable evaluation. Quoting only the
+  97.6% — as we did — is the cherry-pick the paper invites.
+- **The size, class balance and source of the real test set are stated nowhere.** The
+  Figure 9 caption reads only: *"Confusion matrix for each CNN model tested on unseen
+  images."* No n, no per-class counts, no source dataset.
+- **There is no explicit statement that the real test images were excluded from the
+  1,473 images used to train the StyleGAN2 generators.** The paper says the models
+  were evaluated on "unseen real facial acne images"; "unseen" is only ever asserted
+  with respect to *classifier* training, which is trivially true because the
+  classifier saw nothing but synthetic images. The generator-side disjointness — the
+  one that matters — is never claimed.
+- **The real test subset "contains only authentic acneic face images."** The
+  classifier has four classes and the healthy class is synthetic-only. So a four-class
+  model appears to be scored on a test set containing no examples of one of its
+  classes. Either the healthy class is absent from the real evaluation, or its real
+  images come from an unnamed source. Either way the reported accuracy is not
+  comparable to a four-class ACNE04 result.
+- Training-set composition for the classifier: 1,387 healthy, 841 mild, 1,173
+  moderate, 1,086 severe synthetic images (4,487 total).
+- On a *synthetic* held-out split (Table 2) all three backbones score 97.8–98.4%.
+  The collapse to 76–83% for two of them on real images is the real/synthetic domain
+  gap showing up exactly where our study predicts it.
+
+**Bottom line for our design.** The 97.6% is not evidence that synthetic acne images
+can replace real ones. It is a single unreplicated number, from the best of three
+models, on an unspecified test set, with no stated generator/test disjointness, for a
+task whose class structure differs from ACNE04's. Our study should still target it —
+but as a *claim to be characterised*, not a result to be beaten. §8.6's prototype-effect
+control applies directly: a StyleGAN2 trained per class on ~100–400 images will produce
+narrow, prototypical samples, and a classifier trained on those can score high on the
+easy majority of a real test set while learning nothing about the tail.
+
+**The retracted adjacent paper.** Sankar, Chaturvedi, Nayan, Hesamian, Braytee &
+Prasad, "Utilizing Generative Adversarial Networks for Acne Dataset Generation in
+Dermatology," *BioMedInformatics* 2024, **4**, 1059–1070, was retracted on
+**12 August 2024** (notice: doi:10.3390/biomedinformatics4030104). **[V]** The stated
+reason is **significant overlap of methodology, data and a figure (Figure 6) with an
+earlier preprint by a different authorship group, without acknowledgment or
+citation**; the retraction was approved by the Editor-in-Chief and **the authors did
+not agree to it**. Given the subject matter and the dates, the "earlier preprint by a
+different authorship group" is plausibly arXiv:2211.04214 — the Zein et al. preprint
+above — but the notice does not name it and we should not assert this. Practical
+consequence: cite the retraction, do not cite the retracted paper, and treat the small
+acne-GAN literature as thin enough that one plagiarism case removes a meaningful
+fraction of it.
+
+**ACNEDIT** (Springer 2025) does non-destructive acne editing with dynamic intensity
+tuning — an *editing* rather than *de novo* generation approach, which is a third arm
+worth considering: paste synthetic lesions onto real skin. **[S]**
 
 ### 4.2 Gap statement
 
@@ -247,7 +419,7 @@ To the best of this scan, **no published work measures acne classifier
 performance as a continuous function of the real:synthetic mixing ratio against a
 fixed, untouched real test set, with matched training budgets and variance
 estimates.** The nearest neighbours are Wang et al. 2025 (exchange rate, not
-acne) and Zaghbani et al. 2024 (acne, fully synthetic, single point, no budget
+acne) and Zein et al. 2024 (acne, fully synthetic, single point, no budget
 control, implausible headline). That gap is our paper.
 
 ---
@@ -292,27 +464,74 @@ Positions we adopt, each traceable to something above:
 7. **Measure the tail.** Per-class metrics on severe/very-severe, not just overall
    accuracy — this is where model collapse and mode-dropping show up, and it is
    the clinically load-bearing part of the label space.
-8. **Run a memorisation audit.** Carlini et al. (arXiv:2301.13188) and Somepalli et
-   al. (arXiv:2305.20086) find 0.5–2% of generations are partial training-data
-   duplicates, driven by data duplication and text conditioning. **[S]** For a
-   fine-tuned-on-1,457-faces generator this rate could be far higher, and the
-   "anonymity" claim in the acne prior depends entirely on it. Nearest-neighbour
-   retrieval against the generator's training set is mandatory, not optional.
+8. **Run a memorisation audit, with SSCD at threshold 0.5.** Somepalli et al.,
+   "Diffusion Art or Digital Forgery?" (arXiv:2212.03860, CVPR 2023), measure that
+   **1.88% of random Stable Diffusion v1.4 generations have SSCD similarity > 0.5 to a
+   training image** — and they state this is a **lower bound**, because their retrieval
+   covered only the 12M-image aesthetic split, "which accounts for only 0.6% of total
+   training data." **[V]** Carlini et al. (arXiv:2301.13188) extract "over a thousand"
+   verbatim training examples from diffusion models; we could not verify a *rate* from
+   that paper and should not quote one. **[S]**
+
+   Two design consequences. First, adopt their instrument rather than inventing one:
+   **SSCD embeddings, top-1 similarity, 0.5 threshold**, reported as a lower bound.
+   Second, 1.88% is the rate for a model trained on ~2 billion images. Our closed-set
+   generator is fine-tuned on roughly 1,000 faces, with the tail classes at ~100
+   images each — three to four orders of magnitude less data per mode. There is no
+   basis for expecting 1.88% to transfer, and every reason to expect substantially
+   more copying, concentrated in exactly the severe and very-severe classes. The
+   "anonymity" claim in the acne prior depends entirely on this rate and that paper
+   reports no such audit. If our memorisation rate on the tail classes is high, the
+   synthetic-only arm is a laundered copy of the real training set and the substitution
+   question is not being measured at all — this is a study-invalidating condition, not
+   a caveat.
 
 ---
 
-## 7. Reading list to promote [S] → [V]
+## 7. Verification status
 
-Priority order for the full-text pass (needs an unrestricted network):
+**Pass 1 complete, 2026-08-19**, from an unrestricted network. `docs/VERIFY.md` holds
+the full table. Summary:
 
-1. Zaghbani et al. 2024 (PLOS ONE) — the 97.6% claim. **Highest priority.**
-2. Akrout et al. 2023 (arXiv:2301.04802) — fully-synthetic medical regime.
-3. Wang et al. 2025 (arXiv:2508.09550) — exchange-rate methodology.
-4. Fan et al. 2024 (arXiv:2312.04567) — scaling protocol, guidance sweep.
-5. Wu et al. ICCV 2019 — ACNE04 splits and the exact Hayashi mapping.
-6. Sariyildiz et al. CVPR 2023 — prompt strategy details.
-7. Ktena et al. Nature Medicine 2024 — fairness evaluation protocol.
-8. The retracted BioMedInformatics acne-GAN paper — retraction notice.
+**Promoted to [V]:** Zein et al. 2024 (the acne prior — with four material corrections,
+§4.1); Akrout et al. 2023 (results table read; contradicts its own abstract, §3);
+Wang et al. 2025 (exchange rates 1.68×–37.84×, §2.2); Fan et al. 2024 (CFG optima,
+§2.2); ACNE04 statistics, Hayashi thresholds and class distribution (§4); the published
+ACNE04 accuracy band and the metric caveat (§4); Somepalli et al. (1.88% at SSCD>0.5,
+a lower bound, §6.8); the BioMedInformatics retraction and its reason (§4.1); Ktena et
+al. (Nat Med 30:1166–1173); "When Pretty Isn't Useful" and the representation-
+conditioned paper (both real, author lists resolved).
+
+**Still [S], in priority order for pass 2:**
+
+1. Sariyildiz et al. CVPR 2023 — prompt ablation and the actual accuracy numbers. Our
+   claims about it are currently qualitative only.
+2. Azizi et al. 2023 — FID 1.76, IS 239, CAS 64.96/69.24.
+3. Shumailov et al. 2024 — Nature volume and pages.
+4. Carlini et al. 2023 — an extraction *rate*, if one exists in the paper.
+5. He et al. ICLR 2023; Sagers et al. 2022.
+6. The "4–15%" hybrid-vs-real range across Derm-T2IM / LesionGen / SkinDualGen /
+   DermDiff. This is a range assembled from incomparable protocols and should probably
+   be deleted rather than verified.
+
+**Two hosts refused our fetcher** (403): `openaccess.thecvf.com` and `www.mdpi.com`.
+Wu et al. ICCV 2019 and the retraction notice were therefore verified through
+secondary full texts and search indexing of the notice text respectively. Re-check both
+from a browser before submission.
+
+**What changed on contact with the primary sources** — worth stating plainly, because
+it is the argument for having done this before writing any of the paper:
+
+- The acne prior's authors were wrong in our draft (not "Zaghbani/Boukhris").
+- Its 97.6% is the best of three numbers on the same test set; the others are 82.7%
+  and 76.03%.
+- Its test set is never described — no size, no class balance, no source — and no
+  generator/test disjointness is claimed.
+- The closest medical analogue to our Q2 reports, in its own results table, a 6.8-point
+  *loss* at matched budget, while its abstract says accuracy is "maintained."
+- The ACNE04 accuracy band we planned to sanity-check against is plain accuracy on an
+  imbalanced test set, not the balanced accuracy we report.
+- The guidance scale that maximises training utility is ~2.0, not the 7.5 default.
 
 ---
 

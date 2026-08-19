@@ -47,7 +47,7 @@ Work through these in order. Stop and tell me at each numbered boundary.
    docs/01_related_work.md came from search summaries and is tagged [S]. You have
    open network. Work docs/VERIFY.md top to bottom, read the actual PDFs, and promote
    claims to [V] or delete them. Priority order is already in that file. Item 1 is
-   the Zaghbani PLOS ONE paper reporting 97.6% training on synthetic and testing on
+   the Zein et al. PLOS ONE paper reporting 97.6% training on synthetic and testing on
    real — I want to know exactly what their test set was and whether the generator's
    training data was disjoint from it. Also fix the placeholder author lists in
    paper/refs.bib that are marked UNVERIFIED.
