@@ -25,6 +25,9 @@ benchmark.
 | — of which free correct answers (labels agree) | 3.56% |
 | — of which forced errors (labels conflict) | 0.68% |
 | Files whose `levleN` filename prefix disagrees with the label | **42 of 1,457** |
+| **What image-level splitting is worth** (matched pair, 5 seeds) | **+4.51 balanced-accuracy points** (95% CI +2.33 to +7.04) |
+| — on the two majority grades | −1.5 and +0.8 points |
+| — on severe and very severe | **+9.9 and +9.0 points** |
 | **Distinct individuals in the 1,457 images (ArcFace)** | **~550–750** |
 | — test images sharing a *person* with training, published folds, cosine ≥ 0.85 | **15.9%** (chance rate 0.019%) |
 | — the same at the ordinary same-identity operating point (0.60) | **77.5%** |
@@ -445,7 +448,75 @@ An alternative splitter that stratifies group assignment by group size would equ
 subject proportions. We have not adopted it: it would change the frozen splits, and the
 current asymmetry costs us nothing we want.
 
-## 6. The labels are derived, and the derivation exposes the noise
+## 6. What the leakage is worth, in points
+
+Two arms differing in exactly one thing: how the splits were drawn. Same ResNet-50, same
+ImageNet initialisation, same hyperparameters, same 947/948-image training budget, same
+five seeds, same corpus. One splits at the image level after perceptual and CLIP
+deduplication — which is what every published ACNE04 result does, and what our own first
+attempt did — and carries **74.5% subject leakage**. The other groups by face identity
+first and carries **none**.
+
+All numbers are validation; the test split has never been unsealed.
+
+| metric | image-level | subject-disjoint | difference | 95% CI |
+|---|---|---|---|---|
+| **balanced accuracy** | 0.7920 ± 0.017 | 0.7469 ± 0.016 | **+4.51 pts** | **[+2.33, +7.04]** |
+| macro F1 | 0.7515 ± 0.025 | 0.6945 ± 0.027 | +5.69 pts | [+2.37, +9.57] |
+| quadratic weighted κ | 0.8487 ± 0.016 | 0.8221 ± 0.018 | +2.66 pts | [+0.46, +5.15] |
+| plain accuracy | 0.7644 ± 0.018 | 0.7394 ± 0.025 | +2.49 pts | [−0.80, +5.79] |
+| mean absolute error | 0.2511 ± 0.024 | 0.2817 ± 0.030 | −3.05 pts | [−7.63, +0.52] |
+
+Paired by seed, bootstrap intervals over the paired differences.
+
+**Splitting a face dataset at the image level is worth about four and a half points of
+balanced accuracy on ACNE04** — a bonus larger than the entire spread between the
+published methods competing on this benchmark (83.70%, 84.11%, 86.06%, 87.33%).
+
+### 6.1 The bonus is not spread evenly, and where it lands is the argument
+
+| grade | distinct people in training | image-level recall | subject-disjoint recall | difference |
+|---|---|---|---|---|
+| mild | 116 | 0.885 | 0.900 | **−1.5 pts** |
+| moderate | 126 | 0.657 | 0.649 | **+0.8 pts** |
+| severe | **57** | 0.637 | 0.538 | **+9.9 pts** |
+| very severe | **47** | 0.990 | 0.900 | **+9.0 pts** |
+
+The bonus is **essentially zero on the two majority grades and about ten points on the two
+rare ones** — exactly the grades with the fewest distinct subjects to memorise. That is
+what the mechanism predicts: recognising an individual is worth far more when the class
+holds 47 people than when it holds 126.
+
+It also matters for reading the aggregate row above. Plain accuracy is dominated by the
+majority classes, where there is no bonus, so its interval spans zero. Balanced accuracy
+and macro F1 weight the tail equally and show the effect clearly. **A benchmark reported
+in plain accuracy will not show this leak even though it is there.**
+
+### 6.2 The confound, and why the pattern survives it
+
+The two arms have different test sets, so this comparison mixes the leakage bonus with
+whatever intrinsic difficulty difference exists between those sets. We flag it rather
+than hide it, and a matched within-model analysis is running: one model, one test set,
+partitioned by whether the person in each test image also appears in that model's
+training split.
+
+But the per-class pattern is already hard to explain as a test-set artefact. A difficulty
+difference between two random subject-disjoint splits has no reason to land specifically
+on severe and very severe while being zero on mild and moderate. The mechanism predicts
+exactly that shape; a confound would have to reproduce it by coincidence, in the two
+classes the mechanism singles out in advance.
+
+### 6.3 What it does not say
+
+This is not a claim that published ACNE04 results are overstated by 4.5 points. Those
+results use plain accuracy on the dataset's own folds, not balanced accuracy on ours, and
+their leakage rate is 77.5% against our image-level arm's 74.5% — close, but not the same
+experiment. The defensible statement is narrower and still substantial: **on this dataset,
+with this architecture and budget, image-level splitting is worth +4.5 balanced-accuracy
+points, concentrated almost entirely in the two clinically important grades.**
+
+
+## 7. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
 grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
@@ -483,7 +554,7 @@ a random sample of the corpus. The correct reading is not "these papers are wron
 "this benchmark cannot currently resolve differences of a few points, and nobody has
 been reporting that."
 
-## 7. The filename prefix is not a label
+## 8. The filename prefix is not a label
 
 **42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
 (e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
@@ -492,7 +563,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 
 ---
 
-## 8. What this changes for our study
+## 9. What this changes for our study
 
 1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
    embedder enabled.** The shipped defaults were tuned for datasets where perceptual
@@ -512,7 +583,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 9. Publishability
+## 10. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%

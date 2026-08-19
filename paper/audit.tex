@@ -39,9 +39,12 @@ counted; an independent expert re-annotation of 1{,}204 of the same photographs
 \citep{acneai2024} counts $3.2\times$ more lesions, ranks the images differently
 (Spearman $\rho = 0.471$), and agrees with the original grade on 30.1\% of images ---
 58.2\% after being granted an arbitrary monotone recalibration that removes the entire
-definitional difference. We quantify the cost of (iii) by training an identical
-classifier on image-level and subject-disjoint splits, and we release the scripts that
-reproduce every number from public data.
+definitional difference. We quantify the cost of (iii): an identical classifier
+trained on image-level rather than subject-disjoint splits gains \textbf{4.5 points of
+balanced accuracy} (95\% CI 2.3--7.0), and the gain is concentrated almost entirely in the
+two rare, clinically important grades ($+9.9$ and $+9.0$ points) while being absent from
+the two majority grades. We release the scripts that reproduce every number from public
+data.
 \end{abstract}
 
 \section{Introduction}
@@ -275,12 +278,81 @@ the same 1{,}204 photographs do not induce the same severity ordering, and ACNE0
 no basis for preferring one.
 
 \section{What the leakage is worth, in points}
+\label{sec:cost}
 
-\RESULT{pending: five seeds each}
-An identical ResNet-50, identical hyperparameters, identical training budget and the
-same five seeds, trained and evaluated on (a)~perceptually deduplicated image-level
-splits carrying 74.5\% subject leakage and (b)~subject-disjoint splits carrying none.
-The difference is the leakage bonus.
+Two arms differing in exactly one thing: how the splits were drawn. The same ResNet-50,
+the same ImageNet initialisation, the same hyperparameters, the same training budget and
+the same five seeds. One splits at the image level after perceptual and CLIP
+deduplication --- which is what every published ACNE04 result does, and what our own first
+attempt did --- and carries 74.5\% subject leakage. The other groups by face identity
+first and carries none. All numbers are validation; the test split has never been
+unsealed.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lccc}
+\toprule
+& image-level & subject-disjoint & difference (95\% CI) \\
+\midrule
+\textbf{balanced accuracy} & 0.7920 $\pm$ 0.017 & 0.7469 $\pm$ 0.016 &
+  \textbf{+4.51} \; [+2.33, +7.04] \\
+macro F1 & 0.7515 $\pm$ 0.025 & 0.6945 $\pm$ 0.027 & +5.69 \; [+2.37, +9.57] \\
+quadratic weighted $\kappa$ & 0.8487 $\pm$ 0.016 & 0.8221 $\pm$ 0.018 &
+  +2.66 \; [+0.46, +5.15] \\
+plain accuracy & 0.7644 $\pm$ 0.018 & 0.7394 $\pm$ 0.025 & +2.49 \; [$-$0.80, +5.79] \\
+mean absolute error & 0.2511 $\pm$ 0.024 & 0.2817 $\pm$ 0.030 & $-$3.05 \; [$-$7.63, +0.52] \\
+\bottomrule
+\end{tabular}
+\caption{Paired by seed; bootstrap intervals over the paired differences. Splitting a
+face dataset at the image level is worth about 4.5 points of balanced accuracy --- more
+than the entire spread between the published methods competing on this benchmark.}
+\label{tab:cost}
+\end{table}
+
+\paragraph{The bonus is not spread evenly, and where it lands is the argument.}
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+grade & people in training & image-level & subject-disjoint & difference \\
+\midrule
+mild & 116 & 0.885 & 0.900 & $-$1.5 \\
+moderate & 126 & 0.657 & 0.649 & +0.8 \\
+severe & \textbf{57} & 0.637 & 0.538 & \textbf{+9.9} \\
+very severe & \textbf{47} & 0.990 & 0.900 & \textbf{+9.0} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The bonus is essentially zero on the two majority grades and about ten points on the two
+rare ones --- exactly the grades with the fewest distinct subjects to memorise, which is
+what the mechanism predicts: recognising an individual is worth far more when the class
+holds 47 people than when it holds 126.
+
+This also explains the aggregate row. Plain accuracy is dominated by the majority classes,
+where there is no bonus, so its interval spans zero, while balanced accuracy and macro F1
+weight the tail equally and show the effect clearly. \textbf{A benchmark reported in plain
+accuracy will not show this leak even though it is there} --- and ACNE04 is reported in
+plain accuracy.
+
+\paragraph{The confound, and why the pattern survives it.}
+The two arms have different test sets, so this comparison mixes the leakage bonus with
+whatever intrinsic difficulty difference exists between them. We flag it rather than hide
+it, and report alongside it a within-model analysis --- one model, one test set,
+partitioned by whether the person in each test image also appears in that model's training
+split (\S\ref{sec:cost}). But the per-class pattern is already difficult to explain as a
+test-set artefact: a difficulty difference between two random subject-disjoint splits has
+no reason to land specifically on severe and very severe while being zero on mild and
+moderate. A confound would have to reproduce, by coincidence, exactly the shape the
+mechanism singles out in advance.
+
+\paragraph{What this does not say.}
+It is not a claim that published ACNE04 results are overstated by 4.5 points. Those use
+plain accuracy on the dataset's own folds rather than balanced accuracy on ours, and carry
+77.5\% leakage against our arm's 74.5\% --- close, but not the same experiment. The
+defensible statement is narrower and still substantial: on this dataset, with this
+architecture and budget, image-level splitting is worth $+4.5$ balanced-accuracy points,
+concentrated almost entirely in the two clinically important grades.
 
 \section{Limitations}
 
