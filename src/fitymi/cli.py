@@ -127,6 +127,70 @@ def cmd_controls(args) -> int:
     return 0
 
 
+def cmd_calibrate(args) -> int:
+    """Report what threshold this corpus supports, next to what the literature says.
+
+    Runs before any audit that groups or flags by similarity, because every default we
+    inherited turned out to be wrong here -- see docs/05_acne04_audit.md §2 and §7.
+    """
+    import json
+
+    from .controls.calibration import calibrate
+    from .data.acne04 import load_acne04
+
+    corpus = load_acne04(args.root)
+    paths = [r.path for r in corpus]
+
+    if args.embedder == "sscd":
+        from .controls.embedders import SSCD_THRESHOLD, sscd_embedder
+
+        embedder, reference = sscd_embedder(device=args.device), SSCD_THRESHOLD
+        mode = "per_item"
+    elif args.embedder == "clip":
+        from .controls.embedders import clip_embedder
+
+        embedder, reference = clip_embedder(device=args.device), 0.95
+        mode = "per_item"
+    elif args.embedder == "face":
+        from .controls.embedders import face_embedder
+
+        # Identity is the per-pair case: 84% of ACNE04 images genuinely belong to a
+        # multi-image subject, so a per-item rate measures the true positive rather than
+        # the error. See controls/calibration.py.
+        embedder, reference = face_embedder(device=args.device), 0.60
+        mode = "per_pair"
+    else:
+        raise ValueError(f"unknown embedder {args.embedder!r}")
+
+    result = calibrate(paths, embedder, target_fpr=args.fpr, mode=mode,
+                       reference_threshold=reference)
+
+    print(f"\n== {args.embedder} on {len(paths)} images ==")
+    n = result.null
+    print(f"null (unrelated pairs): median {n.median:.3f}  p99 {n.p99:.3f}  max {n.maximum:.4f}")
+    print(f"threshold for a {100 * args.fpr:.1f}% {mode.replace('_', '-')} "
+          f"false-positive rate: {result.threshold:.4f}")
+    if result.recommended_threshold is not None:
+        note = "" if result.recommended_threshold <= result.threshold + 1e-9 else \
+            f"  (raised: the error-rate threshold merges more than " \
+            f"{100 * result.max_component_fraction:.0f}% of the corpus)"
+        print(f"recommended, also keeping the largest cluster under "
+              f"{100 * result.max_component_fraction:.0f}%: "
+              f"{result.recommended_threshold:.4f}{note}")
+    if result.reference_threshold is not None:
+        print(f"the usual threshold ({result.reference_threshold:.2f}) gives "
+              f"{100 * result.fpr_at_reference:.2f}% here"
+              + ("" if result.reference_is_usable else "  <-- does not transfer"))
+    print("\npercolation (largest connected component):")
+    for t, largest, frac in result.percolation:
+        print(f"  {t:>6.3f}  {largest:>6}  {100 * frac:>6.1f}%")
+
+    if args.json:
+        Path(args.json).write_text(json.dumps(result.to_dict(), indent=2))
+        print(f"\nwrote {args.json}")
+    return 0
+
+
 def cmd_analyse(args) -> int:
     from .analysis import plots
     from .analysis.aggregate import load_runs, substitution_curve, write_tables
@@ -186,6 +250,16 @@ def build_parser() -> argparse.ArgumentParser:
     with_config(sub.add_parser("controls", help="run the §8 controls")).set_defaults(
         func=cmd_controls
     )
+
+    cal = sub.add_parser("calibrate",
+                         help="what similarity threshold does this corpus actually support?")
+    cal.add_argument("--root", default="data/acne04")
+    cal.add_argument("--embedder", choices=("sscd", "clip", "face"), default="sscd")
+    cal.add_argument("--fpr", type=float, default=0.01,
+                     help="target per-item false-positive rate (default 1%%)")
+    cal.add_argument("--device", default=None)
+    cal.add_argument("--json", default=None)
+    cal.set_defaults(func=cmd_calibrate)
 
     analyse = sub.add_parser("analyse", help="aggregate runs into tables and figures")
     analyse.add_argument("--runs", required=True)
