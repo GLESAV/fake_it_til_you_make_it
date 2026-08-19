@@ -12,7 +12,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .config import ExperimentConfig
-from .data.dedup import DedupConfig, assign_groups, write_report
+from .data.dedup import DedupConfig, assign_groups, merge_groups_by_identity, write_report
 from .data.mixing import (
     MixSpec,
     additive_arms,
@@ -58,13 +58,25 @@ def prepare_data(config: ExperimentConfig) -> SplitBundle:
             use_embeddings=data.embedder != "none",
         )
         embedder = None
+        from .controls.embedders import cached_embedder
+
         if data.embedder == "clip":
-            from .controls.embedders import cached_embedder, clip_embedder
+            from .controls.embedders import clip_embedder
 
             embedder = cached_embedder(clip_embedder(), data.embed_cache)
         elif data.embedder != "none":
             raise ValueError(f"unknown embedder {data.embedder!r}")
         corpus, report = assign_groups(corpus, dedup_config, embedder=embedder)
+        if data.subject_grouping:
+            from .controls.embedders import face_embedder
+
+            corpus, subject_report = merge_groups_by_identity(
+                corpus,
+                cached_embedder(face_embedder(), data.subject_cache),
+                data.subject_min_cosine,
+            )
+            write_report(subject_report, splits_dir / "subject_report.json")
+            report["subject_grouping"] = subject_report
         write_report(report, splits_dir / "dedup_report.json")
         log.info(
             "dedup: %d images -> %d groups (%d duplicate clusters, largest %.1f%%)",

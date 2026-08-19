@@ -41,6 +41,12 @@ class DataConfig:
     #: "none" disables embedding-based linkage and leaves only perceptual hashing.
     embedder: str = "clip"
     embed_cache: str = "data/splits/embeddings.npz"
+    #: Group by face identity as well, so no subject appears in two splits. Off by
+    #: default only because it needs insightface; for ACNE04 it is not optional --
+    #: without it 77% of the test split shares a person with training.
+    subject_grouping: bool = False
+    subject_min_cosine: float = 0.60
+    subject_cache: str = "data/splits/face_embeddings.npz"
     #: Toy-mode knobs, ignored for acne04.
     toy_n_real: int = 600
     toy_n_synth: int = 1200

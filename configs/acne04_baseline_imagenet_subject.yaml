@@ -1,0 +1,64 @@
+# Real-only baseline, imagenet init. No synthetic pool involved: this establishes
+# where a leak-free, deduplicated ACNE04 arm actually lands, which is the anchor
+# every substitution arm is measured against. See docs/05_acne04_audit.md for why
+# it should not be expected to reproduce the published 83.7-87.3% band.
+# split only, then used to produce the synthetic pool. Answers "can a generator
+# recycle a small real dataset into a larger useful one?"
+name: acne04_baseline_imagenet_subject
+output_dir: runs/acne04_baseline_subject
+final_eval: false          # set via `fitymi sweep --final-eval` at the very end
+
+data:
+  dataset: acne04
+  root: data/acne04
+  splits_dir: data/splits_subject
+  audit_log: runs/test_unseal_audit.jsonl
+  fractions: {train: 0.65, val: 0.15, test: 0.20}
+  split_seed: 20260819     # frozen by the protocol; changing it invalidates results
+  dedup: true
+  # Audited on the real archive, not inherited defaults: see docs/05_acne04_audit.md.
+  # pHash 8 percolates to a 14.7% cluster of different people in the same pose; CLIP
+  # 0.96 percolates to 27.8%. These values give 1,400 groups, largest cluster 3.
+  phash_max_hamming: 2
+  embed_min_cosine: 0.98
+  embedder: clip
+  embed_cache: data/splits_subject/embeddings.npz
+  # The identical arm, split so that no PERSON spans two splits rather than no image.
+  # ACNE04 is ~550 individuals in 1,457 photographs; image-level splitting puts 77% of
+  # the test set's faces in training too. The difference between this config and
+  # acne04_baseline_imagenet.yaml is the size of that leakage bonus.
+  subject_grouping: true
+  subject_min_cosine: 0.60
+  subject_cache: data/splits_subject/face_embeddings.npz
+
+generator:
+  source: synth_closed
+  pool_dir: data/synthetic/closed
+  model_path: runwayml/stable-diffusion-v1-5
+  lora_path: models/closed_set_lora
+  regime: closed_set
+  guidance_scale: 3.0      # selected on validation; see configs/arms/guidance_sweep.yaml
+  steps: 50
+  n_images: 20000
+
+train:
+  arch: resnet50
+  init: imagenet
+  image_size: 224
+  batch_size: 32
+  epochs: 60
+  lr: 0.0003
+  weight_decay: 0.05
+  label_smoothing: 0.05
+  patience: 15
+  num_workers: 8
+  seed: 0
+  device: auto
+  balanced_loss: true
+  amp: true
+
+sweep:
+  fractions: [0.0]
+  seeds: [0, 1, 2, 3, 4]
+  include_real_subset_controls: false
+  include_additive: false

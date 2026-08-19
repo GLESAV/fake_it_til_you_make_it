@@ -25,6 +25,9 @@ benchmark.
 | — of which free correct answers (labels agree) | 3.56% |
 | — of which forced errors (labels conflict) | 0.68% |
 | Files whose `levleN` filename prefix disagrees with the label | **42 of 1,457** |
+| **Distinct individuals in the 1,457 images (ArcFace)** | **~550–750** |
+| — test images sharing a *person* with training, published folds, cosine ≥ 0.85 | **15.9%** (chance rate 0.019%) |
+| — the same at the ordinary same-identity operating point (0.60) | **77.5%** |
 | **Independent expert re-annotation (ACNE04-v2, n=1,204 shared images)** | |
 | — lesions counted per image, v1 vs v2 | **8.4 vs 26.9 (3.2× more)** |
 | — Spearman *rho* between the two counts | **0.471** |
@@ -104,11 +107,9 @@ recovers exactly the exact duplicates plus two extra links.
 **Consequence for our protocol.** We set `phash_max_hamming: 2` and
 `embed_min_cosine: 0.98`, which together give 1,400 groups with a largest cluster of 3
 (0.2%) — comfortably inside the 5% guard — and we state the residual risk plainly:
-*neither instrument detects same-subject-different-photograph.* A face-identity
-embedding would, and ACNE04's capture protocol makes repeat subjects likely. Until
-that is run, our own splits carry an unmeasured same-subject leakage risk, and so does
-every other published result on this benchmark. This is a limitation of the audit, not
-a clean bill of health.
+*neither instrument detects same-subject-different-photograph.* We ran that analysis
+separately with a face-identity embedding, and it turned out to be the largest finding
+in this document -- see §5.
 
 ## 3. The published 5-fold splits leak, in every fold
 
@@ -249,7 +250,102 @@ third annotation. The claim here is symmetric and does not require assigning fau
 **two expert annotations of the same 1,204 photographs do not induce the same severity
 ordering**, and the benchmark provides no basis for preferring one.
 
-## 5. The labels are derived, and the derivation exposes the noise
+## 5. ACNE04 is about 600 people, not 1,457 photographs — and every published split ignores that
+
+Section 2 flagged that neither perceptual hashing nor CLIP detects the same subject
+photographed twice, and that ACNE04's capture protocol makes repeat subjects plausible.
+It does more than that.
+
+We embed every image with ArcFace (InsightFace `buffalo_l`). One practical note first,
+because it is a trap: **face detection fails on 91% of ACNE04 raw**. These are close
+crops in which the face fills the frame, and RetinaFace expects a face to occupy a
+fraction of the image. Padding the border by 60% of the long side raises detection from
+**9.3% to 96.1%** (1,400 of 1,457 images). Any pipeline that runs a face detector over
+this dataset without padding will conclude, silently and wrongly, that it contains
+almost no faces.
+
+### 5.1 The identity structure
+
+Union-find over ArcFace cosine gives, across a wide and stable threshold band:
+
+| cosine ≥ | subjects | images in a multi-image subject | largest subject |
+|---|---|---|---|
+| 0.75 | 753 | 886 (63%) | 21 |
+| 0.70 | 638 | 1,037 (74%) | 21 |
+| 0.65 | 577 | 1,132 (81%) | 22 |
+| **0.60** | **550** | **1,177 (84%)** | **22** |
+| 0.50 | 525 | 1,206 (86%) | 22 |
+| 0.45 | 482 | 1,228 | 111 ← percolates |
+
+The structure is stable from 0.75 down to 0.50 and collapses at 0.45, which is the
+signature of a real clustering rather than a threshold artefact. **ACNE04's 1,457
+images are on the order of 550–750 distinct individuals**, most photographed two or
+three times — different angles, sessions and lighting. Visual inspection of the largest
+clusters confirms this directly: they are unmistakably one person each.
+
+The 38 byte-identical pairs sit at cosine 1.000, as they must, which calibrates the
+instrument.
+
+### 5.2 Leakage, stated as conservatively as we can
+
+Transitive closure can chain, so we report the version that cannot: a test image counts
+as leaked only if **it is itself above threshold to some individual training image**.
+No clusters, no chaining. Alongside it we give the chance rate — the share of *all*
+image pairs in the corpus above that threshold — so the false-positive budget is visible.
+
+| cosine ≥ | chance rate | fold 0 | 1 | 2 | 3 | 4 | **mean** |
+|---|---|---|---|---|---|---|---|
+| 0.85 | 0.019% | 12.1 | 19.1 | 16.6 | 14.1 | 17.5 | **15.9%** |
+| 0.80 | 0.058% | 33.2 | 43.3 | 37.9 | 33.1 | 38.2 | **37.1%** |
+| 0.75 | 0.120% | 53.9 | 63.8 | 58.5 | 51.8 | 59.3 | **57.5%** |
+| 0.70 | 0.191% | 65.0 | 71.3 | 70.0 | 59.9 | 71.1 | **67.4%** |
+| 0.60 | 0.273% | 74.3 | 83.7 | 80.5 | 70.1 | 78.9 | **77.5%** |
+
+At cosine 0.85, where fewer than one pair in five thousand qualifies by chance,
+**15.9% of every published ACNE04 test fold is a photograph of somebody who also
+appears in the training fold** — roughly 800× the chance rate. At the ordinary
+same-identity operating point the figure is 57–78%.
+
+This dwarfs the byte-duplicate leakage of §3. It is not a handful of images: it is most
+of the test set.
+
+### 5.3 Our first splits leaked too
+
+Our deduplicated image-level splits carry 8.3% / 50.7% / 74.5% at cosine 0.85 / 0.75 /
+0.60 — no better than the published folds, because deduplication and identity grouping
+answer different questions. Grouping by identity as well (604 subjects, largest 22
+images) brings it to **0.0%** at cosine 0.60 and above, and the splits stay well
+formed: 948 / 218 / 291 with every class present in every split.
+
+One honest caveat: grouping at threshold *T* guarantees disjointness above *T* only.
+At cosine 0.50 the subject-disjoint test split still shows 3.2% — pairs that fall
+between 0.50 and 0.60 can straddle the boundary by construction. Dropping the grouping
+threshold removes those but coarsens the grouping, and below about 0.45 the clustering
+percolates. We take 0.60 and report the residual rather than choosing a threshold that
+makes the number zero.
+
+### 5.4 Why this matters more than the duplicate count
+
+Acne severity is graded from lesion counts on *half* the face, so two photographs of one
+person from different sides legitimately carry different grades. The leakage is
+therefore not simple label copying, which would be easy to dismiss. It is worse in a
+subtler way: a model can learn *this individual's skin, complexion, hair, background and
+capture session* and carry that to the test set, where the same person appears with a
+different lesion count. Nothing about that generalises to a new patient, which is the
+only thing an acne grader is for.
+
+Two consequences:
+
+1. **Published ACNE04 accuracies measure within-subject generalisation, not
+   between-subject generalisation.** They answer "given other photographs of this
+   person, can you grade this one?" — not "given a new patient, can you grade them?"
+   Only the second is clinically meaningful.
+2. **The size of the effect is measurable, and we measure it.** §7 reports the same
+   classifier, the same hyperparameters, the same budget, trained and evaluated on
+   image-level splits and on subject-disjoint splits. The difference is the leakage
+   bonus, in points.
+
+## 6. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
 grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
@@ -287,7 +383,7 @@ a random sample of the corpus. The correct reading is not "these papers are wron
 "this benchmark cannot currently resolve differences of a few points, and nobody has
 been reporting that."
 
-## 6. The filename prefix is not a label
+## 7. The filename prefix is not a label
 
 **42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
 (e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
@@ -296,7 +392,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 
 ---
 
-## 7. What this changes for our study
+## 8. What this changes for our study
 
 1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
    embedder enabled.** The shipped defaults were tuned for datasets where perceptual
@@ -316,7 +412,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 8. Publishability
+## 9. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%

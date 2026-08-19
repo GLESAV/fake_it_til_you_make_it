@@ -159,3 +159,75 @@ def write_report(report: dict, path: str | Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as fh:
         json.dump(report, fh, indent=2)
+
+
+def merge_groups_by_identity(
+    corpus: Corpus,
+    embedder: Callable[[Sequence[str]], np.ndarray],
+    min_cosine: float,
+) -> tuple[Corpus, dict]:
+    """Merge existing duplicate groups further, so no subject spans two groups.
+
+    Duplicate detection asks "is this the same picture?". On a face dataset the question
+    that actually governs train/test leakage is "is this the same person?", and the two
+    have very different answers: ACNE04's 1,457 images are roughly 550-750 individuals,
+    each photographed two or three times from different angles. Splitting at the image
+    level therefore puts the same face on both sides of the boundary -- in ACNE04's own
+    published folds, for 16% of test images even at a threshold where only 0.019% of all
+    image pairs qualify.
+
+    Runs after `assign_groups` and only ever coarsens its grouping.
+    """
+    records = list(corpus)
+    n = len(records)
+    paths = [r.path for r in records]
+
+    uf = UnionFind(n)
+    by_group: dict[str, list[int]] = {}
+    for i, r in enumerate(records):
+        by_group.setdefault(r.group, []).append(i)
+    for members in by_group.values():
+        for j in members[1:]:
+            uf.union(members[0], j)
+
+    emb = np.asarray(embedder(paths), dtype=np.float32)
+    emb = emb / (np.linalg.norm(emb, axis=1, keepdims=True) + 1e-12)
+    cos = emb @ emb.T
+    ii, jj = np.where(np.triu(cos >= min_cosine, k=1))
+    for a, b in zip(ii.tolist(), jj.tolist()):
+        uf.union(a, b)
+
+    roots = [uf.find(i) for i in range(n)]
+    canonical: dict[int, str] = {}
+    for root in roots:
+        canonical.setdefault(root, f"sub_{len(canonical):06d}")
+    regrouped = Corpus(
+        Record(path=r.path, label=r.label, source=r.source,
+               group=canonical[roots[i]], meta=r.meta)
+        for i, r in enumerate(records)
+    )
+
+    sizes: dict[str, int] = {}
+    for g in regrouped.groups:
+        sizes[g] = sizes.get(g, 0) + 1
+    multi = {g: s for g, s in sizes.items() if s > 1}
+    detected = int((np.abs(emb).sum(axis=1) > 0).sum())
+    largest = max(sizes.values()) if sizes else 0
+
+    report = {
+        "n_images": n,
+        "n_subjects": len(canonical),
+        "n_multi_image_subjects": len(multi),
+        "n_images_in_multi_image_subjects": sum(multi.values()),
+        "n_identity_links": int(len(ii)),
+        "n_images_with_embedding": detected,
+        "largest_subject": largest,
+        "largest_subject_fraction": largest / n if n else 0.0,
+        "min_cosine": min_cosine,
+    }
+    log.info(
+        "identity grouping: %d images -> %d subjects (%d with more than one image, "
+        "largest %d); faces found in %d/%d",
+        n, len(canonical), len(multi), largest, detected, n,
+    )
+    return regrouped, report
