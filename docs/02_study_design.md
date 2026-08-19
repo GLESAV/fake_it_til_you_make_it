@@ -364,6 +364,50 @@ sweep and it is the cheapest external-validity evidence available to us.
 check. We do not select whichever gives the more interesting slope. Both are reported,
 with the v1 result as the headline regardless of which is more favourable.
 
+### 8.10 Identity diversity of the synthetic pool
+
+Added 2026-08-19, after the audit established that ACNE04 is ~550–750 people rather than
+1,457 independent photographs.
+
+The substitution question is normally posed as *are the synthetic images good enough?*
+For a face dataset there is a prior question with a sharper answer: **how many different
+people are in them?** A closed-set generator fitted to a training split holding roughly
+450 distinct individuals cannot invent identity diversity it never saw, and it can easily
+produce far less. Identity collapse is invisible to FID, to precision/recall/coverage/
+density, and to every per-image quality metric, because each sample can be flawless while
+the set as a whole depicts a dozen people.
+
+That failure mode would explain a substitution result on its own, and it is **distinct
+from memorisation**. Memorisation (§8.2) asks whether a generated face copies a specific
+training *image*. This asks whether the generated set spans as many *people* as the real
+one — which a generator can fail at while copying nothing verbatim, by interpolating a
+small number of composite identities.
+
+For every synthetic pool we report, using the same ArcFace embedding and threshold as the
+subject-disjoint splitter so the two analyses are calibrated against each other:
+
+1. **Distinct identities** — union-find at cosine 0.60.
+2. **Effective identity count** — exp(Shannon entropy) of the cluster-size distribution.
+   A pool of 100 identities where one accounts for 90% of images is not a pool of 100
+   identities, and the raw count cannot tell them apart.
+3. **Identity coverage of the real training split** — the share of real training
+   identities with at least one synthetic near-neighbour. Separates "invented a few new
+   faces" from "reproduced a subset of the real ones."
+4. **Identities per grade**, because the tail classes have the fewest real subjects to
+   learn from (114 people at severe, 81 at very severe) and are where collapse is most
+   likely and most costly.
+
+**Pre-committed interpretation.** If the synthetic pool's effective identity count is far
+below the real training split's, a substitution failure is attributable to identity
+collapse rather than to image quality, and we say so — that is a different and more
+tractable finding than "synthetic data does not work." If identity diversity is
+comparable and substitution still fails, the failure is about something else, and the
+control has done its job by ruling this out.
+
+This is also the control we would want run on the acne prior (§4.1.1 of the related-work
+document). A StyleGAN2 fitted to 100–400 faces per severity level is exactly the regime
+where identity collapse is expected, and no such measurement was reported.
+
 ## 9. Statistics
 
 - **5 seeds minimum** per configuration; report mean ± 95% CI across seeds, never a
@@ -425,4 +469,4 @@ licence terms for the closed-set arm.
 | 2026-08-19 | §8.9 added: label-robustness control against ACNE04-v2 annotations. | Two expert teams agree on the grade for 30.1% of images (58.2% after monotone recalibration). A result that holds under both labellings is far stronger than one that holds under either; a result that does not is entangled with the labelling convention and must be reported as such. |
 | 2026-08-19 | Guidance sweep recentred from {1.5, 3, 5, 7.5, 10} to {1.0, 1.5, 2.0, 3.0, 5.0}; provisional default 3.0 → 2.0. | Sariyildiz et al. Table 1 and Fan et al. independently put the training-utility optimum at 2.0; the old grid had four of five points above it. Selection is still made on validation. |
 | 2026-08-19 | Dedup thresholds changed from the library defaults to phash ≤ 2, CLIP cosine ≥ 0.98. | At Hamming 8 perceptual hashing percolates into a cluster holding 14.7% of ACNE04 and links different people in the same pose; CLIP percolates at 0.96. |
-
+| 2026-08-19 | §8.10 added: identity diversity of every synthetic pool. | The audit showed ACNE04 is ~600 people, so a closed-set generator is fitted to ~450 identities. Identity collapse is invisible to FID and to per-image quality metrics, is distinct from memorisation, and would explain a substitution failure on its own. Measured with the same instrument as the subject-disjoint splitter so the two are calibrated together. |
