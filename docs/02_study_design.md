@@ -146,6 +146,40 @@ promoted to the main experiment; the sweep itself is reported as an appendix tab
 
 ---
 
+### 4.5 The guidance optimum may not transfer to a concept the generator renders badly
+
+Added 2026-08-19.
+
+Two verified priors put the training-utility optimum for Stable Diffusion at classifier-
+free guidance ≈ 2.0 rather than the 7.5 aesthetic default: Fan et al. sweep it directly,
+and Sariyildiz et al.'s Table 1 shows 26.2% → 42.9% top-1 on ImageNet-1K from that change
+alone. We have recentred the sweep accordingly (§4.4).
+
+But **both measured it on ImageNet classes that Stable Diffusion renders well.** Low
+guidance buys diversity by loosening adherence to the prompt. For a concept the generator
+renders *poorly* — and Fan et al.'s own stated cause of supervised underperformance is
+"the inability of off-the-shelf text-to-image models to generate certain concepts" —
+loosening adherence may simply produce more diverse images of the wrong thing. Acne is a
+strong candidate for such a concept: it is fine-grained, clinical, and under-represented
+in web-scale training data relative to the faces it appears on.
+
+So the guidance sweep carries a second reading, and we state the expectation now rather
+than after seeing the answer:
+
+- If the optimum for the **open-set** arm sits well above 2.0, that is evidence the
+  fidelity–diversity trade-off inverts when the generator cannot render the concept
+  reliably, and the ImageNet-derived rule of thumb does not transfer to clinical imagery.
+- If the optimum for the **closed-set** arm sits at or below the open-set one, that is
+  consistent with fine-tuning having supplied the concept, so diversity becomes the
+  binding constraint again — which is the mechanism the whole closed-/open-set split
+  exists to separate.
+
+We therefore report **grade-conditional generation fidelity** alongside downstream
+accuracy for each guidance value: the fraction of generated images in which the intended
+severity is actually visible, scored by the real-trained p=0 classifier's agreement with
+the requested label. That is a weak proxy and is labelled as one, but it distinguishes
+"synthetic data does not help" from "the generator did not draw acne."
+
 ## 5. The mixing experiment (primary)
 
 ### 5.1 Budget-matched substitution — answers H1, H2
@@ -470,3 +504,4 @@ licence terms for the closed-set arm.
 | 2026-08-19 | Guidance sweep recentred from {1.5, 3, 5, 7.5, 10} to {1.0, 1.5, 2.0, 3.0, 5.0}; provisional default 3.0 → 2.0. | Sariyildiz et al. Table 1 and Fan et al. independently put the training-utility optimum at 2.0; the old grid had four of five points above it. Selection is still made on validation. |
 | 2026-08-19 | Dedup thresholds changed from the library defaults to phash ≤ 2, CLIP cosine ≥ 0.98. | At Hamming 8 perceptual hashing percolates into a cluster holding 14.7% of ACNE04 and links different people in the same pose; CLIP percolates at 0.96. |
 | 2026-08-19 | §8.10 added: identity diversity of every synthetic pool. | The audit showed ACNE04 is ~600 people, so a closed-set generator is fitted to ~450 identities. Identity collapse is invisible to FID and to per-image quality metrics, is distinct from memorisation, and would explain a substitution failure on its own. Measured with the same instrument as the subject-disjoint splitter so the two are calibrated together. |
+| 2026-08-19 | §4.5 added: the guidance optimum may be concept-dependent. | The 2.0 optimum comes from ImageNet classes Stable Diffusion renders well. Low guidance buys diversity by loosening prompt adherence, which may invert for a concept the generator renders badly -- the very failure Fan et al. name as the cause of supervised underperformance. Stated as an expectation before the sweep runs, with grade-conditional fidelity reported alongside accuracy so "did not help" is separable from "did not draw acne". |
