@@ -80,7 +80,9 @@ def additive_curves(
     metric_label: str = "Balanced accuracy",
 ) -> Path:
     """One panel per real budget: performance against synthetic multiplier k."""
-    add = runs[runs["kind"] == "additive"] if "kind" in runs else runs
+    from .aggregate import expand_shared_arms
+
+    add = expand_shared_arms(runs[runs["kind"] == "additive"] if "kind" in runs else runs)
     budgets = sorted(add["real_budget_fraction"].dropna().unique())
     if not budgets:
         raise ValueError("no additive runs to plot")
@@ -126,7 +128,11 @@ def tail_recall(runs: pd.DataFrame, out_path: str | Path) -> Path:
     The overall metric can hold up while the rare grades collapse; that is exactly the
     late-collapse signature, and it is the part with clinical consequences.
     """
-    sub = runs[runs["kind"] == "substitution"] if "kind" in runs else runs
+    from .aggregate import expand_shared_arms
+
+    sub = expand_shared_arms(
+        runs[runs["kind"] == "substitution"] if "kind" in runs else runs
+    )
     fig, ax = plt.subplots(figsize=(6.0, 4.0), dpi=200)
 
     for generator, group in sub.groupby("generator", dropna=False):

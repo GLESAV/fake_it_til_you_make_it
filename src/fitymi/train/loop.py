@@ -48,9 +48,19 @@ class TrainConfig:
     amp: bool = True
 
     def resolve_device(self) -> torch.device:
+        """CUDA, then Apple Silicon, then CPU.
+
+        MPS is a first-class target here: a 128 GB unified-memory Mac can hold this
+        entire study in memory, and the alternative for someone without a CUDA box is
+        not running it at all.
+        """
         if self.device != "auto":
             return torch.device(self.device)
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+        if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+            return torch.device("mps")
+        return torch.device("cpu")
 
 
 @dataclass
@@ -120,8 +130,11 @@ def train_model(
     optimiser = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=max(config.epochs, 1))
 
+    # Mixed precision is CUDA-only here. MPS autocast exists but is uneven across
+    # ops and silently changes numerics, which is not a trade worth making when the
+    # whole point is comparing arms to each other.
     use_amp = config.amp and device.type == "cuda"
-    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+    scaler = torch.amp.GradScaler(device.type, enabled=use_amp)
 
     history = TrainHistory()
     best_state: dict | None = None
@@ -134,7 +147,7 @@ def train_model(
             images = images.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
             optimiser.zero_grad(set_to_none=True)
-            with torch.amp.autocast("cuda", enabled=use_amp):
+            with torch.amp.autocast(device.type, enabled=use_amp):
                 loss = criterion(model(images), labels)
             scaler.scale(loss).backward()
             scaler.step(optimiser)

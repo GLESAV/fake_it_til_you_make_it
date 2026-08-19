@@ -10,7 +10,8 @@
 #            --output-dir runs/guidance_$g   # after setting generator.guidance_scale
 #        done
 name: acne04_guidance_sweep
-output_dir: runs/guidance_sweep
+output_dir: runs/guidance_sweep   # kept OUT of runs/acne04: selection runs
+                                 # must never be pooled into the final analysis
 final_eval: false        # never selected on test
 
 data:

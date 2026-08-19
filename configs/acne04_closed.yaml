@@ -2,7 +2,7 @@
 # split only, then used to produce the synthetic pool. Answers "can a generator
 # recycle a small real dataset into a larger useful one?"
 name: acne04_closed
-output_dir: runs/acne04_closed
+output_dir: runs/acne04
 final_eval: false          # set via `fitymi sweep --final-eval` at the very end
 
 data:

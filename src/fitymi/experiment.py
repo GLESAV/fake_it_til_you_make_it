@@ -109,6 +109,7 @@ def run_arm(
     """
     train_config = TrainConfig(**{**asdict(config.train), "seed": seed})
     mixture = build_mixture(bundle.train, pool, MixSpec(**{**asdict(spec), "seed": seed}))
+    label = _generator_label(spec, mixture, config)
 
     run_config = {
         "arm": spec.name,
@@ -116,12 +117,21 @@ def run_arm(
         "synthetic_fraction": spec.synthetic_fraction,
         "real_budget_fraction": spec.real_budget_fraction,
         "synthetic_multiplier": spec.synthetic_multiplier,
-        "generator": config.generator.source if spec.kind != "real_subset" else "real_subset",
+        # An arm holding no synthetic images is the same experiment whichever
+        # generator arm requested it. Labelling it "none" makes the run ids collide,
+        # so the resume path trains it once instead of once per generator.
+        "generator": label,
+        # The pool's identity, so two arms drawing from different synthetic pools
+        # (say, two guidance scales) never collide even though both are "synth_closed".
+        "pool": config.generator.pool_dir if label.startswith("synth") else None,
         "arch": train_config.arch,
         "init": train_config.init,
         "seed": seed,
     }
-    run_id = f"{config.name}_{spec.name}_s{seed}_{hash_obj(run_config)}"
+    # Deliberately excludes config.name: the experiment's identity is its content, not
+    # the file it was launched from. That is what lets the shared p=0 arm resolve to
+    # one run across the closed-set and open-set sweeps instead of being trained twice.
+    run_id = f"{label}_{spec.name}_s{seed}_{hash_obj(run_config)}"
     record_path = Path(config.output_dir) / f"run_{run_id}.json"
 
     if record_path.exists() and not overwrite:
@@ -166,6 +176,14 @@ def run_arm(
     )
     record.save(record_path)
     return record
+
+
+def _generator_label(spec: MixSpec, mixture: Corpus, config: ExperimentConfig) -> str:
+    if spec.kind == "real_subset":
+        return "real_subset"
+    if len(mixture.synthetic) == 0:
+        return "none"
+    return config.generator.source
 
 
 def build_arm_list(config: ExperimentConfig) -> list[MixSpec]:

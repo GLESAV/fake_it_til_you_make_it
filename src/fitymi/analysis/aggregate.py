@@ -96,6 +96,39 @@ class ArmSummary:
         }
 
 
+#: Generator label used for arms that contain no synthetic images. Such an arm is
+#: run once, not once per generator, so it has to be attached to every generator's
+#: curve at analysis time.
+SHARED_GENERATOR = "none"
+
+
+def expand_shared_arms(df: pd.DataFrame) -> pd.DataFrame:
+    """Attach generator-independent arms to every generator's curve.
+
+    The p=0 arm holds no synthetic images and is therefore identical whichever
+    generator arm asked for it, so it is trained once. Every curve still needs its
+    anchor at zero, and the trend test needs the point to fit a slope through, so the
+    row is copied to each generator here rather than being trained repeatedly.
+    """
+    if df.empty or "generator" not in df:
+        return df
+    shared = df[df["generator"] == SHARED_GENERATOR]
+    if shared.empty:
+        return df
+    generators = [
+        g for g in df["generator"].dropna().unique()
+        if g not in (SHARED_GENERATOR, "real_subset")
+    ]
+    if not generators:
+        return df
+    copies = [df[df["generator"] != SHARED_GENERATOR]]
+    for generator in generators:
+        block = shared.copy()
+        block["generator"] = generator
+        copies.append(block)
+    return pd.concat(copies, ignore_index=True)
+
+
 def summarise_arms(
     df: pd.DataFrame,
     metric: str = PRIMARY_METRIC,
@@ -128,12 +161,12 @@ def summarise_arms(
 
 def substitution_curve(df: pd.DataFrame, metric: str = PRIMARY_METRIC) -> pd.DataFrame:
     sub = df[df["kind"] == "substitution"] if "kind" in df else df
-    return summarise_arms(sub, metric)
+    return summarise_arms(expand_shared_arms(sub), metric)
 
 
 def test_h2(df: pd.DataFrame, metric: str = PRIMARY_METRIC) -> dict:
     """Trend of `metric` against synthetic fraction, per generator/init cell."""
-    sub = df[df["kind"] == "substitution"] if "kind" in df else df
+    sub = expand_shared_arms(df[df["kind"] == "substitution"] if "kind" in df else df)
     out: dict[str, dict] = {}
     for (generator, init), group in sub.groupby(["generator", "init"], dropna=False):
         fractions = sorted(group["synthetic_fraction"].dropna().unique())
@@ -155,7 +188,7 @@ def test_h2(df: pd.DataFrame, metric: str = PRIMARY_METRIC) -> dict:
 
 def exchange_rates(df: pd.DataFrame, metric: str = PRIMARY_METRIC) -> pd.DataFrame:
     """Protocol §5.2: how many synthetic images buy one real image, per real budget."""
-    add = df[df["kind"] == "additive"] if "kind" in df else df
+    add = expand_shared_arms(df[df["kind"] == "additive"] if "kind" in df else df)
     if add.empty:
         return pd.DataFrame(columns=["generator", "init", "real_budget", "target", "k"])
 

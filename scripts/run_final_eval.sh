@@ -16,7 +16,7 @@ echo "== controls (protocol §8) =="
 .venv/bin/fitymi controls --config configs/acne04_open.yaml
 
 echo "== analysis =="
-.venv/bin/fitymi analyse --runs runs --out results/final
+.venv/bin/fitymi analyse --runs runs/acne04 --out results/final
 
 echo
 echo "Unseal audit log:"

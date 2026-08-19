@@ -93,7 +93,10 @@ pool below the closed-set one at every point. Artefacts and commentary are in
 
 ![smoke substitution curve](docs/examples/smoke_substitution_curve.png)
 
-The real study needs a GPU host and ACNE04:
+The real study needs an accelerator and ACNE04. `device: auto` resolves
+CUDA → MPS → CPU, so the committed configs work unchanged on Apple Silicon; see
+[`docs/04_running_locally.md`](docs/04_running_locally.md) for the compute budget and
+the cuts worth making on a laptop.
 
 ```bash
 make prepare CONFIG=configs/acne04_closed.yaml   # dedup, split, seal the test set
@@ -108,7 +111,8 @@ make analyse
 ## Layout
 
 ```
-docs/          literature review, protocol, environment audit, citation checklist
+docs/          literature review, protocol, environment audit, local-run guide,
+               citation checklist, smoke-run artefacts
 src/fitymi/
   data/        records, ACNE04 loader, dedup, splits, mixing, toy simulator
   generate/    prompts, closed-set fine-tuning, sampling

@@ -37,8 +37,10 @@ The work splits cleanly:
 
 - **Here (done / doable):** literature review, protocol, codebase, unit tests, smoke-test
   runs on synthetic toy data, analysis and plotting code, paper scaffold.
-- **On a GPU host with open network (not doable here):** dataset acquisition, generator
-  fine-tuning, image generation, the ~250 classifier runs, the real numbers.
+- **On a host with an accelerator and open network (not doable here):** dataset
+  acquisition, generator fine-tuning, image generation, the classifier runs, the real
+  numbers. See `docs/04_running_locally.md` for doing this on Apple Silicon, where
+  generation throughput rather than training is the binding constraint.
 
 The repo is therefore structured so that the second half is `make` targets driven by
 committed YAML configs, not ad-hoc notebooks.

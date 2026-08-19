@@ -4,7 +4,7 @@
 # deliberately understates what they can buy. Here the real budget is held fixed and
 # synthetic images are piled on top, at each of four real budgets.
 name: acne04_closed_additive
-output_dir: runs/acne04_closed_additive
+output_dir: runs/acne04
 final_eval: false
 
 data:

@@ -6,7 +6,7 @@
 # (protocol §6.1). Absolute numbers here will be low on ~1.4k images; the comparison
 # between arms is the point, not the ceiling.
 name: acne04_closed_scratch
-output_dir: runs/acne04_closed_scratch
+output_dir: runs/acne04
 final_eval: false
 
 data:

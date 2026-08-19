@@ -20,8 +20,8 @@ def seed_everything(seed: int, deterministic: bool = True) -> None:
         import torch
     except ImportError:
         return
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(seed)          # also seeds MPS
+    torch.cuda.manual_seed_all(seed)  # no-op without CUDA
     if deterministic:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False

@@ -105,3 +105,38 @@ def test_duplicate_run_records_are_counted_once(tmp_path):
 
     runs = load_runs(tmp_path)
     assert len(runs) == 1
+
+
+def test_shared_p0_arm_is_attached_to_every_generator_curve():
+    """The p=0 arm holds no synthetic images, so it is trained once, not once per arm."""
+    import pandas as pd
+
+    from fitymi.analysis.aggregate import expand_shared_arms
+
+    df = pd.DataFrame(
+        [
+            {"generator": "none", "kind": "substitution", "synthetic_fraction": 0.0,
+             "seed": 0, "balanced_accuracy": 0.70},
+            {"generator": "synth_closed", "kind": "substitution", "synthetic_fraction": 1.0,
+             "seed": 0, "balanced_accuracy": 0.40},
+            {"generator": "synth_open", "kind": "substitution", "synthetic_fraction": 1.0,
+             "seed": 0, "balanced_accuracy": 0.30},
+        ]
+    )
+    out = expand_shared_arms(df)
+    for generator in ("synth_closed", "synth_open"):
+        cell = out[out["generator"] == generator]
+        assert set(cell["synthetic_fraction"]) == {0.0, 1.0}, generator
+    assert "none" not in set(out["generator"])
+
+
+def test_expand_shared_arms_is_a_noop_without_shared_rows():
+    import pandas as pd
+
+    from fitymi.analysis.aggregate import expand_shared_arms
+
+    df = pd.DataFrame(
+        [{"generator": "synth_closed", "kind": "substitution",
+          "synthetic_fraction": 0.5, "seed": 0, "balanced_accuracy": 0.5}]
+    )
+    assert len(expand_shared_arms(df)) == 1

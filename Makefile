@@ -2,8 +2,8 @@
 PY      ?= .venv/bin/python
 FITYMI  ?= .venv/bin/fitymi
 CONFIG  ?= configs/acne04_closed.yaml
-RUNS    ?= runs/acne04_closed
-RESULTS ?= results/acne04_closed
+RUNS    ?= runs/acne04
+RESULTS ?= results/acne04
 
 .PHONY: help venv install test smoke lint prepare finetune generate sweep final controls analyse paper clean
 

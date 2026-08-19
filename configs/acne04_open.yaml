@@ -3,7 +3,7 @@
 # world knowledge in a foundation generator substitute for collecting a dataset?"
 # This is the commercially interesting arm and the one we expect to fail hardest.
 name: acne04_open
-output_dir: runs/acne04_open
+output_dir: runs/acne04
 final_eval: false          # set via `fitymi sweep --final-eval` at the very end
 
 data:
