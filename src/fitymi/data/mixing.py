@@ -96,6 +96,37 @@ def _ordered_by_class(corpus: Corpus, seed: int) -> dict[int, list[Record]]:
     return out
 
 
+def _ordered_disjoint_by_seed(
+    corpus: Corpus, seed: int, n_seeds: int, base_seed: int = 20_000
+) -> dict[int, list[Record]]:
+    """Order the pool so that different seeds take *disjoint* prefixes.
+
+    Seeds exist to estimate the variance of "train on N synthetic images". The closest
+    thing to five independent generations of N images is five disjoint slices of a pool of
+    5N; drawing five independent random subsets instead makes them overlap -- at a 4,740
+    pool with 948 drawn per seed, two seeds share about 190 images by chance -- which
+    correlates the seeds and understates the variance at exactly the p=1 arm carrying the
+    headline claim.
+
+    One permutation, shared across seeds, rotated by seed. Seed *i* starts at its own
+    slice and then continues through the others, so:
+
+    - at the full budget the slices are disjoint by construction;
+    - below it each seed still takes a *prefix* of one fixed ordering, so the nesting
+      property that makes the mixing fractions comparable is preserved;
+    - above it (the additive arms, k > 1) seeds necessarily overlap, which is unavoidable
+      and harmless -- there is only one pool.
+    """
+    gen = rng(base_seed)
+    out: dict[int, list[Record]] = {}
+    for cls, sub in corpus.by_class().items():
+        records = list(sub)
+        order = [records[i] for i in gen.permutation(len(records))]
+        offset = (seed % max(n_seeds, 1)) * (len(order) // max(n_seeds, 1))
+        out[cls] = order[offset:] + order[:offset]
+    return out
+
+
 def _take(pool: dict[int, list[Record]], counts: np.ndarray, what: str) -> list[Record]:
     taken: list[Record] = []
     for cls in range(NUM_CLASSES):
@@ -114,6 +145,7 @@ def build_mixture(
     real_train: Corpus,
     synthetic_pool: Corpus,
     spec: MixSpec,
+    n_seeds: int = 5,
 ) -> Corpus:
     """Materialise one training arm.
 
@@ -128,7 +160,10 @@ def build_mixture(
     # The nesting property comes from ordering once, with a spec-independent seed,
     # and then only ever taking prefixes.
     real_order = _ordered_by_class(real_train, spec.seed)
-    synth_order = _ordered_by_class(synthetic_pool, spec.seed + 10_000)
+    # The real split is small and every arm draws a nested prefix of it, so a per-seed
+    # permutation is right there. The synthetic pool is sized so seeds can be disjoint,
+    # and only a rotation of one shared ordering delivers that.
+    synth_order = _ordered_disjoint_by_seed(synthetic_pool, spec.seed, n_seeds)
 
     budget = int(round(len(real_train) * spec.real_budget_fraction))
 

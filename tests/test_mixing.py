@@ -88,3 +88,61 @@ def test_additive_arm_adds_on_top(toy_real, toy_synth):
 def test_empty_arm_is_rejected(toy_real, toy_synth):
     with pytest.raises(ValueError, match="empty training set"):
         build_mixture(toy_real, toy_synth, MixSpec(kind="real_subset", synthetic_fraction=1.0))
+
+
+def test_synthetic_draws_are_disjoint_across_seeds_at_the_full_budget():
+    """Seeds estimate the variance of 'train on N synthetic images'.
+
+    With a pool of exactly n_seeds x N, the p=1 arm must give each seed its own slice.
+    Overlapping draws correlate the seeds and understate the variance at the arm that
+    carries the headline substitution claim.
+    """
+    from fitymi.data.mixing import MixSpec, build_mixture
+    from fitymi.data.records import Corpus, Record, Source
+
+    n_seeds, per_class_real = 5, 4
+    real = Corpus(
+        Record(path=f"r{c}_{i}.jpg", label=c, source=Source.REAL)
+        for c in range(NUM_CLASSES)
+        for i in range(per_class_real)
+    )
+    pool = Corpus(
+        Record(path=f"s{c}_{i}.jpg", label=c, source=Source.SYNTH_CLOSED)
+        for c in range(NUM_CLASSES)
+        for i in range(per_class_real * n_seeds)
+    )
+
+    spec = MixSpec(kind="substitution", synthetic_fraction=1.0)
+    draws = []
+    for seed in range(n_seeds):
+        mixture = build_mixture(real, pool, MixSpec(**{**spec.__dict__, "seed": seed}),
+                                n_seeds=n_seeds)
+        draws.append({r.path for r in mixture})
+
+    assert all(len(d) == len(real) for d in draws)
+    for i in range(n_seeds):
+        for j in range(i + 1, n_seeds):
+            assert not (draws[i] & draws[j]), f"seeds {i} and {j} share synthetic images"
+    assert len(set().union(*draws)) == len(pool)
+
+
+def test_nesting_across_fractions_survives_the_disjoint_ordering():
+    """Each seed must still take prefixes, so p=0.5 is a subset of p=1.0."""
+    from fitymi.data.mixing import MixSpec, build_mixture
+    from fitymi.data.records import Corpus, Record, Source
+
+    real = Corpus(
+        Record(path=f"r{c}_{i}.jpg", label=c, source=Source.REAL)
+        for c in range(NUM_CLASSES) for i in range(8)
+    )
+    pool = Corpus(
+        Record(path=f"s{c}_{i}.jpg", label=c, source=Source.SYNTH_CLOSED)
+        for c in range(NUM_CLASSES) for i in range(40)
+    )
+    half = build_mixture(real, pool, MixSpec(kind="substitution", synthetic_fraction=0.5,
+                                             seed=2), n_seeds=5)
+    full = build_mixture(real, pool, MixSpec(kind="substitution", synthetic_fraction=1.0,
+                                             seed=2), n_seeds=5)
+    half_synth = {r.path for r in half if r.source.is_synthetic}
+    full_synth = {r.path for r in full if r.source.is_synthetic}
+    assert half_synth <= full_synth

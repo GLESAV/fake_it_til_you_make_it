@@ -181,7 +181,10 @@ def run_arm(
     arms so re-running them is pure waste.
     """
     train_config = TrainConfig(**{**asdict(config.train), "seed": seed})
-    mixture = build_mixture(bundle.train, pool, MixSpec(**{**asdict(spec), "seed": seed}))
+    mixture = build_mixture(
+        bundle.train, pool, MixSpec(**{**asdict(spec), "seed": seed}),
+        n_seeds=len(config.sweep.seeds),
+    )
     label = _generator_label(spec, mixture, config)
 
     run_config = build_run_config(spec, train_config, config, seed, label)
