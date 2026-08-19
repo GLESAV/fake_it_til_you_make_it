@@ -636,7 +636,66 @@ not being copies — cannot be checked with an off-the-shelf threshold either, a
 checked with any.
 
 
-## 8. The labels are derived, and the derivation exposes the noise
+## 8. Preliminary: what the closed-set pool looks like at 150 of 4,740 images
+
+Run 2026-08-19 on the first 150 generated images, against the 948-image real training
+split the generator was fine-tuned on. **Preliminary by construction** — the pool is 3%
+complete and these numbers will be recomputed on the finished pool — but the two gating
+questions have clear enough answers to record now.
+
+### The generator did not memorise its training set
+
+| | |
+|---|---|
+| memorisation threshold, calibrated on the training split at 1% per-image FPR | **0.698** |
+| generated images above it | **0.00%** |
+| **maximum SSCD similarity to any training image** | **0.5836** |
+| what the published threshold (0.5) would report | 12.00% |
+| what the published threshold flags among *real* training images | 79.3% |
+
+The closest thing the generator produced to a training image scores **0.584**, against a
+calibrated threshold of 0.698 and a maximum of **0.976 between two genuinely distinct real
+photographs**. Nothing in the pool is a near-copy in any sense the corpus supports.
+
+The 12.00% figure is what an audit inheriting Somepalli et al.'s 0.5 would have published.
+It is a false-positive rate, and §7 explains why: the same threshold calls 79.3% of the
+real training images copies of each other.
+
+**This is the measurement the acne prior asserted and never made.** Zein et al.'s stated
+motivation is anonymity — that the generated faces are not real patients — and the paper
+contains no nearest-neighbour audit of any kind. Ours took twenty minutes on the first 3%
+of the pool.
+
+### The generator did not collapse identity
+
+| | pool (150 images) | real training split |
+|---|---|---|
+| faces detected | 117 / 150 (78%) | 916 / 948 (96.6%) |
+| distinct identities | 115 | 267 |
+| **identities per image** | **0.767** | **0.282** |
+| largest identity's share | 2.6% | 2.4% |
+| coverage of the 267 real training identities | **0.0%** | — |
+
+The pool carries **more identity diversity per image than the real data does**, which is
+not a surprise once the audit is in hand: the real corpus repeats subjects 2–3 times each
+and the generator does not. Identity collapse — the failure §8.10 exists to catch, and the
+one that is invisible to FID and to every per-image quality metric — has not happened here.
+
+**Zero coverage of the real training identities** is the second half of the anonymity
+question. Not one of the 267 people in the generator's training data has a synthetic
+near-neighbour above the identity threshold. The generator learned the domain — clinical
+framing, pathology, demographics — without learning the individuals.
+
+### It also produces artefacts at a measurable rate
+
+Face detection succeeds on 78% of generated images against 96.6% of real ones. The missing
+22% are the artefacts §4.9 declines to filter: multi-panel composites, extreme crops,
+distorted anatomy. That rate is reported as a property of the generator rather than removed,
+because a generator producing unusable images at rate *r* is worth less than one that does
+not, and the substitution study should say so rather than curating the difference away.
+
+
+## 9. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
 grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
@@ -674,7 +733,7 @@ a random sample of the corpus. The correct reading is not "these papers are wron
 "this benchmark cannot currently resolve differences of a few points, and nobody has
 been reporting that."
 
-## 9. The filename prefix is not a label
+## 10. The filename prefix is not a label
 
 **42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
 (e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
@@ -683,7 +742,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 
 ---
 
-## 10. What this changes for our study
+## 11. What this changes for our study
 
 1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
    embedder enabled.** The shipped defaults were tuned for datasets where perceptual
@@ -703,7 +762,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 11. Publishability
+## 12. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%
