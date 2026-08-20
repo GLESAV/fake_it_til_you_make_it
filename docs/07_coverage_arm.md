@@ -315,3 +315,42 @@ real-image row rules that out: the same scorer, same weights, same preprocessing
 0.21 to 3.00 and calls 100% of real very-severe images very severe. It compresses generated
 images and not real ones. Whatever is missing from the severe end of the pool is missing
 from the images, not from the measurement.
+
+---
+
+## §12.10 Why rejection sampling does not rescue it
+
+The obvious fix for compression is to over-generate and keep only the images that land where
+they were asked to. The request-to-perception matrix gives the pass rates directly, so the
+cost of that strategy is arithmetic rather than speculation.
+
+| grade | pass rate | generations needed for 240 | cost | hours |
+|---|---|---|---|---|
+| mild | 13% | 1,846 | $72 | 29 |
+| moderate | 100% | 240 | $9 | 4 |
+| severe | **4%** | **6,000** | **$234** | **95** |
+| very severe | 30% | 800 | $31 | 13 |
+| **total** | | **8,886** | **$347** | **141** |
+
+Against $37 and 15 hours for the unfiltered pool of the same size: **filtering multiplies
+cost and wall-clock by 9.3×**, and three quarters of that goes to one class. At 63 images
+per hour — the sustained Vertex rate on the cheap tier — the severe class alone is four
+days of continuous generation.
+
+For scale: ACNE04 already contains 126 severe and 86 very-severe images, and they cost
+nothing.
+
+### The cost is the smaller objection
+
+Money and wall-clock are negotiable; the conceptual problem is not. Filtering on a
+real-trained scorer means keeping generated images **in proportion to how much they
+resemble ACNE04's severe cases**. The filtered pool is then selected by the real
+distribution, which reintroduces exactly the closed-set ceiling the coverage arm exists to
+escape — the same ceiling that makes an ACNE04-tuned SD LoRA unable to exceed its training
+set. A pool that can only contain what a real-trained model recognises cannot be more
+complete than the real data.
+
+That does not make the filter useless — it is the right instrument for *measuring*
+fidelity, which is what §12.9 uses it for. It makes it the wrong instrument for
+*constructing* the pool, and the distinction is worth keeping straight, because the cost
+table above is tempting enough to hide it.
