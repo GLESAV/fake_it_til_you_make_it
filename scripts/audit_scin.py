@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Does the ACNE04 subject-leakage finding generalise? Test it on SCIN, with no model.
+"""Does the ACNE04 subject-leakage finding generalise? Test it on SCIN and HAM10000.
 
 ACNE04's subject structure had to be recovered with a face-identity embedding, which
 invites the objection that the finding is an artefact of that instrument. SCIN

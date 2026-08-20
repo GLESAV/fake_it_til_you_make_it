@@ -30,6 +30,7 @@ benchmark.
 | — on severe and very severe | **+9.9 and +9.0 points** |
 | **Distinct individuals in the 1,457 images (ArcFace)** | **~550–750** |
 | **The same leak in SCIN, from published metadata alone** | **75.6%** (against ACNE04's 77.5%) |
+| **And in HAM10000** | **38.5% overall — but 68.3% on melanoma** |
 | — test images sharing a *person* with training, published folds, cosine ≥ 0.85 | **15.9%** (chance rate 0.019%) |
 | — the same at the ordinary same-identity operating point (0.60) | **77.5%** |
 | **Independent expert re-annotation (ACNE04-v2, n=1,204 shared images)** | |
@@ -748,6 +749,55 @@ burden now sits with anyone assuming their own dermatology benchmark is exempt.
 The check costs nothing. For a dataset that publishes case or subject identifiers it is a
 `groupby`; for one that does not, it is an embedding pass. `scripts/audit_scin.py` runs the
 first in under a second.
+
+
+### 9.2 A third dataset, and the leak lands on melanoma
+
+HAM10000 publishes `lesion_id`, so it is a third metadata-only check. Its duplication is
+**already known** — Abhishek et al. documented near-duplicate lesions spanning the
+train/validation boundary and released corrected partitions for the DermaMNIST derivative.
+We are not claiming to have found it. What is measured here is the size and the *shape* of
+the consequence.
+
+| | images | per subject/lesion | image-level split leakage |
+|---|---|---|---|
+| ACNE04 | 1,457 | ~2.4 | **77.5%** |
+| SCIN | 10,407 | 2.07 | **75.6%** |
+| HAM10000 | 10,015 | 1.34 | **38.5%** |
+
+HAM10000 leaks about half as much, which follows directly from having half as many repeats
+per lesion. The mechanism is the same; the magnitude tracks the redundancy.
+
+**But the leak is not spread evenly across diagnoses, and where it concentrates is the
+problem:**
+
+| diagnosis | images | images per lesion | test images leaked |
+|---|---|---|---|
+| **melanoma** | 1,113 | **1.81** | **68.3%** |
+| dermatofibroma | 115 | 1.58 | 56.1% |
+| basal cell carcinoma | 514 | 1.57 | 55.8% |
+| benign keratosis | 1,099 | 1.51 | 51.3% |
+| vascular | 142 | 1.45 | 46.6% |
+| actinic keratosis | 327 | 1.43 | 46.3% |
+| **nevus** | 6,705 | **1.24** | **29.4%** |
+| overall | 10,015 | 1.34 | 38.5% |
+
+**Melanoma leaks at 68.3%, more than double the benign majority class at 29.4%** — because
+melanomas were photographed more often per lesion, which is entirely reasonable clinical
+practice and has nothing to do with anyone's methodology.
+
+Melanoma sensitivity is *the* headline metric on this benchmark. On an image-level split,
+roughly two-thirds of the melanoma test images have another photograph of the same lesion
+in training, against under a third of the nevi. Whatever a model learns about a specific
+lesion helps disproportionately on exactly the class the number is reported for.
+
+This is the same shape found on ACNE04 in §6: the leakage bonus was near zero on the two
+majority grades and about ten points on the two rare ones. Two datasets, two different
+reasons for the correlation — there, rare grades were photographed *less*, so the *clean*
+partition was enriched in them; here, the malignant class is photographed *more*, so the
+*leaked* partition is. **The general lesson is that duplication is almost never independent
+of class, so a leakage rate quoted as a single number understates its effect on the classes
+anyone cares about.**
 
 
 ## 10. The labels are derived, and the derivation exposes the noise

@@ -252,18 +252,57 @@ photographs of one person's two cheeks. It also carries duplication that case gr
 would not fix: 15 image files are listed under more than one \texttt{case\_id}, one of them
 under eleven.
 
+\paragraph{A third dataset, and the leak lands on melanoma.}
+HAM10000 publishes \texttt{lesion\_id}, giving a third metadata-only check. Its duplication
+is already documented --- \citet{fitzpatrick_audit2024} found near-duplicate lesions
+spanning the train/validation boundary and released corrected DermaMNIST partitions --- and
+we do not claim to have found it. What we measure is the size and the \emph{shape} of the
+consequence. It leaks 38.5\% overall, about half of SCIN and ACNE04, which follows directly
+from having half as many repeats per lesion (1.34 against 2.07 and $\approx$2.4).
+
+The shape is the problem:
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+diagnosis & images & images per lesion & test images leaked \\
+\midrule
+\textbf{melanoma} & 1{,}113 & \textbf{1.81} & \textbf{68.3\%} \\
+basal cell carcinoma & 514 & 1.57 & 55.8\% \\
+benign keratosis & 1{,}099 & 1.51 & 51.3\% \\
+actinic keratosis & 327 & 1.43 & 46.3\% \\
+\textbf{nevus} & 6{,}705 & \textbf{1.24} & \textbf{29.4\%} \\
+\midrule
+overall & 10{,}015 & 1.34 & 38.5\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Melanoma leaks at more than double the benign majority class, because melanomas were
+photographed more often per lesion --- entirely reasonable clinical practice with nothing
+to do with anyone's methodology. Melanoma sensitivity is \emph{the} headline metric on this
+benchmark, and on an image-level split roughly two-thirds of its test images have another
+photograph of the same lesion in training.
+
+This is the same shape as \S\ref{sec:cost} found on ACNE04, reached by an opposite
+mechanism: there the rare grades were photographed \emph{less}, so the clean partition was
+enriched in them; here the malignant class is photographed \emph{more}, so the leaked
+partition is. The general lesson is that \textbf{duplication is almost never independent of
+class, so a leakage rate quoted as a single number understates its effect on the classes
+anyone reports}.
+
 \paragraph{What this changes about the claim.}
 \S\ref{sec:subjects} says ACNE04's published splits leak. Together with SCIN the claim is
 larger and more useful: \textbf{dermatology image datasets routinely hold several images
 per subject or lesion, and image-level splitting --- the default everywhere --- leaks
-roughly three-quarters of the test set in both datasets we checked}. One required a
-face-recognition model to see; the other is stated in the published schema and nobody
-appears to have measured the consequence.
+between a third and three quarters of the test set in all three datasets we checked}, and
+the leak concentrates on whichever class happens to have been photographed most. One
+required a face-recognition model to see; two are stated in published metadata.
 
-Two datasets are two datasets and we do not claim universality. But they were not selected
-for agreement --- SCIN was chosen precisely because its ground truth is independent of our
-instrument --- and 75.6\% against 77.5\% is close enough that the burden now sits with
-anyone assuming their own dermatology benchmark is exempt. The check costs nothing: a
+Three datasets are three datasets and we do not claim universality. But they were not
+selected for agreement --- SCIN and HAM10000 were chosen precisely because their ground
+truth is independent of our instrument --- and the burden now sits with anyone assuming
+their own dermatology benchmark is exempt. The check costs nothing: a
 \texttt{groupby} where subject identifiers are published, an embedding pass where they are
 not.
 
