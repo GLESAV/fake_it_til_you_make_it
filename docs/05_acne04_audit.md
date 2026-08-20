@@ -1353,3 +1353,63 @@ unsound without device stratification or exposure normalisation:
 The third is the most consequential, because the error is not random: if capture device
 correlates with anything — site, cohort, era, severity — then ITA bins are partly device
 bins, and a fairness finding stated over them may be a finding about cameras.
+
+### §16.2 ITA cannot assign an individual image to a tone bin, and never could
+
+§16.1 measures how far ITA *moves* under exposure. This measures whether it was ever able to
+do the job people use it for: assigning one photograph to one Fitzpatrick group.
+
+The generated pool is the only corpus here with a tone label that does not come from
+reading the photograph — the type was specified before the image existed. Fitting the
+ITA→Fitzpatrick map with five-fold cross-validation on 311 such images:
+
+| condition | 6-type accuracy | 3-group accuracy | median ITA |
+|---|---|---|---|
+| clean | **0.277** | **0.453** | 27.8 |
+| −0.5 EV | 0.260 | 0.421 | −0.3 |
+| −0.3 EV | 0.244 | 0.421 | 11.3 |
+| +0.3 EV | 0.251 | 0.408 | 37.9 |
+| +0.5 EV | 0.235 | 0.428 | 43.5 |
+| **majority-class floor** | **0.174** | **0.344** | |
+
+ITA recovers the requested Fitzpatrick type at 0.277 against a 0.174 floor, and the coarse
+light/intermediate/dark grouping that fairness audits actually report at 0.453 against
+0.344. **About ten points above chance, on images whose tone label is known by
+construction.** Exposure shifts barely change it, because there was little signal to lose.
+
+### Why the medians looked so convincing
+
+§16 reported median ITA marching cleanly down across the six types — 46.8, 40.0, 35.2,
+30.9, 9.8, −29.3 — and that is true. It is also compatible with near-chance classification:
+
+| requested | n | median | IQR | p5–p95 |
+|---|---|---|---|---|
+| type I | 50 | 46.8 | 19…54 | −32…65 |
+| type II | 50 | 40.0 | 22…48 | −23…55 |
+| type III | 48 | 35.2 | 26…49 | −23…57 |
+| type IV | 48 | 30.9 | 13…40 | −36…52 |
+| type V | 46 | 9.8 | −7…27 | −25…37 |
+| type VI | 48 | −29.3 | −50…−8 | −65…28 |
+
+Adjacent types differ by a median of **6.9 ITA units** while the within-type standard
+deviation is **26.2** — a separation ratio of **0.26**. The distributions overlap almost
+entirely. The medians order correctly because averaging cancels the lighting variation; an
+individual image cannot be assigned because for that image the lighting does not cancel.
+
+That is the resolution of the apparent contradiction, and it is the practically important
+distinction: **ITA is sound for comparing distribution medians across large groups and
+unsound for binning individual images** — which is the operation every per-tone fairness
+breakdown performs.
+
+### A correction to §16.1's framing
+
+An earlier version of this analysis scored the clean condition in-sample — fitting and
+evaluating the ITA→Fitzpatrick map on the same images — and reported 0.955 falling to 0.24
+under a third of a stop. That "collapse" was entirely the in-sample baseline; cross-validated,
+the clean condition is 0.277 and there is no collapse because there is no height to fall
+from. The corrected finding is less dramatic and more damaging: ITA does not become
+unreliable under bad conditions, it is unreliable for individual assignment under all
+conditions tested, including the pool's own varied-but-plausible lighting.
+
+Two errors in two hours, both in the direction that made the result look stronger, both
+caught by a control rather than by inspection. Section 14's pattern holds.
