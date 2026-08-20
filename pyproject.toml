@@ -26,6 +26,8 @@ generate = ["diffusers>=0.27", "transformers", "accelerate", "peft", "safetensor
 # Deduplication and the memorisation audit on a face dataset. Optional because the
 # authoring sandbox could reach neither the model weights nor the network.
 audit = ["insightface", "onnxruntime", "opencv-python"]
+# The Gemini arm. Vertex works with application-default credentials; no API key needed.
+gemini = ["google-genai"]
 dev = ["pytest"]
 
 [project.scripts]
