@@ -1117,7 +1117,110 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 14. Publishability
+## 14. What went wrong while doing this, and what that suggests
+
+An audit is a claim about someone else's data made by someone whose own instruments and
+inferences are equally fallible. Over the two days that produced this document, several
+findings were wrong when first written, and the pattern in *which* ones were wrong is more
+useful than any individual correction.
+
+### 15.1 The measurements survived; the explanations did not
+
+| claim | fate |
+|---|---|
+| 38 byte-identical duplicate groups | held |
+| 4.25% fold leakage, every published fold | held |
+| ~600 subjects, 77.5% subject leakage | held |
+| 30.1% cross-team grade agreement | held |
+| 99.4% source detectability | held |
+| *"the leak concentrates on the clinically worrying class"* | **falsified** by ISIC 2020 |
+| *"models exploit the provenance shortcut"* | **retracted**, ablation was invalid |
+| *"count-prompting will fix severity fidelity"* | **falsified**, made it worse |
+
+Everything in the first group is a count or a correlation computed from files. Everything in
+the second is a story about *why* — a mechanism, a prediction, a proposed fix. **Three of
+three causal claims failed; none of the descriptive ones did.**
+
+That is not a coincidence and it is not modesty. Counting duplicate groups has one degree of
+freedom; explaining why duplication correlates with severity has many, and each is an
+opportunity to be confidently wrong. A reader deciding how much of this document to trust
+should weight it accordingly, and `docs/06_due_diligence.md` is ordered on exactly that principle.
+
+### 15.2 An ablation that does not ablate produces a confident null
+
+The provenance sequence is the sharpest case. The reasoning was: severity correlates with
+capture source, so normalise resolution, aspect ratio and quantisation, retrain, and see
+whether accuracy drops. It did not drop, and that was reported as evidence that models do
+not exploit provenance.
+
+The follow-up showed the normalised images still carry source at **99.4% accuracy**, because
+watermarks and eye-pixelation survive re-encoding. The ablation had removed a channel nobody
+was necessarily using and left the obvious one open. **A null result from an intervention
+that was never verified to intervene is not evidence of anything.**
+
+The check that catches this is cheap and was only run because the first result looked too
+clean: *after the ablation, can the thing you claim to have removed still be recovered?*
+
+### 15.3 Instruments need validating against ground truth before use
+
+Two instruments were built here and both failed their first honest test.
+
+The **lesion counter** was meant to measure whether generated severity matched requested
+severity. Against ACNE04's published counts it scored Spearman 0.103 untuned and 0.365 after
+sweeping 24 settings, against roughly 0.5 for usability — it was measuring skin texture. It
+was only ever tested because ACNE04 happens to publish counts.
+
+The **memorisation threshold** was adopted from the literature at SSCD 0.5, the value behind
+the field's reference replication rate. On this corpus that flags 82.6% of *real* images as
+copies of one another, because the threshold was calibrated on LAION, where two arbitrary
+images share nothing. Calibrated on the corpus it becomes 0.824 — and the same audit run at
+the published threshold would have reported 12.00% memorisation for a generator whose true
+figure is 0.00%.
+
+**A threshold is a property of a corpus, not of an instrument.**
+
+### 15.4 Optimising a proxy is not optimising the thing
+
+Prompting the generator with explicit lesion counts and tighter framing raised exact
+agreement from 34.8% to 47.9%, which looked like a clear win, and dropped ordinal fidelity
+from Spearman 0.176 to 0.010. The predictions had collapsed onto the modal class, where they
+match more often without being more faithful.
+
+Exact agreement was a reasonable-looking metric that moved the wrong way for a
+mechanical reason. It is worth reporting two metrics that can disagree, and worth being
+suspicious when the easy one improves.
+
+### 15.5 Four latent bugs, all of which produced plausible output
+
+None of these threw an error at the point of failure:
+
+- A bare `data/` line in `.gitignore` silently excluded `src/fitymi/data/`, so the pushed
+  repository was missing its core package while every local test passed.
+- Run identifiers were content-addressed over everything *except* the data, so two arms
+  differing only in how the corpus was split hashed identically and the resume path would
+  have skipped the second.
+- Image generation ran on CPU while a 40-core GPU sat idle, because the sampler resolved
+  `"cuda" if available else "cpu"` — it did not look broken, it looked *slow*, which is the
+  attribution that stops the investigation.
+- Inverse-frequency class weights clamped absent classes to a count of one, handing them
+  the largest weight in the vector; a two-class probe returned exactly 0.0000 accuracy,
+  which reads as a broken model rather than a broken loss.
+
+The common feature is that each produced output a reasonable person would accept. The only
+reason any surfaced is that a number failed to reconcile with a number obtained another way.
+
+### 15.6 The practical version
+
+- Prefer claims computable from files over claims about mechanisms, and label which is which.
+- After any ablation, verify the thing was actually removed.
+- Validate every instrument against ground truth on *this* corpus before pointing it at
+  anything, and treat published thresholds as corpus-specific.
+- Report at least two metrics that can disagree, and distrust improvements in the easy one.
+- Reconcile every important number against a second, independent route to it. That is what
+  caught all four bugs.
+
+
+## 15. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%
