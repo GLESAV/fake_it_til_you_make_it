@@ -647,9 +647,98 @@ figure is \textbf{0.00\%}, and the maximum similarity between any generated imag
 training image is 0.584 --- against 0.976 between two genuinely distinct real photographs.
 The uncalibrated number would have condemned a generator that memorised nothing.
 
-The same argument applies to the acne prior of \S\ref{sec:audit}, whose stated motivation
+The same argument applies to the prior acne generation work whose stated motivation
 is anonymity and which reports no nearest-neighbour audit at all: on this corpus, that
 claim cannot be checked with an off-the-shelf threshold either.
+
+\section{Skin-tone auditing by ITA measures exposure}
+\label{sec:ita}
+
+The individual typology angle (ITA), computed from CIE $L^*a^*b^*$, is the standard
+instrument for auditing a dermatology corpus's skin-tone coverage. It is chosen because it
+is objective, cheap, and needs no annotation. We show it is not device-invariant, and that
+in any corpus where capture device correlates with a label, an ITA audit partly measures
+cameras.
+
+\paragraph{The confound, observed.} ACNE04's ITA-estimated tone shifts strongly with
+severity: $\chi^2(15)=255.0$, $p=1.2\times10^{-45}$, Cram\'er's $V=0.242$. Severity is
+predictable from the single ITA number at $0.306$ balanced accuracy against a $0.250$
+four-class floor. Read at face value this is a second shortcut alongside the provenance one
+alongside capture device, which in this corpus is itself confounded with severity:
+87.1\% of mild images but only 16.3\% of very-severe ones share the dominant
+$3112\times3456$ resolution. It is not. Stratifying by capture device removes the tone
+signal entirely:
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+stratum & $n$ & Cram\'er's $V$ & severity from ITA \\
+\midrule
+all images & 1{,}457 & 0.242 & 0.306 \\
+within dominant device & 1{,}107 & 0.153 & 0.241 \\
+every other device & 350 & 0.147 & 0.246 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Inside a single device the signal falls below the $0.250$ floor in both strata.
+
+\paragraph{The mechanism, measured.} Sixty ACNE04 images were re-measured under exposure and
+white-balance changes of the size two consumer cameras differ by on automatic settings.
+Exposure is applied in linear light: the sRGB is linearised, scaled, and re-encoded.
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+transform & mean $\Delta$ITA & reassigned to a different tone bin \\
+\midrule
+exposure $-0.5$\,EV & $-16.4$ & 85\% \\
+exposure $+0.5$\,EV & $+13.2$ & 82\% \\
+exposure $-0.3$\,EV & $-9.6$ & 47\% \\
+exposure $+0.3$\,EV & $+8.3$ & 48\% \\
+warm white balance & $-1.2$ & 3\% \\
+cool white balance & $+1.0$ & 22\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Adjacent Fitzpatrick types differ by a median of $6.9$ ITA units
+(\S\ref{sec:ita-gt}). A third of a stop of exposure --- not a visible difference, and
+routine between two phone cameras --- therefore moves ITA further than a whole Fitzpatrick
+type, and reassigns nearly half of all images. White balance, the variable practitioners
+usually control for, barely matters.
+
+\paragraph{Against a tone label that is not read off the photograph.}
+\label{sec:ita-gt}
+Validating a tone instrument on real data is circular: self-reported and
+dermatologist-assigned Fitzpatrick are both noisy, and the latter is read from the same
+photograph whose exposure is in question. We use generated images instead, where the
+Fitzpatrick type was \emph{specified before the image existed}. This does not certify ITA's
+accuracy --- the generator is the only guarantor that a requested type~VI was rendered as
+one --- but the label is independent of the pixels, which is what the real corpora lack.
+
+On 311 such images, with the ITA$\rightarrow$Fitzpatrick map fitted by five-fold
+cross-validation, ITA recovers the requested type at $0.277$ against a $0.174$
+majority-class floor, and the coarse light/intermediate/dark grouping that fairness audits
+report at $0.453$ against $0.344$. Exposure perturbation barely changes these, because
+little signal is present to lose.
+
+Median ITA nonetheless orders the six types cleanly: $46.8$, $40.0$, $35.2$, $30.9$, $9.8$,
+$-29.3$. The two facts are compatible. Adjacent types differ by a median of $6.9$ ITA units
+while the within-type standard deviation is $26.2$, a separation ratio of $0.26$; the
+distributions overlap almost entirely. Medians order correctly because averaging cancels
+lighting variation, and individual images cannot be assigned because for one image it does
+not cancel.
+
+\paragraph{Consequence.} ITA is sound for comparing distribution medians across large
+groups and unsound for binning individual images. The distinction matters because the
+second operation is the one every per-tone fairness breakdown performs. Specifically,
+without device stratification or exposure normalisation, one cannot soundly report a
+dataset's Fitzpatrick composition from ITA, compare two corpora's tone coverage by ITA, or
+audit whether a model underperforms on darker skin where ``darker'' is an ITA bin. The last
+is the most consequential, because the error is not random: where capture device correlates
+with site, cohort, era, or severity, ITA bins are partly device bins, and a fairness finding
+stated over them may be a finding about cameras.
 
 \section{Limitations}
 
@@ -665,6 +754,22 @@ clustering rests on an ArcFace threshold; we report the full threshold sweep and
 chance rate rather than a single operating point, and the most conservative figure
 (15.9\% at cosine 0.85) is the one we would defend. 57 of 1{,}457 images yield no face
 embedding and are excluded from the identity analysis.
+
+
+The ITA analysis of \S\ref{sec:ita} rests on a ground truth supplied by a generative model:
+the Fitzpatrick type was requested rather than observed, so a systematic failure of the
+generator to render the requested type would appear here as a failure of ITA to recover it.
+Two things bound that concern rather than remove it. The median ITA per requested type is
+monotone across all six types and spans 76 units, so the generator is rendering
+\emph{something} that tracks the request; and the perturbation result is a within-image
+comparison in which the label is held fixed, so it does not depend on the label being
+correct. The accuracy figures should be read as a lower bound on ITA's performance and the
+perturbation figures as unaffected.
+
+The device stratification uses image resolution as a proxy for capture device. Resolution
+separates devices but does not individuate them, so the within-stratum estimates are
+conservative: any residual device heterogeneity inside the dominant-resolution group would
+inflate, not deflate, the tone--severity association we report as absent there.
 
 \section{Reproducibility}
 
