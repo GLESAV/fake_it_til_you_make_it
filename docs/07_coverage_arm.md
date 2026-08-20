@@ -354,3 +354,51 @@ That does not make the filter useless — it is the right instrument for *measur
 fidelity, which is what §12.9 uses it for. It makes it the wrong instrument for
 *constructing* the pool, and the distinction is worth keeping straight, because the cost
 table above is tempting enough to hide it.
+
+---
+
+## §12.11 Retraction: the per-class classifier story does not survive a second seed
+
+§12.8 read the per-class recalls from a single seed and concluded that synthetic training
+"beats real at mild and collapses at very severe". Two seeds at n=180 invert it:
+
+| arm | n | balanced accuracy | mild | moderate | severe | very severe |
+|---|---|---|---|---|---|---|
+| synthetic | 180 | 0.438 ±0.054 | 0.319 | 0.265 | 0.250 | **0.917** |
+| real, matched | 180 | 0.624 ±0.032 | 0.722 | 0.446 | 0.327 | 1.000 |
+
+Very-severe recall on the synthetic arm went from **0.222 to 0.917** between runs, and mild
+from 0.833 to 0.319. The direction of the claim reversed completely.
+
+The cause is not mysterious. The validation split holds 72 / 102 / 26 / 18 images:
+
+| class | n | one image is worth | SE of a recall near 0.5 |
+|---|---|---|---|
+| mild | 72 | 1.4 pts | 5.9 pts |
+| moderate | 102 | 1.0 pts | 5.0 pts |
+| severe | 26 | 3.8 pts | 9.8 pts |
+| very severe | **18** | **5.6 pts** | **11.8 pts** |
+
+Per-class recall on 18 images cannot support a claim about which end of the scale a
+generator is good at. It was over-read, and the reading is withdrawn.
+
+### What survives
+
+**The aggregate gap does.** 0.186 with a standard error of 0.044 across seeds — t ≈ 4.2. At
+matched budget and matched label distribution a generated image is worth substantially less
+than a real one, and that has now held at n=76, 156 and 180, across every seed run.
+
+**The compression result (§12.9) does, and it says the same thing far more reliably.** It is
+measured directly on 270 generated images against a control, with no training-seed noise in
+it at all: mean perceived grade 0.87 / 1.00 / 1.09 / 2.00 against a real-image span of 0.21
+to 3.00. That is the evidence for what the generator can and cannot render. The per-class
+recalls were a noisy shadow of it, pointing the same direction on one seed and the opposite
+on the next.
+
+### The pattern, again
+
+This is the fourth time in this project that a causal story computed from a small slice
+failed on contact with a second measurement, and the audit's §14 already names the shape:
+the numbers were real, the arithmetic was right, and the story laid over them was not
+supported. The defence that worked here is the same one that worked there — compute the
+thing a second way, on a sample large enough to move less than the effect.
