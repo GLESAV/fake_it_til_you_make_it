@@ -46,6 +46,10 @@ class TrainConfig:
     device: str = "auto"
     balanced_loss: bool = True
     amp: bool = True
+    #: Where to write the best checkpoint, if anywhere. Off by default because the sweep is
+    #: ~120 runs and storing every one is pointless; set for runs whose weights get reused,
+    #: such as the classifier that scores generated images for grade fidelity.
+    save_to: str | None = None
 
     def resolve_device(self) -> torch.device:
         """CUDA, then Apple Silicon, then CPU.
@@ -194,6 +198,14 @@ def train_model(
 
     if best_state is not None:
         model.load_state_dict(best_state)
+
+    if config.save_to:
+        target = Path(config.save_to)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"state_dict": best_state, "config": asdict(config),
+                    "best_val": history.best_val, "best_epoch": history.best_epoch}, target)
+        log.info("wrote checkpoint to %s (val %.4f at epoch %d)",
+                 target, history.best_val, history.best_epoch)
     history.seconds = time.time() - started
     return model, history
 
