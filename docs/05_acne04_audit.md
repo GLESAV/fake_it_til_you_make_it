@@ -1413,3 +1413,62 @@ conditions tested, including the pool's own varied-but-plausible lighting.
 
 Two errors in two hours, both in the direction that made the result look stronger, both
 caught by a control rather than by inspection. Section 14's pattern holds.
+
+### §16.3 A normalisation that helps, and the part of the confound it does not touch
+
+§16.2 leaves the instrument looking unusable. The fair next question is whether exposure can
+be normalised out after the fact, and the answer turns out to be partly yes — which was not
+the prediction going in.
+
+**Prediction, and why it was wrong.** The stated prior here was that no post-hoc correction
+could work: exposure and skin lightness both act on L\*, and a photograph offers nothing to
+tell "a lighter-skinned person" from "the same person, one stop brighter". That argument is
+wrong because it assumes the image contains only skin. It does not — background, specular
+highlights and the overall luminance distribution act as a de facto reference, and that is
+exactly what a gray-world and luminance-percentile correction exploit.
+
+**On images whose tone is known by construction** (381 generated, three-group task, floor
+0.344), each fold fitting on clean images from the training folds and predicting perturbed
+images from the held-out fold, so no map ever scores an image it has seen at any exposure:
+
+| normalisation | clean | −0.3 EV | +0.3 EV | worst drop |
+|---|---|---|---|---|
+| none | 0.438 | 0.428 | 0.425 | 0.013 |
+| gray-world | 0.556 | 0.459 | 0.567 | 0.097 |
+| luminance p90 | 0.491 | 0.491 | 0.491 | **0.000** |
+| **gray-world + luminance p90** | **0.583** | 0.588 | 0.577 | **0.005** |
+
+Two lines of correction buy **+14.5 points** of per-image tone accuracy and remove the
+exposure dependence. The unnormalised row barely drops, which looks inconsistent with the
+47% bin reassignment of §16.1; it is a floor effect — the pool's lighting is varied by
+design, so raw ITA starts near chance and has little room to fall.
+
+**On ACNE04, where the confound is the thing to remove** (severity floor 0.250, device floor
+0.500):
+
+| | Cramér's V, tone×severity | severity from ITA | **capture device from ITA** |
+|---|---|---|---|
+| raw ITA | 0.242 | 0.306 | **0.735** |
+| normalised ITA | **0.120** | 0.283 | **0.663** |
+
+Normalisation halves the spurious tone–severity association. It does **not** remove it:
+severity is still predictable at 0.283 against a 0.250 floor, and more importantly **ITA
+still identifies the capture device at 0.663 against a 0.500 floor.** A single normalised
+ITA number carries sixteen points of information about which camera took the photograph.
+
+### The recommendation, stated as three things rather than one
+
+Normalisation is worth doing and is not sufficient. What the measurements support:
+
+1. **Normalise before computing ITA** — gray-world plus a luminance percentile, two lines.
+   It roughly doubles the margin over chance for per-image tone and makes the number
+   exposure-invariant.
+2. **Stratify by capture device anyway**, because a third of the device signal survives
+   normalisation. Where device is unknown, resolution is a usable proxy and a conservative
+   one.
+3. **Prefer group medians to per-image bins.** Even normalised, per-image three-group
+   accuracy is 0.583 — better than 0.438, and still not a number to assign an individual
+   patient's Fitzpatrick type from. The median result of §16.2 is unaffected by any of this
+   and remains the sound use.
+
+None of the fairness audits consulted here do the first, and none report the second.
