@@ -53,7 +53,7 @@ def build_prompts(total: int) -> list[tuple[str, str]]:
     of the design and not of a random seed.
     """
     per_grade = total // len(SEVERITY)
-    prompts = []
+    by_grade: dict[int, list[tuple[str, str]]] = {g: [] for g in SEVERITY}
     for grade, description in SEVERITY.items():
         for i in range(per_grade):
             tone = TONES[i % len(TONES)]
@@ -61,12 +61,22 @@ def build_prompts(total: int) -> list[tuple[str, str]]:
             sex = SEXES[(i // (len(TONES) * len(AGES))) % len(SEXES)]
             view = VIEWS[i % len(VIEWS)]
             light = LIGHTING[(i // len(VIEWS)) % len(LIGHTING)]
-            prompts.append((
+            by_grade[grade].append((
                 f"g{grade}_i{i:04d}",
                 f"A colour clinical dermatology photograph of the face of {age} {sex} person "
                 f"with {tone}, showing {description}, {view} under {light}. Realistic medical "
                 f"documentation photograph, neutral background, no text or watermark."
             ))
+
+    # Interleave the grades rather than emitting them in blocks. A fifteen-hour run at a
+    # rate-limited tier will sometimes be interrupted, and grade-major order means any
+    # prefix is missing whole classes -- a pool stopped at 70% would contain no very-severe
+    # images at all and be unusable. Interleaved, every prefix is a balanced pool.
+    prompts = []
+    for i in range(per_grade):
+        for grade in SEVERITY:
+            if i < len(by_grade[grade]):
+                prompts.append(by_grade[grade][i])
     return prompts
 
 
