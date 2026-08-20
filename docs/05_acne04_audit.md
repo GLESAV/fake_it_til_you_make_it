@@ -1305,3 +1305,51 @@ is asked for, and the pool's breadth is real by construction rather than by meas
 The honest form of the coverage claim is therefore "the pool covers Fitzpatrick I–VI evenly
 because it was built to, and the images bear that out" — not "the pool has a wider ITA
 distribution than ACNE04", which is the version this section undermines.
+
+### §16.1 The mechanism, measured directly: a third of a stop outweighs a Fitzpatrick type
+
+The stratified result above is correlational — it shows ITA carries a device signal without
+saying how. This measures it directly. Sixty ACNE04 images, each re-measured after exposure
+and white-balance changes of the size two ordinary cameras differ by on auto settings.
+Exposure is applied properly: linearise the sRGB, scale in linear light, re-encode.
+
+| transform | mean ΔITA | max abs ΔITA | share reassigned to a different tone bin |
+|---|---|---|---|
+| exposure −0.5 EV | −16.4 | 32.0 | **85%** |
+| exposure +0.5 EV | +13.2 | 35.3 | **82%** |
+| exposure −0.3 EV | −9.6 | 20.8 | 47% |
+| exposure +0.3 EV | +8.3 | 22.0 | 48% |
+| warm white balance | −1.2 | 5.8 | 3% |
+| cool white balance | +1.0 | 7.5 | 22% |
+
+Adjacent Fitzpatrick types in the generated pool — where the requested type is known —
+differ by a median of about **7 ITA units** (46.8 / 40.0 / 35.2 / 30.9 across types I–IV).
+
+So **a third of a stop of exposure moves ITA further than a whole Fitzpatrick type does,
+and reassigns nearly half of all images to a different tone bin.** A third of a stop is not
+a visible difference; it is routine variation between two phone cameras photographing the
+same face. Half a stop reassigns more than four images in five.
+
+White balance matters much less, which is worth stating because it is the variable people
+usually worry about. Exposure is the one that breaks the instrument.
+
+**A note on getting this wrong first.** The initial version of this simulation scaled pixel
+values directly in sRGB space rather than in linear light, and reported mean shifts of 41
+units and 97% bin reassignment — roughly 2.5× the true effect. Scaling gamma-encoded values
+is not an exposure change. The conclusion survives the correction, but the numbers in the
+first version were wrong in the direction that made the finding look better, which is the
+direction that needs checking.
+
+### What this means for the audit literature
+
+ITA computed from an uncontrolled photograph is not a skin-tone measurement. It is
+substantially an exposure measurement with a skin-tone component. Any of the following is
+unsound without device stratification or exposure normalisation:
+
+- reporting a dataset's Fitzpatrick composition from ITA;
+- comparing two datasets' skin-tone coverage by ITA;
+- auditing whether a model underperforms on darker skin, where "darker" is an ITA bin.
+
+The third is the most consequential, because the error is not random: if capture device
+correlates with anything — site, cohort, era, severity — then ITA bins are partly device
+bins, and a fairness finding stated over them may be a finding about cameras.
