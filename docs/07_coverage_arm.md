@@ -196,3 +196,57 @@ Nor does coverage imply usefulness: §12.6 shows the same pool's severity labels
 unreliable, and a set that is broad and mislabelled is not obviously better than one that is
 narrow and correct. **Those are two separate axes and this measures only the first.**
 
+---
+
+## §12.8 First budget-matched result: synthetic is worth less, and the deficit is in the tail
+
+Three arms, all scored on the same real subject-disjoint validation split (218 images).
+One seed, 156-image pool — preliminary, and the direction is already clear.
+
+| arm | n train | balanced accuracy | accuracy | QWK |
+|---|---|---|---|---|
+| synthetic only | 156 | **0.426** | 0.450 | 0.509 |
+| **real, budget- and class-matched** | **156** | **0.630** | 0.555 | 0.668 |
+| real, full split, natural prior | 948 | 0.730 | 0.706 | 0.783 |
+
+**At matched budget and matched label distribution, a generated image is worth substantially
+less than a real one: 0.426 against 0.630, a gap of 20 points.** The third row is there to
+show what the budget cut alone costs — going from 948 real images to 156 costs 10 points, and
+replacing those 156 with synthetic costs another 20.
+
+### Where the deficit sits is the finding
+
+| arm | mild | moderate | severe | very severe |
+|---|---|---|---|---|
+| synthetic only | **0.833** | 0.225 | 0.423 | **0.222** |
+| real, matched | 0.694 | 0.392 | 0.654 | **0.778** |
+
+**Synthetic *beats* real at mild** (0.833 against 0.694) and collapses at very severe (0.222
+against 0.778). That is the same shape the fidelity measurement predicted from an entirely
+different direction: the generator renders mild acne convincingly and cannot render severe
+disease, so a classifier trained on it learns the easy end and not the hard one.
+
+### Why this is the uncomfortable result
+
+The synthetic set's advertised advantage was coverage of what the real data lacks. ACNE04
+lacks two things:
+
+- **demographic breadth** — and the pool genuinely supplies it, with four times the
+  darkest-bin representation and a near-uniform tone spread (§12.7);
+- **severe cases** — 129 very-severe images from 81 people — **and the pool does not supply
+  it at all.**
+
+The gap the synthetic data closes is not the gap that limits the benchmark. The one that
+does limit it is precisely where the generator fails, and it fails there for a reason that
+is visible in the images rather than mysterious: asked for confluent nodulocystic acne, it
+draws scattered papules.
+
+### Standing caveats
+
+One seed, 156 images, validation rather than the sealed test split. The full 960-image pool
+will give a learning curve, and if the synthetic curve is still climbing at 960 the deficit
+is partly a sample-size artefact rather than a ceiling. That is the one result that would
+soften this, and it is worth waiting for — but the per-class pattern would have to change,
+not just the aggregate, because a curve that rises while very-severe recall stays at 0.22
+does not rescue the claim.
+
