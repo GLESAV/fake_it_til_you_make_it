@@ -55,6 +55,9 @@ def load_scorer(path: str):
     config = TrainConfig(**blob["config"])
     model = build_model(config.arch, "scratch", NUM_CLASSES)
     model.load_state_dict(blob["state_dict"])
+    # The checkpoint loads on CPU but evaluation moves images to the resolved device, so
+    # the model has to follow it or the first forward pass fails on a type mismatch.
+    model = model.to(config.resolve_device())
     print(f"scorer: {config.arch}/{config.init}, val balanced accuracy "
           f"{blob['best_val']:.4f} at epoch {blob['best_epoch']}")
     return model.eval(), config
