@@ -988,16 +988,40 @@ It also reframes §4. Two expert teams disagreeing about severity is easier to u
 when a third of the severe images come from an advertiser with an interest in the "before"
 looking bad.
 
-### 10.3 What this does and does not establish
+### 10.3 The ablation, which came back against the hypothesis
 
-**It does not establish that any published result exploited the shortcut.** No experiment
-here attributes any reported accuracy to provenance detection, and it would take an ablation
-— re-encode every image to a common resolution and quantisation table, retrain, measure the
-drop — to do so. That ablation is worth running and is not run here.
+The section above originally ended by saying an ablation was needed and had not been run.
+It has now been run, and **it does not support the concern.**
 
-**It does establish** that the shortcut is available, that it is strongest for the two
-clinically important grades, that it is discoverable from file headers in under a minute,
-and that nothing in the release warns of it.
+Every image was re-encoded to 512×512 square at JPEG quality 90 — identical resolution,
+aspect ratio and quantisation for every file — and training repeated with the same
+subject-disjoint splits, hyperparameters and seed:
+
+| | balanced accuracy | plain accuracy | QWK |
+|---|---|---|---|
+| original images | 0.7296 | 0.7064 | 0.783 |
+| **provenance-normalised** | **0.7391** | 0.7339 | 0.818 |
+
+Accuracy did not drop. It rose by 0.95 points, which is comfortably inside the
+seed-to-seed standard deviation of 1.68 points measured in §6, so the honest reading is
+**no change**.
+
+**So there is no evidence that the classifier was exploiting resolution-level provenance.**
+The correlation between source and severity is real and remains a property of the dataset;
+what the ablation shows is that this architecture, at this input resolution, was not using
+it. That is a materially weaker claim than the one §10.1 set up, and it is the one the
+evidence supports.
+
+Two things it still does not settle. Watermarks, branding and eye-pixelation survive
+re-encoding, so the visible channel is untouched by this ablation — §10.4. And a single
+seed cannot distinguish a small effect from none; a difference of a point either way is
+noise here.
+
+**What survives.** The confound in the data is real and measurable from file headers in
+under a minute: 87.1% of mild images and 16.3% of very-severe ones share one resolution, and
+the prior on very-severe is 16× higher off the dominant device. Nothing in the release warns
+of it. What is *not* established, and what an earlier draft of this section overstated, is
+that any model exploits it.
 
 **Practical rule:** before trusting a medical image benchmark, check whether the label
 correlates with capture metadata. Resolution, aspect ratio, JPEG quantisation and EXIF are
