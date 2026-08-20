@@ -74,7 +74,16 @@ def main() -> None:
             for l in (Path(args.splits) / f"{split}.jsonl").read_text().splitlines() if l.strip()
         )
 
-    def synthetic() -> Corpus:
+    def synthetic(seed: int = 1234) -> Corpus:
+        """`seed` selects *which* generated images the balanced subsample takes.
+
+        It has to vary with the training seed, or the error bars answer the wrong
+        question. Holding the subsample fixed measures only how much the result moves when
+        the weights are initialised differently, and reports that as the uncertainty --
+        while the thing a reader actually wants bounded is how much it moves when you get a
+        different draw of generated images, which is the larger source and the one under
+        the practitioner's control.
+        """
         records = []
         for p in sorted(Path(args.pool).glob("*.png")):
             m = re.match(r"g(\d)_", p.name)
@@ -88,7 +97,7 @@ def main() -> None:
         per = min(len(v) for v in by_class.values()) if by_class else 0
         if args.cap:
             per = min(per, args.cap)
-        gen = rng(1234)
+        gen = rng(seed)
         out = []
         for c in sorted(by_class):
             items = list(by_class[c])
@@ -97,7 +106,7 @@ def main() -> None:
         return Corpus(out)
 
     train_real, val_real = real("train"), real("val")
-    pool = synthetic()
+    pool = synthetic(args.seeds[0])
     print(f"real train {len(train_real)} {train_real.class_counts()}")
     print(f"synthetic   {len(pool)} {pool.class_counts()}")
     print(f"real val    {len(val_real)} {val_real.class_counts()}  <- every arm scored here")
@@ -118,6 +127,7 @@ def main() -> None:
 
     results: dict[str, list[dict]] = {}
     for seed in args.seeds:
+        pool = synthetic(seed)
         arms = {}
         if "synthetic" in args.arms:
             arms["synthetic"] = pool
