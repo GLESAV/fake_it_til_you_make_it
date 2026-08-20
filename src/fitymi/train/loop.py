@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import copy
 import time
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
@@ -129,12 +130,22 @@ def train_model(
     train_corpus: Corpus,
     val_corpus: Corpus,
     config: TrainConfig,
+    init_from: nn.Module | None = None,
 ) -> tuple[nn.Module, TrainHistory]:
+    """`init_from` starts from an already-trained model instead of `config.init`.
+
+    That is what makes a two-stage arm -- pretrain on synthetic, fine-tune on real -- a
+    fair comparison rather than a different experiment: every other knob stays where the
+    single-stage arms have it, and only the starting weights change.
+    """
     seed_everything(config.seed)
     device = config.resolve_device()
     started = time.time()
 
-    model = build_model(config.arch, config.init, NUM_CLASSES).to(device)
+    if init_from is None:
+        model = build_model(config.arch, config.init, NUM_CLASSES).to(device)
+    else:
+        model = copy.deepcopy(init_from).to(device)
 
     train_loader = make_loader(
         train_corpus, config.batch_size, config.image_size, True, config.num_workers, config.seed

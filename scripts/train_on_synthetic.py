@@ -8,6 +8,21 @@ Three arms, all validated on the same real subject-disjoint validation split:
 3. **real-only, class-rebalanced** -- the real split resampled to the synthetic pool's
    balanced class distribution.
 
+Three further arms ask the question a practitioner would actually ask. Nobody ships a
+classifier trained on generated images alone; the realistic use is to *add* them to the
+real data you already have. So:
+
+4. **mixed** -- the full real training split plus the whole synthetic pool;
+5. **mixed_tail** -- the full real split plus synthetic images for the scarce classes only,
+   which is the targeted version of the premise: ACNE04 has 126 severe and 86 very-severe
+   images, and the pitch for generated data is that it fills exactly that hole;
+6. **pretrain** -- synthetic first, then fine-tune on real. The standard recipe, and the
+   one that in the literature often works when synthetic-only does not, because the
+   generated images only have to teach features rather than carry the decision boundary.
+
+Arms 4-6 are compared against arm 2, not against each other: the question is whether
+adding generated data to an existing real corpus buys anything at all.
+
 The third arm exists because the synthetic pool differs from the real one in *two* ways: the
 images are generated, and the label distribution is balanced rather than ACNE04's
 35/43/12/9. That confound is deliberate -- rebalancing is part of the intervention, since
@@ -40,7 +55,10 @@ def main() -> None:
     ap.add_argument("--splits", default="data/splits_subject")
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--arms", nargs="+",
-                    default=["synthetic", "real", "real_balanced"])
+                    default=["synthetic", "real", "real_balanced"],
+                    help="synthetic real real_balanced mixed mixed_tail pretrain")
+    ap.add_argument("--tail-classes", type=int, nargs="+", default=[2, 3],
+                    help="which classes mixed_tail tops up; the scarce end by default")
     ap.add_argument("--balance", action="store_true",
                     help="cap every class at the smallest, so a partially generated pool "
                          "is still a balanced one and learning-curve points are comparable")
@@ -107,6 +125,12 @@ def main() -> None:
             arms["real"] = train_real
         if "real_balanced" in args.arms:
             arms["real_balanced"] = rebalanced(train_real, pool.class_counts(), seed)
+        if "mixed" in args.arms:
+            arms["mixed"] = Corpus(list(train_real) + list(pool))
+        if "mixed_tail" in args.arms:
+            tail = [r for r in pool if r.label in set(args.tail_classes)]
+            arms["mixed_tail"] = Corpus(list(train_real) + tail)
+        # "pretrain" is two-stage and handled below, since it needs the synthetic model.
 
         for name, corpus in arms.items():
             tc = TrainConfig(**{**asdict(cfg.train), "seed": seed, "num_workers": 4})
@@ -122,6 +146,27 @@ def main() -> None:
             print(f"  balanced accuracy {result.balanced_accuracy:.4f}  "
                   f"accuracy {result.accuracy:.4f}  QWK {result.qwk:.3f}")
             print(f"  predictions {dict(sorted(Counter(yp.tolist()).items()))}")
+            if name == "synthetic":
+                synthetic_model = model
+
+        if "pretrain" in args.arms:
+            # Stage one is the synthetic arm's own model, reused rather than retrained, so
+            # the two arms share a starting point exactly and any difference is stage two.
+            tc = TrainConfig(**{**asdict(cfg.train), "seed": seed, "num_workers": 4})
+            stage_one = arms.get("synthetic") and synthetic_model
+            if stage_one is None:
+                print(f"\n--- pretrain stage 1 (synthetic), seed {seed} ---", flush=True)
+                stage_one, _ = train_model(pool, val_real, tc)
+            print(f"\n--- pretrain stage 2 (real), seed {seed}: "
+                  f"{len(train_real)} images ---", flush=True)
+            model, _ = train_model(train_real, val_real, tc, init_from=stage_one)
+            result, preds = evaluate_corpus(model, val_real, tc, return_predictions=True)
+            row = result.to_dict()
+            row["seed"] = seed
+            row["n_train"] = len(pool) + len(train_real)
+            results.setdefault("pretrain", []).append(row)
+            print(f"  balanced accuracy {result.balanced_accuracy:.4f}  "
+                  f"accuracy {result.accuracy:.4f}  QWK {result.qwk:.3f}")
 
     print(f"\n{'arm':>16} {'n train':>8} {'bal acc':>9} {'accuracy':>9} {'QWK':>7}")
     for name, rows in results.items():
