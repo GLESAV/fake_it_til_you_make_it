@@ -85,3 +85,61 @@ and the ACNE04 data audit all serve the corrected question directly — because 
 real data" is only meaningful if the real data's labels and splits are understood, and
 `docs/05_acne04_audit.md` establishes that ACNE04's labels reproduce at 30.1% against a
 second expert team and its published folds leak 77.5% of test subjects.
+
+---
+
+## §12.6 First fidelity results
+
+Instrument: ResNet-50 trained on the real subject-disjoint training split, 0.7296 balanced
+accuracy on real held-out images. The same scorer is run on every set, and the question is
+its agreement with the grade each image was *requested* with.
+
+| set | Spearman | exact | note |
+|---|---|---|---|
+| **real held-out** | **0.706** | 70.6% | the ceiling |
+| Gemini, word-prompted, n=66 | 0.199 | 34.8% | 51 of 66 predicted as one grade |
+| Gemini, best crop (70%) | **0.333** | 44.8% | framing recovered, no regeneration |
+| SD fine-tuned on ACNE04, n=2,812 | **−0.103** | 32.4% | in-domain, no severity signal |
+
+### What the control establishes
+
+The obvious objection is domain shift: a classifier trained on ACNE04's half-face crops
+might fail on studio portraits for reasons unrelated to severity, making the Gemini number
+meaningless. **The in-domain control rules that out in the direction that matters.** The
+generator fine-tuned *on ACNE04* — same crops, same lighting, same cohort — scores *higher*
+on exact agreement (32.4%) and has **no severity control at all**: Spearman −0.103, with
+mean predicted grade 1.29 for requested mild against 1.25 for requested moderate. It learned
+the look and not the label.
+
+So a prompted model that has never seen the dataset has better severity control than one
+fine-tuned on it. That is the single most useful result so far, and it is the opposite of
+what the closed-set framing assumed.
+
+### What is still wrong
+
+Gemini's severity signal is **monotone but heavily compressed**: mean predicted grade runs
+0.75 → 1.00 → 1.17 → 1.60 across the four requested grades. The direction is right; the
+dynamic range is about a third of what it should be.
+
+Framing accounts for part of it. Cropping the portraits towards ACNE04's view lifts Spearman
+0.210 → 0.333 and exact 34% → 51%, and over-cropping to 35% destroys it again, which
+confirms the mechanism is how much cheek is in frame. But the best crop still leaves a
+0.37 gap to the ceiling.
+
+### What is being tested next
+
+Both remedies are prompt changes, chosen by measurement:
+
+1. **Ask for the tight framing directly**, rather than cropping afterwards and losing
+   resolution.
+2. **Prompt with an explicit lesion count** drawn from inside each Hayashi band, rather than
+   a severity word. Hayashi grades *are* counts, so this makes the label true by
+   construction if the model complies — and an earlier probe showed it complies at low
+   counts and saturates at high ones.
+
+**Pre-committed reading.** If the count-prompted set does not clear roughly 0.5 Spearman,
+the arm is reported as predicting the model's notion of severity rather than Hayashi
+severity, per §12.3, and the honest conclusion is that this generator produces excellent
+*coverage* and unreliable *labels* — which is a useful finding about synthetic medical data
+even though it is not the hoped-for one.
+
