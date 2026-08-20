@@ -11,8 +11,8 @@
 \newcommand{\TODO}[1]{\textcolor{red}{[TODO: #1]}}
 \newcommand{\RESULT}[1]{\textcolor{blue}{[#1]}}
 
-\title{Most of the test set is already in the training set:\\
-subject leakage in dermatology image benchmarks}
+\title{Leakage is not uniform:\\
+duplicate-image leakage concentrates on the classes that matter}
 \author{}
 \date{}
 
@@ -20,60 +20,69 @@ subject leakage in dermatology image benchmarks}
 \maketitle
 
 \begin{abstract}
-Dermatology image datasets routinely contain several photographs of the same patient or
-the same lesion. Splitting them by image --- the default everywhere --- therefore puts the
-same subject on both sides of the boundary. We measure how often, in three datasets from
-three institutions with three different collection protocols, and what it is worth.
-\textbf{ACNE04} \citep{wu2019}, whose 1{,}457 photographs turn out to be roughly 550--750
-distinct individuals, leaks a person from training into \textbf{15.9\%} of every published
-test fold at an identity threshold where 0.019\% of image pairs qualify by chance, and
-\textbf{77.5\%} at the ordinary operating point. \textbf{SCIN}, whose published schema makes
-subject identity ground truth so that no model is involved at all, leaks \textbf{75.6\%}.
-\textbf{HAM10000} leaks \textbf{38.5\%} overall --- but \textbf{68.3\% on melanoma}, the
-class its headline metric is reported for, because melanomas were photographed more often
-per lesion. Duplication is almost never independent of class, so a single leakage rate
-understates the effect where it matters. We quantify the cost on ACNE04: an identical
-classifier trained on image-level rather than subject-disjoint splits gains \textbf{4.5
-points of balanced accuracy} (95\% CI 2.3--7.0), concentrated almost entirely in the two
-rare, clinically important grades ($+9.9$, $+9.0$) and absent from the two majority grades.
-Along the way we report three further defects in ACNE04 --- 38 byte-identical duplicate
-pairs, eight of them label-conflicting; 4.25\% duplicate leakage in every published fold;
-and a severity label that a second expert team's re-annotation of the same photographs
-reproduces on only 30.1\% of images (58.2\% after any monotone recalibration) --- and we
-show that the standard instruments for detecting all of this are themselves miscalibrated
-on homogeneous corpora: the threshold that establishes the field's reference memorisation
-rate flags 82.6\% of real ACNE04 images as copies of one another. Every number reproduces
-from public data; two of the three leakage measurements need no images and no model.
+That dermatology image datasets contain several photographs of the same patient or lesion,
+that splitting them by image therefore leaks, and that the remedy is to split by patient or
+lesion, are all \textbf{established}. HAM10000's own release paper reports its per-lesion
+image counts; \citet{fitzpatrick_audit2024} document leakage in HAM10000, DermaMNIST and
+Fitzpatrick17k and release corrected partitions; patient-level partitioning is standard
+practice in a growing part of the literature. We do not claim otherwise and this paper is
+not about rediscovering it.
+
+We report three things that appear not to have been said. First, \textbf{the leak is not
+uniform across classes, and it concentrates where it hurts}: in HAM10000 an image-level
+80/20 split leaks 38.5\% of the test set overall but \textbf{68.3\% of melanomas} against
+29.4\% of nevi, because melanomas were photographed more often per lesion --- and melanoma
+sensitivity is the metric that benchmark is reported for. Second, \textbf{ACNE04}
+\citep{wu2019}, the standard acne-severity benchmark, has to our knowledge never been
+audited, and it leaks worse than either dataset where this is known: its 1{,}457
+photographs are approximately 550--750 individuals, and \textbf{77.5\%} of every published
+test fold shows a person who also appears in training. We measure what that is worth ---
+an identical classifier gains \textbf{4.5 points of balanced accuracy} (95\% CI 2.3--7.0)
+from image-level splitting, concentrated in the two rare grades ($+9.9$, $+9.0$) and absent
+from the two majority grades, reproducing the same class-conditional shape by an opposite
+mechanism. Third, \textbf{the instruments used to detect any of this are themselves
+miscalibrated on homogeneous corpora}: the SSCD threshold behind the field's reference
+memorisation rate flags 82.6\% of real ACNE04 images as copies of one another, and we give a
+calibration procedure. The ACNE04 audit also turns up 38 byte-identical duplicate pairs,
+eight label-conflicting, and a severity label that a second expert team's re-annotation of
+the same photographs reproduces on only 30.1\% of images. Every number reproduces from
+public data; the class-conditional result needs no images and no model.
 \end{abstract}
 
 \section{Introduction}
 
-A test set exists to estimate performance on data the model has not seen. In dermatology
-that intention is routinely defeated by a property of the data nobody hides: patients and
-lesions are photographed more than once. SCIN says so in its schema, HAM10000 ships a
-\texttt{lesion\_id} column, and ACNE04's repetition is discoverable in twenty minutes with
-a face-recognition model. Splitting by image rather than by subject then puts the same
-person, or the same lesion, on both sides of the boundary --- and what a model learns about
-a specific individual transfers perfectly to another photograph of them and not at all to a
-new patient.
+Dermatology image datasets photograph patients and lesions more than once. Splitting them
+by image rather than by subject therefore puts the same lesion on both sides of the
+boundary, and the field knows this: HAM10000's release paper reports that its 10{,}015
+images come from 7{,}470 lesions, \citet{fitzpatrick_audit2024} document the consequence
+across three datasets and publish corrected partitions, \citet{cleanpatrick2025} build a
+cleaning benchmark, and a growing share of recent work partitions at the patient level as a
+matter of course.
 
-We measure this in three datasets and find between a third and three quarters of the test
-set affected, with the leak concentrating on whichever class happened to be photographed
-most. On ACNE04 we also measure what it buys: 4.5 points of balanced accuracy, more than
-the entire spread between the published methods competing on that benchmark.
+Our starting question was different --- whether generated images can substitute for real
+ones in acne severity grading --- and we needed clean splits to ask it. Building them
+surfaced three things the existing treatments of leakage do not cover.
 
-Comparable audits exist and we build on them rather than around them.
-\citet{fitzpatrick_audit2024} document duplicates, train/test leakage and label errors in
-HAM10000, DermaMNIST and Fitzpatrick17k, and release corrected partitions;
-\citet{cleanpatrick2025} build a cleaning benchmark on Fitzpatrick17k and report 21\%
-near-duplicates and 32\% label errors. What we add is the subject-level framing, the
-cross-dataset comparison, the measured cost in accuracy, and the observation that the
-instruments used for these audits need calibrating against the corpus they are pointed at.
+\paragraph{The leak has a shape.} Leakage is reported as a single rate, and a single rate
+averages over classes that are not equally affected. Duplication is a clinical decision:
+worrying lesions get photographed more. In HAM10000 melanomas average 1.81 images per
+lesion against 1.24 for nevi, so an image-level split leaks 68.3\% of melanoma test images
+and 29.4\% of nevi. The overall figure, 38.5\%, describes neither. Because melanoma
+sensitivity is what that benchmark is reported for, the aggregate rate understates the
+problem exactly where it matters.
 
-ACNE04 is our deep case: it has never been audited, it is small enough to examine
-exhaustively, and it is the only one of the three with a second independent expert
-annotation to compare against. Three of the defects we report there require nothing but
-the archive and a hash function.
+\paragraph{ACNE04 has never been audited, and it is worse.} The benchmark for automated
+acne grading has no published data-quality analysis that we could find. Its subject
+structure is not in any metadata --- it takes a face-recognition model to see --- and it is
+severe: roughly 550--750 people across 1{,}457 photographs, with 77.5\% of every published
+test fold showing someone who also appears in training. We measure the cost, which nobody
+has done on a dataset where the leak is this large, and find the same class-conditional
+shape arriving by the opposite mechanism.
+
+\paragraph{The instruments need calibrating.} Every published or default similarity
+threshold we reached for --- perceptual hashing, CLIP, and the SSCD threshold that
+establishes the reference memorisation rate for generative models --- fails on a corpus
+where all images are the same kind of picture, which is what medical imaging corpora are.
 
 \section{Data and instruments}
 
@@ -245,11 +254,12 @@ would not fix: 15 image files are listed under more than one \texttt{case\_id}, 
 under eleven.
 
 \paragraph{A third dataset, and the leak lands on melanoma.}
-HAM10000 publishes \texttt{lesion\_id}, giving a third metadata-only check. Its duplication
-is already documented --- \citet{fitzpatrick_audit2024} found near-duplicate lesions
-spanning the train/validation boundary and released corrected DermaMNIST partitions --- and
-we do not claim to have found it. What we measure is the size and the \emph{shape} of the
-consequence. It leaks 38.5\% overall, about half of SCIN and ACNE04, which follows directly
+HAM10000 publishes \texttt{lesion\_id}, giving a third metadata-only check. Both its
+duplication and the remedy are established: the release paper itself reports that 10{,}015
+images come from 7{,}470 lesions with 1{,}956 lesions contributing two or more, and
+\citet{fitzpatrick_audit2024} document the leakage and release corrected partitions. Our
+per-lesion counts reproduce theirs exactly, which is a check on our arithmetic rather than a
+finding. What appears not to have been reported is the \emph{shape} of the consequence. It leaks 38.5\% overall, about half of SCIN and ACNE04, which follows directly
 from having half as many repeats per lesion (1.34 against 2.07 and $\approx$2.4).
 
 The shape is the problem:
@@ -291,10 +301,12 @@ between a third and three quarters of the test set in all three datasets we chec
 the leak concentrates on whichever class happens to have been photographed most. One
 required a face-recognition model to see; two are stated in published metadata.
 
-Three datasets are three datasets and we do not claim universality. But they were not
-selected for agreement --- SCIN and HAM10000 were chosen precisely because their ground
-truth is independent of our instrument --- and the burden now sits with anyone assuming
-their own dermatology benchmark is exempt. The check costs nothing: a
+Three datasets are three datasets and we do not claim universality --- nor novelty for the
+existence of the leak, which is established. What the comparison adds is that the rate
+varies by a factor of two across datasets and tracks redundancy, and that within a dataset
+it varies by a factor of two across \emph{classes} and tracks how often a clinician reached
+for the camera. A benchmark's headline metric is usually reported on the class that got
+photographed most. The check costs nothing: a
 \texttt{groupby} where subject identifiers are published, an embedding pass where they are
 not.
 

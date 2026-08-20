@@ -741,10 +741,16 @@ image-level splitting — the default everywhere — leaks roughly three-quarter
 set in both datasets we checked.** One required a face-recognition model to see; the other
 is stated in the published schema and nobody appears to have measured the consequence.
 
-We do not claim this holds universally. Two datasets are two datasets. But they were not
-selected for agreement — SCIN was chosen precisely because its ground truth is independent
-of our instrument — and the agreement is close enough (75.6% against 77.5%) that the
-burden now sits with anyone assuming their own dermatology benchmark is exempt.
+**We claim no novelty for the existence of the leak.** A literature check on 2026-08-19
+found that patient- and lesion-level partitioning is established practice in a growing part
+of the field, that HAM10000's release paper reports its own per-lesion image counts, and
+that Abhishek et al. documented the leakage across three datasets and published corrected
+partitions. Anyone reading this should assume the general phenomenon is known.
+
+What the cross-dataset comparison adds is narrower: the rate varies by a factor of two
+across datasets and tracks redundancy, and ACNE04 — which has no published audit at all —
+sits at the top of that range while being the only one whose subject structure is invisible
+in metadata.
 
 The check costs nothing. For a dataset that publishes case or subject identifiers it is a
 `groupby`; for one that does not, it is an embedding pass. `scripts/audit_scin.py` runs the
