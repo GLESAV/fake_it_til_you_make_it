@@ -250,3 +250,68 @@ soften this, and it is worth waiting for — but the per-class pattern would hav
 not just the aggregate, because a curve that rises while very-severe recall stays at 0.22
 does not rescue the claim.
 
+
+---
+
+## §12.9 The mechanism: monotone but compressed to 41% of the real severity range
+
+The classifier result says generated images are worth less. This says *why*, and the answer
+is not the one §12.8 assumed.
+
+The instrument is the real-trained classifier (0.730 balanced accuracy on real held-out
+data). It is asked one question of every generated image: what severity does this *look*
+like? Run against the requested grade, that gives a request-to-perception matrix.
+
+**Generated images, 270 of them:**
+
+| requested ↓ / perceived → | mild | moderate | severe | very severe |
+|---|---|---|---|---|
+| mild (n=128) | 0.13 | **0.87** | 0.00 | 0.00 |
+| moderate (n=49) | 0.00 | **1.00** | 0.00 | 0.00 |
+| severe (n=46) | 0.00 | **0.93** | 0.04 | 0.02 |
+| very severe (n=47) | 0.00 | 0.30 | 0.40 | 0.30 |
+
+**The same instrument on real held-out images — the control that decides whether the
+compression is the generator's or the scorer's:**
+
+| true ↓ / perceived → | mild | moderate | severe | very severe |
+|---|---|---|---|---|
+| mild (n=72) | **0.82** | 0.17 | 0.00 | 0.01 |
+| moderate (n=102) | 0.17 | **0.64** | 0.14 | 0.06 |
+| severe (n=26) | 0.00 | 0.15 | **0.46** | 0.38 |
+| very severe (n=18) | 0.00 | 0.00 | 0.00 | **1.00** |
+
+Read the two as mean perceived grade against requested grade:
+
+| | mild | moderate | severe | very severe | span |
+|---|---|---|---|---|---|
+| real images | 0.21 | 1.09 | 2.23 | 3.00 | **2.79 of 3** |
+| generated images | 0.87 | 1.00 | 1.09 | 2.00 | **1.13 of 3** |
+
+**The generator's severity dynamic range is 41% of the real one.** The relationship is
+monotone — Spearman 0.593, asking for more severity does reliably produce more — so this is
+compression, not noise. But four clinical grades come out as roughly one grade of real
+variation, centred on moderate.
+
+### This corrects §12.8's diagnosis
+
+§12.8 read the per-class recalls as "the generator draws convincing mild acne and cannot
+draw severe disease". The matrix says something different and more specific: **it fails at
+both ends.** 87% of images requested as *mild* are perceived as moderate — it cannot render
+nearly-clear skin any more than it can render confluent nodulocystic disease. Everything
+regresses to the middle of the scale.
+
+That changes what a fix would look like. If the deficit were only at the severe end, the
+move would be better severe prompting, or a different generator for the tail. If the
+generator is compressing the whole scale toward its own prior, prompt engineering at one
+end will not fix it, and the ceiling is a property of the model rather than of the wording —
+consistent with the count-prompting attempt (§4.7), which made severity fidelity *worse*.
+
+### What the control rules out
+
+The obvious objection is that the scorer, trained on real images, simply hedges toward the
+prior when shown out-of-distribution inputs, and the compression is the instrument's. The
+real-image row rules that out: the same scorer, same weights, same preprocessing, spans
+0.21 to 3.00 and calls 100% of real very-severe images very severe. It compresses generated
+images and not real ones. Whatever is missing from the severe end of the pool is missing
+from the images, not from the measurement.
