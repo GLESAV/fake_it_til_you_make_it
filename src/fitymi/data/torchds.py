@@ -64,8 +64,17 @@ def class_weights(corpus: Corpus) -> torch.Tensor:
     prior.
     """
     counts = np.array([corpus.class_counts()[c] for c in range(NUM_CLASSES)], dtype=float)
-    counts = np.maximum(counts, 1.0)
-    w = counts.sum() / (len(counts) * counts)
+
+    # Classes with no examples get weight ZERO, not the weight of a class with one example.
+    # Clamping an absent class to a count of 1 hands it the largest weight in the vector --
+    # on a corpus with two of four classes absent that is 237 against 0.30 for the majority
+    # -- and training collapses onto labels that never occur. Observed: a two-class probe
+    # returned exactly 0.0000 accuracy, every prediction falling in the empty classes, which
+    # reads as a broken model rather than a broken loss.
+    present = counts > 0
+    w = np.zeros_like(counts)
+    if present.any():
+        w[present] = counts[present].sum() / (present.sum() * counts[present])
     return torch.tensor(w, dtype=torch.float32)
 
 

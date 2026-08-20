@@ -1006,16 +1006,37 @@ Accuracy did not drop. It rose by 0.95 points, which is comfortably inside the
 seed-to-seed standard deviation of 1.68 points measured in §6, so the honest reading is
 **no change**.
 
-**So there is no evidence that the classifier was exploiting resolution-level provenance.**
-The correlation between source and severity is real and remains a property of the dataset;
-what the ablation shows is that this architecture, at this input resolution, was not using
-it. That is a materially weaker claim than the one §10.1 set up, and it is the one the
-evidence supports.
+That looked like a clean negative result, and it was reported as one. **It is not, and the
+next experiment is why.**
 
-Two things it still does not settle. Watermarks, branding and eye-pixelation survive
-re-encoding, so the visible channel is untouched by this ablation — §10.4. And a single
-seed cannot distinguish a small effect from none; a difference of a point either way is
-noise here.
+### 10.4 The ablation did not actually remove the confound
+
+Watermarks, branding and eye-pixelation survive re-encoding, so the obvious follow-up is
+whether capture source is *still* detectable after normalisation. It is, almost perfectly.
+
+A classifier trained to predict source — dominant device or not — **from the normalised
+images alone**, on the same subject-disjoint splits, reaches **99.5% accuracy and 99.4%
+balanced accuracy** against a 61.0% majority-class baseline. It converges in one epoch.
+
+So the ablation of §10.3 removed resolution, aspect ratio and quantisation and left the
+channel wide open. **Its null result therefore says nothing about whether models exploit
+provenance** — the "normalised" images were still carrying the source almost losslessly.
+The conclusion drawn from it was invalid, and this section retracts it.
+
+The honest state is the one §10.1 and §10.2 describe, with one addition:
+
+- Source correlates strongly with severity — 16× the prior on very-severe off the dominant
+  device.
+- **Source is 99.4% recoverable from the images**, and survives the obvious normalisation.
+- Whether a severity classifier uses that channel is **still unknown**, because no ablation
+  yet run actually closes it.
+
+Closing it would mean removing watermarks and depixelating eyes, or restricting the corpus
+to one source and accepting that this leaves 21 very-severe images. Neither is cheap, and
+neither is done here.
+
+A single seed also cannot distinguish a small effect from none; a difference of a point
+either way is noise here.
 
 **What survives.** The confound in the data is real and measurable from file headers in
 under a minute: 87.1% of mild images and 16.3% of very-severe ones share one resolution, and
