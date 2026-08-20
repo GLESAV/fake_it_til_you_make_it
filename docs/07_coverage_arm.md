@@ -143,3 +143,56 @@ severity, per §12.3, and the honest conclusion is that this generator produces 
 *coverage* and unreliable *labels* — which is a useful finding about synthetic medical data
 even though it is not the hoped-for one.
 
+---
+
+## §12.7 The coverage claim, measured
+
+The arm's premise is that a prompted generator supplies breadth no real acne dataset has.
+That had been asserted from a contact sheet, which is the kind of evidence this project has
+repeatedly shown to be unreliable. Measured with individual typology angle (ITA) from CIE
+L*a*b* on the central skin region, erythematous pixels dropped so lesions do not drag the
+estimate darker, 300 images from each corpus scored identically:
+
+| ITA bin | ACNE04 train | Gemini pool |
+|---|---|---|
+| very light | 3.7% | 7.0% |
+| light | 11.0% | 24.6% |
+| intermediate | **40.0%** | 20.3% |
+| tan | 29.0% | 17.6% |
+| brown | 13.7% | 19.3% |
+| **dark** | **2.7%** | **11.2%** |
+
+| | two darkest bins | darkest bin | evenness |
+|---|---|---|---|
+| ACNE04 | 16.3% | **2.7%** | 0.81 |
+| Gemini pool | **30.3%** | **11.2%** | **0.96** |
+
+**The claim holds.** The synthetic pool carries roughly twice the representation in the two
+darkest bins and **four times in the darkest**, and fills the tone range far more evenly —
+ACNE04's interquartile ITA range is 15.7–37.0 against the pool's 1.2–45.7. ACNE04 is
+concentrated in the middle, consistent with a single-cohort clinical collection; the pool is
+spread by design, because it was prompted across Fitzpatrick I–VI.
+
+### A metric that inverted the story
+
+The first statistic computed for this was "share outside the lightest bins", and it made
+ACNE04 look *broader*: 85.3% against the pool's 68.4%. It is a real number and it is
+useless, because a corpus concentrated in the **middle** scores high on it — ACNE04 rates
+85% while holding 2.7% dark-skinned images. What the coverage claim is about is
+representation at the underserved end and how evenly the range is filled, which is what the
+table above reports.
+
+That is the same failure as §12.6's exact-agreement metric, which rose while ordinal fidelity
+collapsed. Both times a plausible summary statistic moved the wrong way for a mechanical
+reason, and both times the fix was to state what the claim is actually about before choosing
+how to measure it.
+
+### What this does not establish
+
+ITA is a proxy for constitutive pigmentation, not a Fitzpatrick or Monk label, and generated
+images have no ground truth to check it against. The defensible statement is a comparison
+between two distributions measured the same way, not either distribution in absolute terms.
+Nor does coverage imply usefulness: §12.6 shows the same pool's severity labels are
+unreliable, and a set that is broad and mislabelled is not obviously better than one that is
+narrow and correct. **Those are two separate axes and this measures only the first.**
+
