@@ -74,6 +74,12 @@ def main() -> None:
             for l in (Path(args.splits) / f"{split}.jsonl").read_text().splitlines() if l.strip()
         )
 
+    # Snapshot the pool ONCE. The generator runs concurrently with training, so re-globbing
+    # per seed silently trains each seed on a different, larger pool -- seed 0 on 204 images
+    # and seed 1 on 272 -- and then averages them into a single row with one n_train. The
+    # spread that comes back reads as seed variance when part of it is a size difference.
+    POOL_FILES = sorted(Path(args.pool).glob("*.png"))
+
     def synthetic(seed: int = 1234) -> Corpus:
         """`seed` selects *which* generated images the balanced subsample takes.
 
@@ -85,7 +91,7 @@ def main() -> None:
         the practitioner's control.
         """
         records = []
-        for p in sorted(Path(args.pool).glob("*.png")):
+        for p in POOL_FILES:
             m = re.match(r"g(\d)_", p.name)
             if m:
                 records.append(Record(path=str(p), label=int(m.group(1)),
@@ -175,6 +181,23 @@ def main() -> None:
             print(f"  predictions {dict(sorted(Counter(yp.tolist()).items()))}")
             if name == "synthetic":
                 synthetic_model = model
+
+        if "real_twostage" in args.arms:
+            # The control for `pretrain`. Two-stage training gives that arm roughly twice
+            # the gradient steps of the single-stage arms, so some of its gain may be extra
+            # compute rather than anything the synthetic images taught it. This runs the
+            # same two stages on real data both times, holding schedule and step count
+            # equal and varying only what stage one saw.
+            tc = TrainConfig(**{**asdict(cfg.train), "seed": seed, "num_workers": 4})
+            print(f"\n--- real_twostage stage 1 (real), seed {seed} ---", flush=True)
+            first, _ = train_model(train_real, val_real, tc)
+            print(f"\n--- real_twostage stage 2 (real), seed {seed} ---", flush=True)
+            model, _ = train_model(train_real, val_real, tc, init_from=first)
+            result, _ = evaluate_corpus(model, val_real, tc, return_predictions=True)
+            row = result.to_dict(); row["seed"] = seed; row["n_train"] = 2 * len(train_real)
+            results.setdefault("real_twostage", []).append(row)
+            print(f"  balanced accuracy {result.balanced_accuracy:.4f}  "
+                  f"accuracy {result.accuracy:.4f}  QWK {result.qwk:.3f}")
 
         if "pretrain" in args.arms:
             # Stage one is the synthetic arm's own model, reused rather than retrained, so
