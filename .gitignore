@@ -34,3 +34,9 @@ paper/*.pdf
 
 # local run logs
 /runs_*.log
+
+# Built manuscripts -- regenerate with: tectonic paper/audit.tex
+paper/*.pdf
+paper/*.log
+paper/*.blg
+paper/*.out
