@@ -1240,3 +1240,68 @@ make prepare CONFIG=configs/acne04_closed.yaml   # writes data/splits/dedup_repo
 python scripts/audit_acne04.py                   # the tables above
 python scripts/make_acne04_audit_figure.py       # docs/examples/acne04_audit.png
 ```
+
+---
+
+## §16 Skin-tone audits by ITA are confounded by capture device
+
+ACNE04's ITA-estimated skin tone shifts strongly with severity grade — χ²(15) = 255.0,
+p = 1.2×10⁻⁴⁵, Cramér's V = 0.242. Mild images concentrate in the intermediate/tan bins;
+very-severe is bimodal, 26% very-light and 34% in the two darkest bins. Severity is
+predictable from the single ITA number alone at **0.306 balanced accuracy against a 0.250
+four-class floor**.
+
+Read at face value that is a second shortcut sitting beside the provenance one: a model
+could read skin tone and get five points of severity for free. **It is not.** Stratifying
+by capture device removes it entirely:
+
+| stratum | n | Cramér's V | severity from ITA alone |
+|---|---|---|---|
+| all images | 1,457 | 0.242 | 0.306 (**+0.056** over floor) |
+| within the dominant device (3112×3456) | 1,107 | 0.153 | 0.241 (−0.009) |
+| every other device | 350 | 0.147 | 0.246 (−0.004) |
+
+Inside a single capture device the signal is gone — below the floor in both strata. Skin
+tone is not independently predictive of severity in ACNE04. The association is the camera
+confound (§9) reappearing in a different measurement: different devices captured different
+severity mixes, different devices expose and white-balance differently, and ITA computed
+from the pixels picks that up.
+
+### Why this generalises past this dataset
+
+ITA from CIE L\*a\*b\* is the standard instrument for auditing a dermatology dataset's
+skin-tone coverage, and it is used precisely because it is objective and cheap. This shows
+it **is not device-invariant**, and in a corpus where capture device correlates with any
+label, an ITA audit partly measures cameras.
+
+The consequence is concrete: a reported figure of the form "this dataset is X% Fitzpatrick
+V–VI by ITA" is only interpretable alongside the device composition, and a difference in
+ITA distribution between two corpora captured differently is not by itself evidence of a
+difference in the patients. Every ITA-based fairness audit of a multi-source dataset needs
+the stratification above, and none of the ones consulted here report it.
+
+### It also puts a caveat on this project's own coverage claim
+
+The coverage arm compares the generated pool's ITA spread against ACNE04's (§12.7,
+docs/07). That comparison uses the same device-sensitive instrument across two corpora with
+entirely different capture characteristics — one a diffusion model, the other several
+cameras — so it inherits exactly the confound described here and cannot stand on its own.
+
+What rescues that claim is that the pool has a ground truth the real data does not: every
+image was *requested* at a specific Fitzpatrick type, so the prompt is a device-independent
+label, and ITA can be checked against it rather than trusted.
+
+| requested | n | median ITA |
+|---|---|---|
+| type I | 50 | 46.8 |
+| type II | 50 | 40.0 |
+| type III | 48 | 35.2 |
+| type IV | 48 | 30.9 |
+| type V | 46 | 9.8 |
+| type VI | 48 | **−29.3** |
+
+Monotone across all six types and spanning 76 ITA units. The generator renders the tone it
+is asked for, and the pool's breadth is real by construction rather than by measurement.
+The honest form of the coverage claim is therefore "the pool covers Fitzpatrick I–VI evenly
+because it was built to, and the images bear that out" — not "the pool has a wider ITA
+distribution than ACNE04", which is the version this section undermines.
