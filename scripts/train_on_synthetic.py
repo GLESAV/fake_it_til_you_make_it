@@ -140,6 +140,23 @@ def main() -> None:
         if "mixed_tail" in args.arms:
             tail = [r for r in pool if r.label in set(args.tail_classes)]
             arms["mixed_tail"] = Corpus(list(train_real) + tail)
+        if "mixed_tail_control" in args.arms:
+            # The control that decides whether mixed_tail means anything. Topping up the
+            # scarce classes changes TWO things at once: it adds generated images, and it
+            # flattens the class distribution. Duplicating real tail images instead adds
+            # the same count to the same classes with zero new information, so whatever
+            # mixed_tail gains over THIS is attributable to the generated content rather
+            # than to the rebalancing. Without it, a gain from mixed_tail is unreadable.
+            gen = rng(seed + 9000)
+            by_class = train_real.by_class()
+            extra = []
+            for c in sorted(set(args.tail_classes)):
+                want = sum(1 for r in pool if r.label == c)
+                have = list(by_class.get(c, []))
+                if have and want:
+                    idx = gen.choice(len(have), size=want, replace=want > len(have))
+                    extra.extend(have[i] for i in idx)
+            arms["mixed_tail_control"] = Corpus(list(train_real) + extra)
         # "pretrain" is two-stage and handled below, since it needs the synthetic model.
 
         for name, corpus in arms.items():
