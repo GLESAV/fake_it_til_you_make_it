@@ -131,6 +131,7 @@ with their labelled grade, so deriving labels from filenames --- the obvious sho
 given the naming scheme --- corrupts 2.9\% of the dataset.
 
 \section{The dataset is about 600 people}
+\label{sec:subjects}
 
 \begin{figure}[t]
 \centering
@@ -210,6 +211,61 @@ session and carry that to the test set, where the same person reappears with a d
 lesion count. Published ACNE04 accuracies answer ``given other photographs of this
 person, can you grade this one?'' --- not ``given a new patient, can you grade them?''
 Only the second is what an acne grader is for.
+
+
+\section{The same leak in a second dataset, with no model involved}
+\label{sec:scin}
+
+The strongest objection to \S\ref{sec:subjects} is that ACNE04's subject structure was
+recovered with a face embedding, so the finding could be an artefact of that instrument.
+SCIN removes the objection.
+
+SCIN \citep{scin2024} --- Google Research and Stanford Medicine, 10{,}000+ crowdsourced
+dermatology images --- publishes \texttt{image\_1\_path}, \texttt{image\_2\_path} and
+\texttt{image\_3\_path} per case, so \texttt{case\_id} is \emph{ground truth} for ``same
+subject''. No embedding, no threshold, no judgement call, and the audit is metadata-only.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lcc}
+\toprule
+& SCIN & ACNE04 \\
+\midrule
+images & 10{,}407 & 1{,}457 \\
+distinct subjects / cases & 5{,}033 & $\approx$550--750 \\
+images per subject & 2.07 & $\approx$2.4 \\
+images in a multi-image subject & 81.3\% & 84\% \\
+\textbf{test images sharing a subject with training} & \textbf{75.6\%} & \textbf{77.5\%} \\
+how the grouping was obtained & published metadata & ArcFace \\
+\bottomrule
+\end{tabular}
+\caption{Two datasets from different institutions, countries, collection methods and
+content, with the same structure and the same leak. SCIN's figure is what an image-level
+80/20 split leaks, over 200 random splits; ACNE04's is measured on its own published folds.}
+\label{tab:scin}
+\end{table}
+
+SCIN's version is arguably worse. Its multi-image cases are the \emph{same lesion} at
+different distances and angles --- 2{,}289 cases carry all three of \texttt{AT\_DISTANCE},
+\texttt{AT\_AN\_ANGLE} and \texttt{CLOSE\_UP} --- a tighter relationship than two
+photographs of one person's two cheeks. It also carries duplication that case grouping
+would not fix: 15 image files are listed under more than one \texttt{case\_id}, one of them
+under eleven.
+
+\paragraph{What this changes about the claim.}
+\S\ref{sec:subjects} says ACNE04's published splits leak. Together with SCIN the claim is
+larger and more useful: \textbf{dermatology image datasets routinely hold several images
+per subject or lesion, and image-level splitting --- the default everywhere --- leaks
+roughly three-quarters of the test set in both datasets we checked}. One required a
+face-recognition model to see; the other is stated in the published schema and nobody
+appears to have measured the consequence.
+
+Two datasets are two datasets and we do not claim universality. But they were not selected
+for agreement --- SCIN was chosen precisely because its ground truth is independent of our
+instrument --- and 75.6\% against 77.5\% is close enough that the burden now sits with
+anyone assuming their own dermatology benchmark is exempt. The check costs nothing: a
+\texttt{groupby} where subject identifiers are published, an embedding pass where they are
+not.
 
 \section{The label is a property of the annotation team}
 

@@ -29,6 +29,7 @@ benchmark.
 | — on the two majority grades | −1.5 and +0.8 points |
 | — on severe and very severe | **+9.9 and +9.0 points** |
 | **Distinct individuals in the 1,457 images (ArcFace)** | **~550–750** |
+| **The same leak in SCIN, from published metadata alone** | **75.6%** (against ACNE04's 77.5%) |
 | — test images sharing a *person* with training, published folds, cosine ≥ 0.85 | **15.9%** (chance rate 0.019%) |
 | — the same at the ordinary same-identity operating point (0.60) | **77.5%** |
 | **Independent expert re-annotation (ACNE04-v2, n=1,204 shared images)** | |
@@ -695,7 +696,61 @@ because a generator producing unusable images at rate *r* is worth less than one
 not, and the substitution study should say so rather than curating the difference away.
 
 
-## 9. The labels are derived, and the derivation exposes the noise
+## 9. It is not just ACNE04, and the second case needs no model at all
+
+The strongest objection to §5 is that the subject structure was recovered with a face
+embedding, so the finding could be an artefact of that instrument. **SCIN** removes the
+objection.
+
+SCIN (Google Research and Stanford Medicine, 10,000+ crowdsourced dermatology images)
+ships `image_1_path`, `image_2_path` and `image_3_path` per case. **`case_id` is ground
+truth for "same subject."** No embedding, no threshold, no judgement call — and the whole
+audit is metadata-only, a few megabytes of CSV with no images downloaded.
+
+| | SCIN | ACNE04 |
+|---|---|---|
+| images | 10,407 | 1,457 |
+| distinct subjects / cases | 5,033 | ~550–750 |
+| **images per subject** | **2.07** | **~2.4** |
+| subjects with more than one image | 61.3% | 54% |
+| **images belonging to a multi-image subject** | **81.3%** | **84%** |
+| **test images sharing a subject with training, image-level split** | **75.6%** | **77.5%** |
+| how the subject grouping was obtained | published metadata | ArcFace embedding |
+
+The two datasets come from different institutions, different countries, different
+collection methods — one a clinical cohort photographed to protocol, the other crowdsourced
+from US internet users — and different content. They have **the same structure**, and the
+standard splitting practice leaks the same amount in both.
+
+SCIN's version is arguably worse. Its multi-image cases are the *same lesion* at different
+distances and angles (2,289 cases carry all three of `AT_DISTANCE`, `AT_AN_ANGLE` and
+`CLOSE_UP`), which is a tighter relationship than two photographs of one person's two
+cheeks. An image-level split there puts the same lesion, photographed twice, on both sides.
+
+**SCIN also has file-level duplication that case grouping would not fix**: 15 image files
+are listed under more than one `case_id`, and one appears under **eleven**. Grouping by
+case is necessary and not sufficient; file-level deduplication is needed too.
+
+### 9.1 What this changes about the claim
+
+§5 said ACNE04's published splits leak. This says something larger and more useful:
+
+**Dermatology image datasets routinely contain several images per subject or lesion, and
+image-level splitting — the default everywhere — leaks roughly three-quarters of the test
+set in both datasets we checked.** One required a face-recognition model to see; the other
+is stated in the published schema and nobody appears to have measured the consequence.
+
+We do not claim this holds universally. Two datasets are two datasets. But they were not
+selected for agreement — SCIN was chosen precisely because its ground truth is independent
+of our instrument — and the agreement is close enough (75.6% against 77.5%) that the
+burden now sits with anyone assuming their own dermatology benchmark is exempt.
+
+The check costs nothing. For a dataset that publishes case or subject identifiers it is a
+`groupby`; for one that does not, it is an embedding pass. `scripts/audit_scin.py` runs the
+first in under a second.
+
+
+## 10. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
 grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
@@ -733,7 +788,7 @@ a random sample of the corpus. The correct reading is not "these papers are wron
 "this benchmark cannot currently resolve differences of a few points, and nobody has
 been reporting that."
 
-## 10. The filename prefix is not a label
+## 11. The filename prefix is not a label
 
 **42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
 (e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
@@ -742,7 +797,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 
 ---
 
-## 11. What this changes for our study
+## 12. What this changes for our study
 
 1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
    embedder enabled.** The shipped defaults were tuned for datasets where perceptual
@@ -762,7 +817,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 12. Publishability
+## 13. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%
