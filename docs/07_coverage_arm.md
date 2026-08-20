@@ -450,3 +450,50 @@ a plan. The measurement that would settle it is the shape of the curve between 9
 ~4,000 images, which is $115 and roughly 50 hours of generation away, and worth doing only
 if the mixed-arm controls come back positive — because if generated images cannot help even
 when added to real ones, what they would cost to replace real ones is an academic question.
+
+---
+
+## §12.13 The first result that survived its control
+
+`mixed_tail` — the real training split plus generated images for the two scarce classes
+only — beat the real baseline by 3.1 points. That gain had an obvious alternative
+explanation: topping up severe and very-severe flattens the class distribution, and
+rebalancing is worth something on its own. `mixed_tail_control` adds the same number of
+images to the same classes by **duplicating real ones**, so it delivers identical
+rebalancing with zero new information.
+
+| arm | n train | balanced accuracy | vs real |
+|---|---|---|---|
+| real | 948 | 0.7337 ±0.006 | — |
+| mixed_tail_control (duplicated real tail) | 1,114 | 0.7422 ±0.004 | +0.85 |
+| **mixed_tail (generated tail)** | 1,114 | **0.7643 ±0.007** | **+3.06** |
+
+**Of the 3.1-point gain, 0.9 is rebalancing and 2.2 is the generated images**
+(SE 0.0057, t ≈ 3.9). The control took a third of the effect and left two thirds standing.
+
+### The per-class rows say why
+
+| arm | mild | moderate | severe | very severe |
+|---|---|---|---|---|
+| real | 0.826 | 0.647 | 0.462 | 1.000 |
+| mixed_tail_control | 0.889 | 0.657 | **0.423** | 1.000 |
+| mixed_tail | 0.861 | 0.696 | **0.500** | 1.000 |
+
+Duplicating real severe images makes severe recall **worse** than not touching it at all —
+0.423 against 0.462. That is what adding copies does: no new information, more opportunity
+to overfit the handful of severe subjects that exist. The generated images raise it to
+0.500 instead. Imperfect images that are *different* beat perfect images that are
+*repeated*, which is the entire case for synthetic augmentation stated in one row.
+
+### What this does and does not establish
+
+It establishes that generated acne images carry information a classifier can use, over and
+above the rebalancing they incidentally provide, in the one place the real dataset is
+thinnest. At 2.2 points on a 0.734 baseline it is a modest effect, not a transformative one,
+and it sits alongside the finding that the same images cannot replace real ones at all
+(§12.8, a 27-point deficit at matched budget).
+
+It rests on two seeds per arm. Three more are running, and the number to watch is whether
+the mixed_tail–control gap holds at 2.2 points or shrinks; the arms are individually stable
+(sd 0.004–0.007) which is why two seeds separated them at all, but five is the minimum this
+deserves before it goes in a paper.
