@@ -317,6 +317,46 @@ something knowable in advance, and that when the count was a clinical decision o
 expect the leak to concentrate on the class the benchmark is reported for --- because the
 concern that drove the extra photograph is the same concern that drove the reporting.
 
+\paragraph{A fourth dataset falsifies the direction.}
+The rule above predicts that where duplication reflects clinical judgement, the leak
+concentrates on the worrying class. ISIC 2020 --- 33{,}126 images, a clinical screening
+collection carrying both \texttt{lesion\_id} and \texttt{patient\_id} --- was chosen to test
+it, and fails it. At patient level the benign class leaks \textbf{99.8\%} and the malignant
+class \textbf{39.3\%}: a 60-point spread, larger than HAM10000's, in the opposite direction.
+Screening photographs many nevi per patient, while a malignant finding is usually one
+lesion. The class dependence survives; the direction does not.
+
+\begin{quote}
+Leakage is strongly class-dependent whenever duplication is driven by a clinical process,
+and \emph{the direction is not predictable from first principles} --- it depends on whether
+the process re-photographs the lesion of concern or surveys the ones that are not. It has to
+be measured per dataset.
+\end{quote}
+
+\paragraph{The grouping level decides whether the problem is visible at all.}
+The sharper lesson is methodological. ISIC 2020 looks clean or catastrophic depending only
+on which identifier the audit reaches for: 1.01 images per lesion and \textbf{2.0\%}
+leakage, against 16.11 images per patient and \textbf{99.9\%}. An audit grouping by
+\texttt{lesion\_id} --- the column HAM10000 taught the field to use --- would clear it.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+dataset & grouping available & where the leak is visible \\
+\midrule
+HAM10000 & \texttt{lesion\_id} & lesion (38.5\%) \\
+ISIC 2020 & \texttt{lesion\_id}, \texttt{patient\_id} & \textbf{patient only} (99.9\% vs.\ 2.0\%) \\
+SCIN & \texttt{case\_id} & case (75.6\%) \\
+ACNE04 & none & requires face identity (77.5\%) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Group at the coarsest level the data supports --- patient above lesion above image --- and
+where no identifier exists, assume the structure is present until it has been measured.
+Three of these four datasets would be misread by an audit that used the first identifier it
+found.
+
 \paragraph{A null: leakage does not vary by skin tone.}
 Leakage compounding an existing fairness problem is a reasonable worry, and SCIN tests it
 directly because it publishes Monk skin tone labels. Across the eight tones the leak ranges

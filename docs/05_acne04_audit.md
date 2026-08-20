@@ -869,6 +869,69 @@ that leakage concentrates on clinically important classes will reasonably wonder
 also concentrates on under-represented groups. In this dataset it does not.
 
 
+### 9.5 A fourth dataset falsifies the direction, and sharpens the claim
+
+§9.3 predicted that where duplication reflects clinical judgement, the leak concentrates on
+the *clinically worrying* class. ISIC 2020 — 33,126 images, a clinical screening collection
+carrying both `patient_id` and `lesion_id` — was chosen to test that prediction. **It fails
+it.**
+
+| ISIC 2020 | images per group | image-level split leakage |
+|---|---|---|
+| grouped by **lesion** | 1.01 | **2.0%** |
+| grouped by **patient** | 16.11 | **99.9%** |
+
+| at patient level | images | per patient | leaked |
+|---|---|---|---|
+| **benign** | 32,542 | **15.84** | **99.8%** |
+| **malignant** | 584 | **1.36** | **39.3%** |
+
+The class dependence is enormous — a **60-point** spread, larger than HAM10000's 38.9 — but
+the direction is **reversed**. Here the *benign* class leaks almost totally, because
+screening photographs many nevi per patient while a malignant finding is usually a single
+lesion. HAM10000's clinician photographed the worrying lesion repeatedly; ISIC 2020's
+photographed everything else.
+
+**So the prediction was wrong and the claim has to be weakened where it was specific and
+strengthened where it was vague:**
+
+> Leakage is strongly class-dependent whenever duplication is driven by any clinical
+> process, and **the direction is not predictable from first principles**. It depends on
+> whether the process re-photographs the lesion of concern or surveys the ones that are not.
+> It must be measured per dataset; it cannot be assumed.
+
+That is less satisfying than a rule and more useful than one, because the failure mode it
+guards against is assuming a direction and reporting the wrong class as protected.
+
+### 9.6 The grouping level decides whether you see the problem at all
+
+The sharper lesson from ISIC 2020 is methodological. **The same dataset looks clean or
+catastrophic depending on which identifier you group by:**
+
+- by lesion: 1.01 images per lesion, **2.0% leakage** — nothing to report
+- by patient: 16.11 images per patient, **99.9% leakage** — almost the entire test set
+
+An audit that grouped ISIC 2020 by `lesion_id`, which is exactly the column HAM10000
+taught the field to use, would conclude the dataset is fine. It is not; it is one of the
+most duplicated datasets we have looked at, at the level that matters.
+
+The reverse holds too. HAM10000 ships no `patient_id`, so its leakage can only be seen at
+the lesion level, and ACNE04 ships neither — its structure is invisible in metadata
+entirely and takes a face model to recover.
+
+| dataset | grouping available | where the leak is visible |
+|---|---|---|
+| HAM10000 | `lesion_id` | lesion (38.5%) |
+| ISIC 2020 | `lesion_id`, `patient_id` | **patient only** (99.9% vs 2.0%) |
+| SCIN | `case_id` | case (75.6%) |
+| ACNE04 | none | requires face identity (77.5%) |
+
+**Practical rule:** group at the coarsest level the data supports — patient above lesion
+above image — and where no identifier exists, assume the structure is there until measured.
+Three of these four datasets would be misread by an audit that used the first identifier it
+found.
+
+
 ## 10. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
