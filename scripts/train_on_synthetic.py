@@ -41,6 +41,11 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--arms", nargs="+",
                     default=["synthetic", "real", "real_balanced"])
+    ap.add_argument("--balance", action="store_true",
+                    help="cap every class at the smallest, so a partially generated pool "
+                         "is still a balanced one and learning-curve points are comparable")
+    ap.add_argument("--cap", type=int, default=0,
+                    help="further cap images per class, for learning-curve points")
     args = ap.parse_args()
 
     cfg = ExperimentConfig.load("configs/acne04_closed.yaml")
@@ -58,7 +63,20 @@ def main() -> None:
             if m:
                 records.append(Record(path=str(p), label=int(m.group(1)),
                                       source=Source.SYNTH_OPEN))
-        return Corpus(records)
+        corpus = Corpus(records)
+        if not (args.balance or args.cap):
+            return corpus
+        by_class = corpus.by_class()
+        per = min(len(v) for v in by_class.values()) if by_class else 0
+        if args.cap:
+            per = min(per, args.cap)
+        gen = rng(1234)
+        out = []
+        for c in sorted(by_class):
+            items = list(by_class[c])
+            idx = gen.permutation(len(items))[:per]
+            out.extend(items[i] for i in idx)
+        return Corpus(out)
 
     train_real, val_real = real("train"), real("val")
     pool = synthetic()
