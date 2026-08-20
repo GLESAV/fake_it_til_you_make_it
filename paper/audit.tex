@@ -293,6 +293,40 @@ partition is. The general lesson is that \textbf{duplication is almost never ind
 class, so a leakage rate quoted as a single number understates its effect on the classes
 anyone reports}.
 
+\paragraph{When the leak is class-dependent, and when it is not.}
+HAM10000's leak varies by a factor of 2.3 across diagnoses. Whether that is a property of
+leakage or of HAM10000 is answered by SCIN, because SCIN's duplication has a different
+cause. In HAM10000, how often a lesion was photographed is a \emph{clinician's decision};
+in SCIN it is a \emph{fixed capture protocol} --- contributors were asked for a close-up,
+one at a distance and one at an angle --- so the count reflects compliance rather than
+concern. Across SCIN conditions the leak ranges 75.4--82.3\%, a spread of \textbf{6.9
+points} against HAM10000's \textbf{38.9}. This makes the claim falsifiable rather than
+merely observed:
+
+\begin{quote}
+Leakage is class-dependent when duplication reflects a clinical judgement, and roughly
+uniform when it reflects a fixed capture protocol.
+\end{quote}
+
+ACNE04 fits the rule from the other side: there the \emph{rare} grades are photographed
+\emph{less} --- 1.21 images per person at very severe against 2.30 at mild --- because
+severe cases are rarer, and the leak is class-dependent in the opposite direction. In all
+three the direction follows the collection process rather than anything about the images.
+The practical consequence is that whether a dataset's leakage is uniform depends on
+something knowable in advance, and that when the count was a clinical decision one should
+expect the leak to concentrate on the class the benchmark is reported for --- because the
+concern that drove the extra photograph is the same concern that drove the reporting.
+
+\paragraph{A null: leakage does not vary by skin tone.}
+Leakage compounding an existing fairness problem is a reasonable worry, and SCIN tests it
+directly because it publishes Monk skin tone labels. Across the eight tones the leak ranges
+73.2--79.8\% with no monotone trend and the extremes on the smallest strata; images per case
+range 2.00--2.20. \textbf{It does not vary.} Contributors across skin tones complied with
+the capture protocol equally, so the leak is distributed equally. We report this because the
+opposite result would have been a significant fairness finding, and because a reader told
+that leakage concentrates on clinically important classes will reasonably ask whether it
+also concentrates on under-represented groups. In this dataset it does not.
+
 \paragraph{What this changes about the claim.}
 \S\ref{sec:subjects} says ACNE04's published splits leak. Together with SCIN the claim is
 larger and more useful: \textbf{dermatology image datasets routinely hold several images

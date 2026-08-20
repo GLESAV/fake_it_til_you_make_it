@@ -806,6 +806,69 @@ of class, so a leakage rate quoted as a single number understates its effect on 
 anyone cares about.**
 
 
+### 9.3 When the leak is class-dependent, and when it is not
+
+HAM10000's leak varies by a factor of 2.3 across diagnoses (68.3% melanoma, 29.4% nevus).
+The obvious next question is whether that is a general property of leakage or a property of
+HAM10000, and SCIN answers it — because SCIN's duplication has a different cause.
+
+In HAM10000, how many times a lesion was photographed is **a clinician's decision**:
+worrying lesions get more images. In SCIN, it is **a fixed capture protocol** — contributors
+were asked for a close-up, one at a distance and one at an angle — so the count reflects
+compliance rather than concern.
+
+| SCIN, by condition | images | per case | leaked |
+|---|---|---|---|
+| Tinea | 212 | 2.28 | 82.3% |
+| Eczema | 1,079 | 2.21 | 80.2% |
+| Allergic contact dermatitis | 590 | 2.19 | 79.7% |
+| Folliculitis | 306 | 2.15 | 78.5% |
+| Urticaria | 442 | 2.07 | 75.4% |
+
+The spread is **6.9 points**, against HAM10000's **38.9**. The mechanism predicts the
+difference and the data show it, which turns an observation into something falsifiable:
+
+> **Leakage is class-dependent when duplication reflects a clinical judgement, and roughly
+> uniform when it reflects a fixed capture protocol.**
+
+ACNE04 fits the same rule from the other side. There the *rare* grades are photographed
+*less* — 1.21 images per person at very severe against 2.30 at mild — because severe cases
+are rarer, not because anyone chose to photograph them less. The leak is again
+class-dependent, and again the direction follows the collection process rather than
+anything about the images.
+
+**Practical consequence.** A dataset's leakage rate cannot be assumed uniform, and whether
+it is depends on something knowable in advance: whether the number of images per subject
+was a clinical decision or a protocol. When it was a clinical decision, expect the leak to
+concentrate on the class the benchmark is reported for, because the same clinical concern
+that drove the extra photograph drives the reporting.
+
+### 9.4 A null worth reporting: leakage does not vary by skin tone
+
+Leakage compounding an existing fairness problem is a reasonable worry, and SCIN can test
+it directly because it publishes Monk skin tone labels.
+
+| Monk tone | cases | images per case | leaked |
+|---|---|---|---|
+| 1 | 577 | 2.00 | 73.2% |
+| 2 | 1,660 | 2.07 | 75.4% |
+| 3 | 1,265 | 2.06 | 75.3% |
+| 4 | 687 | 2.10 | 76.9% |
+| 5 | 361 | 2.05 | 74.9% |
+| 6 | 248 | 2.20 | 79.8% |
+| 7 | 137 | 2.09 | 75.5% |
+| 8 | 57 | 2.14 | 77.2% |
+
+**It does not.** The range is 73.2–79.8% with no monotone trend, and the two extremes sit
+on the smallest strata. Contributors across skin tones complied with the capture protocol
+equally, so the leak is distributed equally.
+
+This is a null and we report it as one. It is worth stating because the opposite result
+would have been a significant fairness finding, and because a reader who has just been told
+that leakage concentrates on clinically important classes will reasonably wonder whether it
+also concentrates on under-represented groups. In this dataset it does not.
+
+
 ## 10. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
