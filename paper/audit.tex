@@ -190,6 +190,21 @@ person, can you grade this one?'' --- not ``given a new patient, can you grade t
 Only the second is what an acne grader is for.
 
 
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../docs/examples/three_datasets.png}
+\caption{\textbf{A.} The leak is a function of redundancy: three datasets from three
+institutions sit close to what a random image-level split would be expected to leak given
+their images-per-subject. Two of the three measurements need only published metadata.
+\textbf{B.} It does not spread evenly. HAM10000 leaks 68.3\% on melanoma against 29.4\% on
+nevus, because melanomas were photographed more often per lesion --- and melanoma
+sensitivity is the metric that benchmark is reported for. \textbf{C.} What it was worth on
+ACNE04: recall gained from splitting by image rather than by subject, per grade, against
+the number of distinct people that grade holds in training.}
+\label{fig:three}
+\end{figure}
+
 \section{The same leak in a second dataset, with no model involved}
 \label{sec:scin}
 
