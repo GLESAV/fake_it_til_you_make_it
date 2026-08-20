@@ -402,3 +402,51 @@ failed on contact with a second measurement, and the audit's §14 already names 
 the numbers were real, the arithmetic was right, and the story laid over them was not
 supported. The defence that worked here is the same one that worked there — compute the
 thing a second way, on a sample large enough to move less than the effect.
+
+---
+
+## §12.12 The exchange rate, and why it is probably optimistic
+
+Six synthetic-only points have now been measured, all scored on the same real
+subject-disjoint validation split:
+
+| pool size | balanced accuracy |
+|---|---|
+| 76 | 0.391 |
+| 156 | 0.426 |
+| 180 | 0.476 / 0.400 (two seeds) |
+| 204 | 0.477 |
+| 272 | 0.458 |
+
+A log fit gives **+0.042 balanced accuracy per doubling** of the pool (R² = 0.47 — weak,
+and worth stating rather than hiding). Extrapolated:
+
+| target | generated images needed | cost | wall-clock at 63/hr |
+|---|---|---|---|
+| match 156 real images (0.624) | ~3,500 | $138 | 56 h |
+| match 948 real images (0.730) | ~20,000 | $790 | 322 h |
+
+Read as an exchange rate: **roughly 23 generated images per real image**, or about $0.90 of
+generation per real-image-equivalent. That is not an absurd number — it is within range of
+what annotation alone costs for clinical imagery — which is why it deserves the caveat that
+follows rather than a headline.
+
+### The extrapolation is probably wrong, and this project already knows why
+
+A log curve says the pool reaches any target eventually. **The compression result (§12.9)
+says it does not.** The generator's perceived-severity range is 1.13 grades against real
+data's 2.79, and no quantity of images widens that: every additional very-severe request
+returns another image the scorer reads as moderate. Where an axis of the label space is not
+rendered at all, more samples along it add nothing, and the curve must flatten short of the
+real ceiling rather than continue.
+
+The measured points are consistent with that already. The first three doublings gain
++0.047; the last half-doubling gains +0.020 and the most recent point is *below* the one
+before it. Six noisy points cannot distinguish a log curve from a saturating one, but only
+one of those two shapes has a mechanism behind it, and it is the one that stops.
+
+So the honest reading of the table above is an **upper bound on what the pool can buy**, not
+a plan. The measurement that would settle it is the shape of the curve between 960 and
+~4,000 images, which is $115 and roughly 50 hours of generation away, and worth doing only
+if the mixed-arm controls come back positive — because if generated images cannot help even
+when added to real ones, what they would cost to replace real ones is an academic question.
