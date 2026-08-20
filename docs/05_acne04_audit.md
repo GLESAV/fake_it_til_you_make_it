@@ -25,6 +25,8 @@ benchmark.
 | — of which free correct answers (labels agree) | 3.56% |
 | — of which forced errors (labels conflict) | 0.68% |
 | Files whose `levleN` filename prefix disagrees with the label | **42 of 1,457** |
+| **Very-severe images not taken on the dataset's dominant camera** | **83.7%** (against 12.9% for mild) |
+| — severity predicted from the file header alone | **sensitivity 0.57 at specificity 0.85** |
 | **What image-level splitting is worth** (matched pair, 5 seeds) | **+4.51 balanced-accuracy points** (95% CI +2.33 to +7.04) |
 | — on the two majority grades | −1.5 and +0.8 points |
 | — on severe and very severe | **+9.9 and +9.0 points** |
@@ -932,7 +934,78 @@ Three of these four datasets would be misread by an audit that used the first id
 found.
 
 
-## 10. The labels are derived, and the derivation exposes the noise
+## 10. The severity label is confounded with where the image came from
+
+Looking at random real images by grade turned up something the numbers had not: the severe
+ones carry watermarks, Chinese acne-treatment branding, "Before 治疗前" banners and
+pixelated eye regions. The mild ones look like ordinary clinic photographs. That is the
+signature of two different sources — a clinic camera and scraped before/after marketing
+material — and if severity tracks the source, a classifier can predict it from capture
+artefacts without looking at skin.
+
+Image resolution fingerprints the capture device, so this is measurable with no modelling
+at all. One resolution, **3112×3456, covers 76% of the corpus** — one device. The rest are
+scattered across 154 other resolutions.
+
+| grade | n | on the dominant device | elsewhere |
+|---|---|---|---|
+| mild | 513 | **87.1%** | 12.9% |
+| moderate | 633 | 83.3% | 16.7% |
+| severe | 182 | 61.5% | 38.5% |
+| **very severe** | **129** | **16.3%** | **83.7%** |
+
+**Five in six very-severe images were not taken on the device that produced three quarters
+of the dataset.**
+
+### 10.1 The shortcut, stated as a classifier
+
+A rule that reads only the file header — *"not the dominant resolution, therefore severe"* —
+achieves **sensitivity 0.57 at specificity 0.85** for the severe-versus-mild distinction the
+benchmark exists to make. It never opens the image.
+
+Seen from the other direction:
+
+| source group | mild | moderate | severe | very severe |
+|---|---|---|---|---|
+| dominant device (n=1,107) | 40.4% | 47.6% | 10.1% | **1.9%** |
+| everything else (n=350) | 18.9% | 30.3% | 20.0% | **30.9%** |
+
+The prior on very-severe is **16× higher** off the dominant device. Any feature that leaks
+capture provenance — JPEG quantisation tables, resampling artefacts, colour profile,
+watermark pixels, the mosaic blocks over someone's eyes — carries most of that signal, and
+a convolutional network is good at exactly this.
+
+### 10.2 Why this ties the rest of the audit together
+
+It explains a result from §6 that had no mechanism attached. The leakage bonus was near zero
+on the two majority grades and about ten points on the two rare ones. Both of those grades
+are also the ones sourced from marketing material, where a handful of clinics' promotional
+sets supply many images — so those grades are simultaneously the most subject-leaky, the most
+provenance-confounded, and the smallest. Three separate problems land on the same two
+classes, which are the two that matter clinically.
+
+It also reframes §4. Two expert teams disagreeing about severity is easier to understand
+when a third of the severe images come from an advertiser with an interest in the "before"
+looking bad.
+
+### 10.3 What this does and does not establish
+
+**It does not establish that any published result exploited the shortcut.** No experiment
+here attributes any reported accuracy to provenance detection, and it would take an ablation
+— re-encode every image to a common resolution and quantisation table, retrain, measure the
+drop — to do so. That ablation is worth running and is not run here.
+
+**It does establish** that the shortcut is available, that it is strongest for the two
+clinically important grades, that it is discoverable from file headers in under a minute,
+and that nothing in the release warns of it.
+
+**Practical rule:** before trusting a medical image benchmark, check whether the label
+correlates with capture metadata. Resolution, aspect ratio, JPEG quantisation and EXIF are
+all free to read, and a dataset assembled from multiple sources with source-dependent labels
+is a shortcut waiting to be found.
+
+
+## 11. The labels are derived, and the derivation exposes the noise
 
 The label file rows are `<filename> <grade> <lesion_count>`. For all 1,457 records the
 grade is exactly the Hayashi banding of the count — 1–5 → 0, 6–20 → 1, 21–50 → 2,
@@ -970,7 +1043,7 @@ a random sample of the corpus. The correct reading is not "these papers are wron
 "this benchmark cannot currently resolve differences of a few points, and nobody has
 been reporting that."
 
-## 11. The filename prefix is not a label
+## 12. The filename prefix is not a label
 
 **42 of 1,457 files** have a `levleN` prefix that disagrees with their labelled grade
 (e.g. `levle1_151.jpg` is labelled grade 0 with 4 lesions). Any pipeline that derives
@@ -979,7 +1052,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 
 ---
 
-## 12. What this changes for our study
+## 13. What this changes for our study
 
 1. **Dedup config is now `phash_max_hamming: 2`, `embed_min_cosine: 0.98`, CLIP
    embedder enabled.** The shipped defaults were tuned for datasets where perceptual
@@ -999,7 +1072,7 @@ dataset wrong. Our loader reads the label files and ignores the prefix.
 5. **Same-subject leakage remains unmeasured** and is the next thing to run. It is the
    one channel that could still be inflating both our numbers and the literature's.
 
-## 13. Publishability
+## 14. Publishability
 
 Sections 1, 3, 4 and 5 are a self-contained contribution independent of the synthetic
 data question: a benchmark used by a substantial acne-grading literature contains 5.2%
