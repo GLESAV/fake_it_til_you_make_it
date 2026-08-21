@@ -636,3 +636,94 @@ generated medical images *and* compares it to the same statistic on real images,
 modality. The 1.13-against-2.79-grade comparison appears to be new. The obvious reviewer
 request is to compute Scope on the released fundus ordinal-diffusion model, which is public;
 that is worth pre-empting rather than waiting for.
+
+---
+
+## §12.16 The organising fact: results split by generator provenance, not by modality
+
+A second literature sweep produced the framing this whole arm should have started from.
+
+Published results on synthetic training data do **not** divide by imaging modality or by task.
+They divide by **whether the generator ever saw the target dataset**:
+
+| regime | examples | synthetic-only vs real | augmentation gains |
+|---|---|---|---|
+| **closed-set** — generator trained or fine-tuned on the target real split | Khosravi 2024 (CheXpert DDPM), Frid-Adar 2018, Yu 2023, Narahari 2025, Akrout 2023, RoentGen-v2, **ACNEDIT** | at or near parity | reliable |
+| **open-set** — foundation generator used zero-shot | Sariyildiz 2023, Fan 2024, He 2023, **this work** | **−7 to −37 points** | null |
+
+Wang et al. (arXiv:2508.09550) show both regimes on the *same* dataset: an exchange rate of
+~35:1 closed-set against ~1:1 open-set.
+
+**Our −27 points is exactly what the open-set literature predicts.** It is not a surprising
+result and must not be presented as one. It also identifies the obvious reviewer question —
+*why not fine-tune the generator?* — which needs an answer in the paper rather than a
+footnote. The answer is that a fine-tuned generator cannot exceed its training set, which is
+the premise the coverage arm exists to test; but that answer has to be argued, not assumed.
+
+## §12.17 What is confirmatory, what is novel, and what contradicts
+
+### Claim none of this as new
+
+- **Synthetic-only far below real at matched budget.** Our −27 sits inside a published −7 to
+  −37. The dermatology precedent is Akrout et al. (DGM4MICCAI 2023): 500 synthetic score
+  47.29 against 54.05 for 500 real, and lose to *250* real.
+- **Null augmentation when real data is adequate.** Our +1.0 ± 2.1 is Sagers et al. (2023) at
+  228 real per class, where every confidence interval spans zero.
+- **Gains concentrate in scarce classes.** **Schaudt et al. (Bioengineering 10:1421, 2023)
+  state this almost verbatim, with five seeds, in a medical journal.** §12.14's framing of
+  that as the finding was wrong; it is the setup.
+- **Saturation around 10:1.** Six papers give an exchange rate.
+
+### The genuinely new pieces
+
+1. **The decomposition itself.** +3.1 = +0.9 rebalancing + +2.2 content, measured against a
+   duplicate-real-tail control at matched counts. **Sagers et al. (2023) §4.6 built exactly
+   this control** — "as a control, we also tested an upsampling strategy of simple
+   duplication" — **and put the result in a supplementary figure absent from the released
+   PDF, never discussed in the text.** Schaudt's oversampling control collapses a class to
+   F1 = 0.0000 and they never subtract. Ktena et al. compare against oversampling on the
+   *sensitive attribute*, not class counts. The number has not been published.
+2. **The compute-matched two-stage control on the pretraining arm.** Moroianu et al. (2025),
+   the flagship synthetic-pretraining result in medical imaging at +6.5%, initialise their
+   baselines from ImageNet and their synthetic arm **from scratch** — so content and
+   two-stage training are confounded. Our null is not a contradiction of their result; it is
+   the control they are missing, run at smaller scale.
+3. **Quantified ordinal-severity compression** (§12.15).
+4. **First evaluation of Gemini 2.5 Flash Image as a medical training-data generator.**
+
+### Contradictions to address head-on
+
+- **Khosravi et al. (eBioMedicine 104:105174, 2024)** is the real one: synthetic-only matched
+  real *exactly* on CheXpert, AUROC 0.783 vs 0.783, p = 0.98. Closed-set DDPM trained on the
+  same 72,000 images, a **real** tuning set retained even in the synthetic-only arm, and a
+  multi-label detection task rather than an ordinal grading task where the class signal *is*
+  lesion count. That last point is our own compression argument, which is a useful internal
+  consistency rather than a coincidence.
+- **Zein et al. (PLOS ONE 19(4):e0297958, 2024)** report synthetic-only at **97.6%** on real
+  acne images — above every real-trained ACNE04 result ever published. Treat as
+  uninterpretable rather than contradictory: the StyleGAN2 was trained on all 1,473 real
+  images with no generator/test disjointness claimed, test-set size and balance are stated
+  nowhere, severity labels were assigned by the authors sorting generator outputs, and the
+  three backbones span 21.6 points on identical data. **This project currently cites that
+  97.6% figure as a real result. That must be requalified.**
+- **Schmidt et al. (2026)** find their classifier scores *better* on generated than real
+  images — dominant-class exaggeration, opposite in sign to compression. The two can coexist
+  as "prototypical moderate acne", but it is testable from our own data and should be tested.
+
+### The scoop risk that must be cited
+
+**ACNEDIT** (Piat et al., DGM4MICCAI 2025) generates **218 severe and 271 very-severe**
+synthetic images to raise ACNE04's two scarce classes from 182 and 129 to 400 each. That is
+this project's targeted-tail intervention, on this dataset, on these two classes. It is
+evaluated by a user study and segmentation IoU, with no classifier balanced accuracy, no
+synthetic-only arm and no rebalancing control, and it is a lesion-compositing GAN rather
+than a prompted text-to-image model. The contribution survives — but the paper must cite it
+and draw the distinction explicitly rather than be caught by it.
+
+### On the tail result wobbling
+
+If +2.2 does not survive ten seeds, **the paper is stronger.** A clean four-way null —
+substitution fails, all-class augmentation null, pretraining null, tail augmentation null
+once rebalancing is subtracted — together with a measured mechanism for *why*, is more
+coherent and more defensible than a two-point positive. **The decomposition is the
+contribution either way; the sign of the content term is a finding, not a requirement.**
