@@ -1547,3 +1547,97 @@ proxy above floor there, which is a weak null rather than a contradiction. Captu
 *geometry* does move the association — the label–ITA correlation is ρ = −0.209 for close-up
 images and ρ = −0.006 (p = 0.94) for images shot at a distance — which is directionally
 consistent with an acquisition confound without being evidence about cameras.
+
+---
+
+## §18 Prior-art check: two of the four claims are not new, and one is scooped outright
+
+A novelty search was run against this section before writing it up as a contribution. It
+should have been run first. The result substantially reframes the paper.
+
+### Scooped
+
+**Benčević, Šojo & Galić (2025), "Skin Color Measurement from Dermatoscopic Images: An
+Evaluation on a Synthetic Dataset"** (ELMAR 2025, arXiv:2504.04494) renders synthetic skin
+images with **controlled ground-truth melanin content across 18 lighting conditions** and
+uses them to benchmark ITA estimators, isolating the lighting term as ΔR² = 0.21–0.31. They
+report balanced accuracy of **0.27–0.29** for ITA-based Fitzpatrick estimation against that
+ground truth.
+
+That is our §16.2 number (0.277) and our §16.2 method. **The "use generated images with a
+known-by-construction tone label as a calibration standard for an auditing instrument" move
+is not novel** — it is published, in dermatology, against this instrument. It was presented
+here as the thing the real corpora could not provide. It is now a replication with a
+different generator, and should be written as one.
+
+Two further papers reach the same conclusion on **real** data, which is stronger evidence
+than either theirs or ours:
+
+- **Groh et al. (2022)**, Proc. ACM HCI (CSCW): ITA-derived Fitzpatrick correlates with
+  three board-certified dermatologists at ρ = 0.52–0.57, against expert–expert ρ =
+  0.84–0.86 (p < 0.001). Crowd workers match experts; ITA does not. Their conclusion —
+  "algorithms based on ITA-FST are not reliable for annotating" skin tone — predates ours by
+  four years.
+- **Weir et al. (2025)**, npj Digital Medicine 8:787: **ICC 0.00–0.19** between
+  colorimeter-measured ITA and ITA estimated from images, with paired ground truth.
+
+### Also not new: that ITA is illumination-confounded at all
+
+Stated explicitly by Bevan & Atapour-Abarghouei (2022), Kalb et al. (2023), Cabanas et al.
+(2025), and measured as an exposure sweep by Burrow et al. (2024). **Howard et al. (2021)**,
+IEEE T-BIOM, is the sharpest precedent for our §16 argument in any field: image-derived
+skin lightness against a calibrated colorimeter correlates at ρ = 0.45 on uncontrolled
+imagery, 0.78 controlling for device, and 0.92 with a single device plus a grey reference —
+and they show by modelling that noisy lightness estimates cause **race to be erroneously
+selected as the correlate of biometric performance.** That is §16's failure mode, published
+five years earlier, in face recognition.
+
+### Also not new: that colour normalisation improves it
+
+Howard et al. 2021 (ρ 0.45 → 0.92 with a grey card), Krishnapriya et al. (2021) (≥96%
+agreement after correction), Kang & Kim (2026) (ITA inter-device ICC 0.78 → 0.93 with
+region-specific colour correction). Our 0.438 → 0.583 is a **smaller** improvement than any
+of these, because we have no calibration target in scene — which is worth saying plainly
+rather than presenting 0.583 as a success.
+
+And **Benčević et al. (2026)** test Shades-of-Gray white balancing as preprocessing for
+dermatoscopic skin-tone estimation and recommend **against** it: linear-weighted κ falls
+53.00 → 50.72. Our §16.3 recommendation was already withdrawn on the SCIN replication
+(§17); this is independent agreement, from a different modality, reached before us.
+
+### What survives
+
+Four things, and they are narrower than what was written:
+
+1. **An exposure-sensitivity budget in interpretable units.** No prior work states an
+   EV→ITA transfer coefficient in linear light, a **tone-bin reassignment rate**, or the
+   comparison that makes it legible — that ±0.3 EV moves ITA further than the ~7-unit gap
+   between adjacent Fitzpatrick types. Replicated on SCIN at 45.8% bin flips (§17).
+2. **A real-dataset demonstration that this manufactures a spurious clinical
+   association**: ITA–severity at Cramér's V = 0.242 dissolving under device
+   stratification. Howard et al. showed this by *simulation*; no paper found does it on a
+   real dermatology corpus with a real clinical label.
+3. **The residual-leakage probe**: normalise, then test whether the normalised feature
+   still identifies the capture device. It does, at 0.663 against a 0.500 floor. Nearest
+   precedent is Glocker et al. (2023) probing protected characteristics in chest X-ray;
+   nothing analogous exists for ITA.
+4. **The negative result on normalisation**, now doubly supported — by SCIN (§17) and by
+   Benčević et al. (2026).
+
+### Two attacks a reviewer will make on what survives
+
+- **Resolution is a weak proxy for capture device.** Conceded in §17. It separates devices
+  without individuating them.
+- **Stratification can destroy a real association by removing variance, not by removing a
+  confound.** This is the serious one and it is *not currently addressed*. The dominant
+  stratum holds 1,107 of 1,457 images, so variance loss is limited, but that is an argument
+  rather than a test. A proper answer needs a negative control: a genuine association that
+  *survives* the same stratification.
+
+### The process failure worth recording
+
+This search cost one agent and twenty minutes. Had the manuscript gone out claiming §16.2
+as a contribution, a reviewer who knows this literature would have found Benčević, Groh,
+Weir and Howard within an hour. Five causal stories in this project died to controls that
+were run; this one nearly died to a control that was *not* run, and the missing control was
+"read the literature first".
