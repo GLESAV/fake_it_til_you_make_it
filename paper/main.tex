@@ -143,7 +143,7 @@ boundary jitter but differences of a factor of 2.4--3 (9 vs.\ 21, 8 vs.\ 24, 7 v
 block of images ingested and counted twice by different procedures.
 
 Published accuracies on this benchmark are 83.7\% \citep{wu2019}, 84.11\%
-\citep{lds2024}, 86.06\% \citep{kieglfn2022} and 87.33\%. They sit at or above the
+\citep{lds2024}, 84.52\% \citep{kieglfn2022} and 87.33\% \citep{ffpll2025}. They sit at or above the
 dataset's own reproducibility on images it annotated twice. We are careful about what
 this does and does not license: $n=38$ is small, the interval is wide, and duplicates
 need not be a random sample of the corpus. The defensible reading is not that these
@@ -347,7 +347,7 @@ lacked. A generator that reduces within-grade variation yields cleaner prototype
 each class, and prototypes are easier to learn from. We encountered this directly:
 a simulator that narrowed within-grade distributions while preserving the
 label--image mapping produced synthetic-trained models that were measurably better.
-It is a plausible mechanism for the 97.6\% reported by \citet{zaghbani2024}. Any arm
+It is a plausible mechanism for the 97.6\% reported by \citet{zein2024}. Any arm
 exceeding the $p=0$ baseline is therefore checked against within-class embedding
 variance, test-set difficulty stratification, and transfer to the external validation
 set before being reported as a win. \RESULT{outcome of these checks}
