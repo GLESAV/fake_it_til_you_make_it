@@ -1,0 +1,11 @@
+{
+  "n_images": 1457,
+  "n_subjects": 604,
+  "n_multi_image_subjects": 326,
+  "n_images_in_multi_image_subjects": 1179,
+  "n_identity_links": 2674,
+  "n_images_with_embedding": 1400,
+  "largest_subject": 22,
+  "largest_subject_fraction": 0.015099519560741249,
+  "min_cosine": 0.6
+}

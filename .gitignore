@@ -40,3 +40,18 @@ paper/*.pdf
 paper/*.log
 paper/*.blg
 paper/*.out
+
+# Provenance is not data. The blanket /data/ rule above correctly keeps patient images and
+# generated PNGs out of the repo, but it was also excluding the records that make any of
+# this reproducible: which prompt produced which image, what it cost, what failed and why,
+# and which images were in which split. Those are small text files we authored.
+#
+# Still excluded, deliberately: every image, and the face/identity embeddings. The identity
+# analysis exists only to remove subject leakage from the splits; releasing its embeddings
+# would hand out a face-matching index over a patient cohort, which is exactly what the
+# ethics statement promises not to do.
+!/data/synthetic/*/manifest.jsonl
+!/data/synthetic/*/prompt_meta.json
+!/data/splits_subject/*.jsonl
+!/data/splits_subject/*.json
+!/data/splits/*.jsonl

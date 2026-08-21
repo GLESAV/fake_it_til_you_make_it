@@ -1,0 +1,28 @@
+{
+  "n_images": 1457,
+  "n_groups": 1398,
+  "n_duplicate_clusters": 56,
+  "n_images_in_duplicate_clusters": 115,
+  "n_phash_links": 42,
+  "n_embedding_links": 58,
+  "largest_cluster": 3,
+  "largest_cluster_fraction": 0.002059025394646534,
+  "over_clustered": false,
+  "config": {
+    "phash_max_hamming": 2,
+    "embed_min_cosine": 0.98,
+    "used_embeddings": true,
+    "max_cluster_fraction": 0.05
+  },
+  "subject_grouping": {
+    "n_images": 1457,
+    "n_subjects": 604,
+    "n_multi_image_subjects": 326,
+    "n_images_in_multi_image_subjects": 1179,
+    "n_identity_links": 2674,
+    "n_images_with_embedding": 1400,
+    "largest_subject": 22,
+    "largest_subject_fraction": 0.015099519560741249,
+    "min_cosine": 0.6
+  }
+}
