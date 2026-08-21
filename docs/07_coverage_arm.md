@@ -538,3 +538,101 @@ follows directly from the compression result (§12.9): if the generator renders 
 of severity centred on moderate, then generated images are worth most exactly where real
 images are scarcest and worth nothing where real images are already plentiful — which is
 what these four rows say.
+
+---
+
+## §12.15 Positioning the compression result: measured with the field's own instrument
+
+Two literature sweeps place §12.9 precisely. The short version: **the finding appears to be
+new, the instrument is not, and the correct framing is much sharper than what was written.**
+
+### The metric already has a name, and a lineage
+
+What §12.9 calls "perceived severity range" is the **re-scoring protocol**, introduced by
+InterFaceGAN (Shen et al., TPAMI 2020) and named **effectiveness** by Monteiro et al.
+(ICLR 2023): apply an *independent* predictor to a generated image and ask whether it
+recovers the value that was requested. Two 2025 papers give the exact pair of statistics
+used here:
+
+- **Continuity** (CompSlider, arXiv:2509.01028) — the share of ordered pairs where the
+  higher request scores higher. A monotonicity rate.
+- **Scope** (same) — the gap between the mean scored value at the highest and lowest
+  request. A dynamic range.
+
+Recomputing §12.9 in those terms, with the same real-trained scorer:
+
+| | Continuity | Scope |
+|---|---|---|
+| **prompted severity language (this work)** | **70.4%** | **36.3%** |
+| real images, same scorer (ceiling) | 88.4% | 93.1% |
+| Concept Sliders, human attributes | 73.4% | 54.4% |
+| CompSlider, human attributes | 81.1% | 59.0% |
+
+**Prompted degree language in a 2025 frontier model is worse on both axes than a 2024 LoRA
+slider.** That comparison is the single most useful sentence available for this result, and
+it is only available because the slider literature had already defined the statistics.
+
+### Someone asserted this finding in 2023 without measuring it
+
+Takezaki et al. (ISBI 2023, arXiv:2302.12482), on ulcerative-colitis severity:
+
+> "the level y′ is not fully reliable as the **absolute** level. However, y′ is still
+> reliable as a **relative** level"
+
+They build their entire method on it — MSE loss on real images, a learning-to-rank loss on
+generated ones — precisely because they distrust the generated absolute level. That is the
+Spearman-preserved / range-compressed dichotomy of §12.9, stated as an engineering premise
+three years ago and **never quantified**. The honest framing of this section is therefore
+*"we measure what Takezaki et al. assumed"*, not *"we discovered"*.
+
+### The paper to position against, and why its number does not refute this one
+
+Schmidt, Berens & Müller (arXiv:2602.24013, Feb 2026) condition a diffusion model on
+diabetic-retinopathy severity and verify it with an independently trained CORAL ordinal
+ResNet-50, reporting **QWK 0.79–0.87** between predicted and requested grade. That is the
+state of the art for this question, and it is a stronger result than anything here.
+
+**It is also fully compatible with severe range compression.** Quadratic weighting rewards a
+predictor that is monotone but compressed, so a high QWK cannot rule out the effect §12.9
+measures — and this project's own numbers demonstrate exactly that gap: Spearman 0.593 while
+Scope is 36.3%. An agreement scalar and a range ratio are different measurements, and every
+grade-conditional generation paper found reports only the former:
+
+| shape of verification | example | blind to compression? |
+|---|---|---|
+| agreement scalar vs requested grade | fundus ordinal DM, QWK 0.87 | **yes** |
+| expert grading accuracy, mean only | DR-GAN, 85.3% (3 ophthalmologists) | **yes** |
+| per-grade expert accuracy | knee OA morphing, 62/86/87/90% by KL grade | partly |
+| presence/absence, no ordinal axis | RoentMod 89–99%, DermGAN 0.45 vs 0.61 | n/a |
+
+### The sign is novel; the opposite sign is published
+
+Xia et al. (MICCAI 2024) run independent classifiers on counterfactual chest X-rays and find
+**attribute amplification** — the requested axis pushed *further* than asked — and trace it
+to hard labels in counterfactual training. This work is the **under**-expression counterpart
+on an ordinal clinical axis from a prompted foundation model. A novel direction, with an
+existing mechanism in the literature to argue against in discussion.
+
+### The acne-specific neighbour a reviewer will name
+
+**ACNEDIT** (Piat et al., DGM4MICCAI 2025) is a GAN that modifies acne severity with
+"dynamic intensity tuning", trained on ACNE04, used to rebalance ACNE04's severity
+distribution — the same dataset, the same intervention as §12.13. It is evaluated by
+downstream segmentation (+7.85% IoU, +8.56% Dice) and **has no independent severity grader
+and no check that the requested intensity was achieved.** It must be cited, and the
+distinction stated: it does the intervention, this work measures whether the intervention
+delivers what it requested.
+
+Also worth noting: the PLOS ONE 2024 acne StyleGAN2 work reports 97.6% synthetic-to-real
+transfer with severity classes **sorted by the authors' own manual inspection** — no
+dermatologist, no independent grader. Near-ceiling accuracy on synthetic test data is weak
+evidence of over-separable prototypical classes rather than of fidelity, and is never framed
+that way there.
+
+### Exposure
+
+Nothing found reports the spread of an independently-predicted severity variable for
+generated medical images *and* compares it to the same statistic on real images, in any
+modality. The 1.13-against-2.79-grade comparison appears to be new. The obvious reviewer
+request is to compute Scope on the released fundus ordinal-diffusion model, which is public;
+that is worth pre-empting rather than waiting for.
