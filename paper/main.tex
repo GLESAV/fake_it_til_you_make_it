@@ -66,11 +66,20 @@ settled:
         does that number grow without bound? Barely measured \citep{wang2025}.
 \end{enumerate}
 
-\TODO{state the acne-specific gap: the single fully-synthetic acne prior reports
-97.6\% training on synthetic and testing on real \citep{zein2024}, roughly 11
-points above the strongest real-trained ACNE04 results we are aware of, without
-budget control and with a synthetic healthy class. Frame replication under controls
-as a contribution in its own right.}
+The single fully-synthetic acne prior reports \textbf{97.6\%} training on synthetic
+and testing on real \citep{zein2024} --- roughly ten points above the strongest
+real-trained ACNE04 result published \citep{ffpll2025}, and above every other
+\citep{wu2019,lds2024,kieglfn2022}. We do not treat that number as a contradiction of
+our own, because it is not interpretable. The generator was trained on all 1{,}473
+real images with no generator-to-test disjointness claimed; the test set's size,
+class balance and provenance are stated nowhere; the severity labels of the synthetic
+training set were assigned by the authors sorting generator outputs rather than by a
+clinician; a synthetic ``healthy'' class is scored against a set described as
+containing only acneic faces; and three ImageNet backbones on identical data span
+21.6 points (97.6, 82.7, 76.0), of which the highest is reported. Establishing what a
+synthetic-only acne classifier actually achieves, under budget control and a sealed
+subject-disjoint split, is therefore a contribution in itself rather than a
+replication.
 
 \paragraph{Contributions.}
 \begin{itemize}
@@ -340,6 +349,17 @@ imaging --- and initialise their baselines from ImageNet while training the synt
 from scratch. Content and two-stage training are therefore confounded in that design. Our
 null is not a contradiction of their number; it is the control their design omits.
 
+\paragraph{Relation to \textsc{ACNEDIT}.} \citet{acnedit2025} perform the same
+intervention on the same dataset and the same two classes, generating 218 severe and 271
+very-severe images to raise ACNE04's scarce classes to 400 each. Two differences matter.
+Theirs is a lesion-compositing GAN trained on ACNE04 --- a closed-set generator, which by
+construction cannot exceed the severity range of its training data --- where ours is a
+prompted open-set foundation model. And their evaluation is a user study and downstream
+segmentation IoU, with no independent severity grader and no control separating the
+generated content from the rebalancing it provides. The measurements this paper reports are
+therefore complementary to theirs rather than competing: they demonstrate the intervention,
+we measure whether it delivers what it requested.
+
 \paragraph{Targeted tail augmentation, decomposed.} Adding generated images only to the two
 scarce classes gains $+3.1$ points over the real baseline. Topping up scarce classes changes
 two things at once, however: it adds generated images \emph{and} it flattens the class
@@ -433,7 +453,8 @@ lacked. A generator that reduces within-grade variation yields cleaner prototype
 each class, and prototypes are easier to learn from. We encountered this directly:
 a simulator that narrowed within-grade distributions while preserving the
 label--image mapping produced synthetic-trained models that were measurably better.
-It is a plausible mechanism for the 97.6\% reported by \citet{zein2024}. Any arm
+It is a plausible mechanism for the 97.6\% reported by \citet{zein2024}, though the
+confounds listed in \S\ref{sec:intro} are a likelier explanation. Any arm
 exceeding the $p=0$ baseline is therefore checked against within-class embedding
 variance, test-set difficulty stratification, and transfer to the external validation
 set before being reported as a win. \RESULT{outcome of these checks}
