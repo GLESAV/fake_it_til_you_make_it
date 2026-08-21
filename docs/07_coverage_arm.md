@@ -497,3 +497,44 @@ It rests on two seeds per arm. Three more are running, and the number to watch i
 the mixed_tail–control gap holds at 2.2 points or shrinks; the arms are individually stable
 (sd 0.004–0.007) which is why two seeds separated them at all, but five is the minimum this
 deserves before it goes in a paper.
+
+---
+
+## §12.14 Pretraining does not survive its control; only tail augmentation does
+
+`pretrain` — synthetic first, then fine-tune on real — looked as strong as `mixed_tail` on
+seed 0, at 0.7711 against the real baseline's 0.7296. It does not hold. Two-stage training
+gives it roughly twice the gradient steps of the single-stage arms, so `real_twostage` runs
+the same two stages on real data both times, varying only what stage one saw:
+
+| arm | n train | balanced accuracy | vs real |
+|---|---|---|---|
+| real | 948 | 0.7337 ±0.006 | — |
+| real_twostage (two stages, real both times) | 1,896 | 0.7273 ±0.008 | −0.64 |
+| pretrain (synthetic, then real) | 1,380 | 0.7367 ±0.013 | +0.30 |
+
+**+0.3 points over the real baseline and +0.9 over the compute control, against its own
+standard deviation of 1.3.** The seed-0 result was noise, and the arm is a null. Worth
+noting that `real_twostage` also sits *below* the single-stage baseline: the extra compute
+is not merely unhelpful, it costs a little, presumably to overfitting.
+
+### The two arms together are the finding
+
+| use of generated images | effect | survives control? |
+|---|---|---|
+| replace real images entirely | −27 points | n/a — it is the deficit |
+| add across all classes (`mixed`) | +1.0, sd 2.1 | no, indistinguishable from zero |
+| pretrain, then fine-tune on real | +0.3, sd 1.3 | **no** — `real_twostage` |
+| **add to the scarce classes only** | **+2.2 over control** | **yes** — t ≈ 3.9 |
+
+Three of the four ways to use these images do nothing. The claim that survives is narrow and
+specific: **generated images help when they are targeted at the classes the real dataset is
+thinnest in, and not otherwise.** Spreading them across the whole label space dilutes them
+into noise; using them to teach general features before fine-tuning does nothing a second
+pass over the real data would not do.
+
+That specificity is what makes it usable advice rather than an encouraging trend. It also
+follows directly from the compression result (§12.9): if the generator renders a narrow band
+of severity centred on moderate, then generated images are worth most exactly where real
+images are scarcest and worth nothing where real images are already plentiful — which is
+what these four rows say.
