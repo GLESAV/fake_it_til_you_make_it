@@ -67,6 +67,17 @@ TONES = [
 #: (template, needs_person). The wide domain: clinical photography at one end, laboratory
 #: and didactic depictions at the other. `{s}` is severity, `{t}` tone, `{p}` the person
 #: phrase where one applies.
+#: Short label per substrate, in the same order, for grouping the ablation afterwards.
+SUBSTRATE_LABELS = [
+    "face (clinical)", "cheek (clinical)", "face frontal", "forehead", "jawline/chin",
+    "back/shoulders", "chest/trunk", "cheek macro",
+    "dermatoscope", "macro + scale bar", "flatbed scan",
+    "isolated skin swatch", "excised specimen", "pinned section",
+    "Petri dish", "culture plate", "bioengineered construct", "specimen jar",
+    "silicone model", "wax moulage", "3D render", "textbook plate",
+    "anatomical diagram", "prosthetic limb",
+]
+
 SUBSTRATES: list[tuple[str, bool]] = [
     # --- human, clinical: the domain validation actually lives in ---
     ("A colour clinical dermatology photograph of the face of {p} with {t}, showing {s}", True),
@@ -144,7 +155,7 @@ def build_prompts(total: int, seed: int = 0) -> list[tuple[str, str, dict]]:
             )
             meta = {
                 "grade": g, "tone_index": t_idx, "tone": TONES[t_idx],
-                "substrate_index": s_idx, "substrate": template.split(" of ")[0],
+                "substrate_index": s_idx, "substrate": SUBSTRATE_LABELS[s_idx],
                 "needs_person": needs_person,
             }
             rows.append((g, t_idx, s_idx, prompt, meta))
@@ -175,6 +186,7 @@ def main() -> None:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
+    assert len(SUBSTRATE_LABELS) == len(SUBSTRATES), "one label per substrate"
     prompts = build_prompts(args.n)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)

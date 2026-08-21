@@ -770,3 +770,72 @@ generated images and reports Continuity and Scope per substrate. That makes the 
 measurement the cheapest one, which is the right way round: if the face prior is not what
 compresses severity, nothing downstream is worth paying for and the honest move is to say
 so at $9 rather than $234.
+
+---
+
+## §13.1 The tail effect is not resolvable, and neither is most of the literature
+
+§12.13 reported +2.2 points for generated tail images over a duplicate-real control, with
+t ≈ 3.9 from two seeds. Six paired seeds:
+
+| | value |
+|---|---|
+| mean paired difference | **+0.0224** |
+| standard deviation | 0.0358 |
+| t (5 df) | +1.53 |
+| **p** | **0.185** |
+| 95% CI | **[−0.015, +0.060]** — spans zero |
+| seeds positive | **3 of 6** |
+
+**The point estimate barely moved** — +0.0221 at two seeds, +0.0224 at six — while the
+uncertainty around it grew by a factor of five. That is exactly what happens when a standard
+deviation is estimated from n=2 and then trusted: the t of 3.9 was an artefact of the
+variance estimate, not of the effect. Per-seed differences are −0.005, +0.063, −0.011,
+−0.008, +0.030, +0.066: half the runs show nothing and half show a large gain.
+
+### How many seeds this would actually take
+
+| power | seeds needed |
+|---|---|
+| 80% | **22** |
+| 90% | 29 |
+
+Even the ten-seed run now finishing lands at t ≈ 2.0, p ≈ 0.08 — still not resolved. An
+effect of this size against this variance needs roughly **twenty-two independent training
+runs** to detect reliably.
+
+### Which is the finding
+
+**The published literature reports synthetic-augmentation gains of exactly this magnitude —
++1 to +3 balanced-accuracy points — routinely, and usually from a single training run.**
+Sagers et al. (2023) at 228 real per class: −2.2 to +2.0, every interval spanning zero.
+Noriega Cedeño (2026): +1.02, surviving only after Holm correction. Sundaram & Hulkund
+(2021): single run, no error bars. Wang et al. (2024): n=56 test images, no repeats.
+
+Bissoto, Valle & Avila (CVPR-W 2021) already said this out loud after ten runs per cell on
+ISIC 2019 — *"performance improvement, when it happened at all, was completely random: the
+choice of GAN model or other factors had no explanatory power"* — and listed as their fourth
+named flaw in the literature *"ignoring performance fluctuations, e.g., by performing a
+single run, or by failing to report the deviation statistics."*
+
+This work supplies the number that critique lacked. **At the seed counts the field actually
+uses, a +2-point synthetic-augmentation gain is indistinguishable from noise, and it takes
+about twenty-two runs to tell them apart.** That is a stronger and more useful claim than
+the +2.2 would have been.
+
+### What is *not* being claimed
+
+The effect is **underpowered, not disproven.** The point estimate is positive and stable
+across two independent runs on different pool sizes, and three of six seeds show a large
+gain. It may well be real. What cannot be done is to assert it from this evidence — or, by
+the same arithmetic, from the evidence most published papers present.
+
+### The decomposition survives regardless
+
+The contribution was never the sign of the content term. It is that **the gain from adding
+generated images to a scarce class can be split into a rebalancing component and a content
+component, by adding duplicated real images at matched counts** — a control Sagers et al.
+built in 2023 (§4.6) and left in an unreleased supplementary figure, Schaudt et al. ran with
+a degenerate baseline that collapsed a class to F1 = 0.0000, and Ktena et al. applied to the
+sensitive attribute rather than to class counts. The method stands whether the content term
+lands at +2.2, at zero, or below.
