@@ -292,46 +292,132 @@ pretrained results are reported separately and never pooled.
 \section{Results}
 \label{sec:results}
 
-\subsection{Substitution at matched budget}
-\begin{figure}[t]
-  \centering
-  % \includegraphics[width=0.75\textwidth]{../results/final/fig1_substitution.png}
-  \caption{Balanced accuracy against synthetic fraction at a fixed training budget,
-  for both generator regimes and both initialisations. Bands are 95\% intervals
-  across \RESULT{n} seeds.}
-  \label{fig:substitution}
-\end{figure}
+All arms are trained with one frozen recipe and scored on the same real, subject-disjoint
+validation split of 218 images. Uncertainty is over independent training seeds; where a
+comparison is between two arms, seeds are paired.
 
-\RESULT{H1: 100\% synthetic vs 100\% real, with paired bootstrap CI}.
-\RESULT{H2: trend slope and CI}.
+\subsection{Substitution: generated images do not replace real ones}
 
-\subsection{The exchange rate}
-\begin{figure}[t]
-  \centering
-  % \includegraphics[width=\textwidth]{../results/final/fig2_additive.png}
-  \caption{Additive scaling at four real budgets. $k(n)$ is the multiplier at which
-  the synthetic curve reaches real-only performance at the next budget up.}
-  \label{fig:additive}
-\end{figure}
+At full budget, training on generated images alone reaches $0.468 \pm 0.014$ balanced
+accuracy against $0.734 \pm 0.006$ for the real training split --- a deficit of
+\textbf{26.6 points}. The comparison that isolates the images from the budget is
+class-balanced and budget-matched at 156 images per arm, where synthetic reaches $0.426$
+against real's $0.624$, a deficit of \textbf{19.8 points}.
 
-\RESULT{k(n) table, including budgets where k is unbounded}.
+This is not a surprising result and we do not present it as one. It is what the open-set
+literature predicts: \citet{sariyildiz2023} report a 33-point in-domain gap on ImageNet,
+and \citet{akrout2023} --- the closest dermatology comparison --- find 500 synthetic images
+scoring 47.29 against 54.05 for 500 real, losing even to 250 real. The organising variable
+across this literature is not modality but \textbf{generator provenance}: closed-set
+generators fine-tuned on the target split reach parity, while open-set foundation generators
+used zero-shot do not.
 
-\subsection{The severe tail}
-\RESULT{per-class recall for severe and very severe against synthetic fraction}.
-Overall metrics can hold up while the rare grades collapse; the tail is where
-mode-dropping shows first and where the clinical stakes are.
+\subsection{Four ways to use generated data, and a control for each}
 
-\subsection{Controls}
-\textbf{Discriminability.} Real vs.\ synthetic AUC \RESULT{auc}, bounding how much of
-any effect could be artefact-driven. \textbf{Memorisation.} \RESULT{rate}\% of
-generated images exceed the replication threshold against the generator's training
-set. \textbf{Real-subset control.} \RESULT{comparison} --- the bar a synthetic arm
-must clear is real-only data of the same reduced size, not the full-data arm.
-\textbf{Label permutation.} \RESULT{result}.
+\begin{center}
+\begin{tabular}{lrrl}
+\toprule
+use & effect & control & verdict \\
+\midrule
+replace real data & $-26.6$ & --- & fails \\
+add across all classes & $+1.0$ (sd 2.1) & --- & null \\
+pretrain, then fine-tune & $+0.3$ & two-stage real$\rightarrow$real & null \\
+add to scarce classes only & $+3.1$ & duplicated real tail & \textbf{see \S\ref{sec:power}} \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\subsection{Skin tone}
-\RESULT{per-ITA-bin metrics}. Reported as a proxy: ITA measures pixels under a given
-illuminant, not people, and acne erythema itself perturbs it.
+\paragraph{Pretraining.} Synthetic pretraining followed by real fine-tuning reaches
+$0.7367 \pm 0.013$ against $0.7337 \pm 0.006$ for the single-stage real baseline. Two-stage
+training also confers roughly twice the gradient steps, so we run the same two stages on
+real data both times: $0.7273 \pm 0.008$, \emph{below} the single-stage baseline. The
+synthetic arm's advantage over its compute-matched control is $+0.9$ points against its own
+standard deviation of $1.3$.
+
+This control matters beyond our own result. \citet{moroianu2025} report a 6.5\% gain from
+synthetic pretraining on chest radiographs --- the flagship result for this recipe in medical
+imaging --- and initialise their baselines from ImageNet while training the synthetic arm
+from scratch. Content and two-stage training are therefore confounded in that design. Our
+null is not a contradiction of their number; it is the control their design omits.
+
+\paragraph{Targeted tail augmentation, decomposed.} Adding generated images only to the two
+scarce classes gains $+3.1$ points over the real baseline. Topping up scarce classes changes
+two things at once, however: it adds generated images \emph{and} it flattens the class
+distribution. We therefore add duplicated \emph{real} images to the same classes at matched
+counts --- identical rebalancing, no new information --- which gains $+0.9$. The residual
+attributable to the generated content is $+2.2$ points.
+
+To our knowledge this decomposition has not been published. \citet{sagers2023} construct
+exactly this control (\S4.6, ``as a control, we also tested an upsampling strategy of simple
+duplication'') and report its result only in a supplementary figure absent from the released
+manuscript. \citet{schaudt2023} run an oversampling baseline that collapses one class to
+$F_1 = 0.0000$ and never subtract. \citet{ktena2024} compare against oversampling on the
+sensitive attribute rather than on class counts.
+
+\subsection{The effect is not resolvable at the sample sizes the field uses}
+\label{sec:power}
+
+At two seeds the content term was $+0.0221$ with $t \approx 3.9$. At six paired seeds it is
+$+0.0224$ --- essentially unchanged --- with standard deviation $0.0358$, $t = 1.53$,
+$p = 0.185$, and a 95\% interval of $[-0.015, +0.060]$ that spans zero. Three of six seeds
+are positive. The point estimate was stable; the variance estimated from two seeds was not.
+
+A power calculation on the observed variance puts the requirement at \textbf{22 seeds for
+80\% power} and 29 for 90\%.
+
+We regard this as the more useful finding. Published synthetic-augmentation gains in medical
+imaging are routinely of this magnitude and routinely reported from a single training run.
+\citet{bissoto2021} reached the qualitative version of this conclusion after ten runs per
+cell on ISIC 2019 --- ``performance improvement, when it happened at all, was completely
+random'' --- and named single-run reporting as one of four recurring flaws. We supply the
+quantity that critique lacked: at these effect sizes and this variance, roughly twenty-two
+independent runs separate a two-point gain from noise.
+
+We state carefully that the effect is \emph{underpowered, not disproven}. The estimate is
+positive and stable across two independent runs at different pool sizes.
+
+\subsection{Mechanism: the generator compresses the severity scale}
+
+We apply the re-scoring protocol of \citet{shen2020}, termed \emph{effectiveness} by
+\citet{monteiro2023}: an independent classifier, trained only on real images, scores each
+generated image and we ask whether it recovers the requested grade. We report the two
+statistics defined for continuous attribute control --- \emph{Continuity}, a monotonicity
+rate, and \emph{Scope}, the realised dynamic range.
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+& Continuity & Scope \\
+\midrule
+prompted severity language (this work) & 70.4\% & \textbf{36.3\%} \\
+real images, same scorer & 88.4\% & 93.1\% \\
+Concept Sliders, human attributes & 73.4\% & 54.4\% \\
+CompSlider, human attributes & 81.1\% & 59.0\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Mean perceived grade across the four requested grades is $0.87 / 1.00 / 1.09 / 2.00$ against
+$0.21 / 1.09 / 2.23 / 3.00$ for real images: monotone, and compressed to \textbf{41\% of the
+real range}. A domain-shift control rules out the instrument --- the same scorer assigns
+100\% of real very-severe images to the very-severe class.
+
+Two framing points. First, \citet{takezaki2023} assert this property without measuring it,
+stating that a generated severity level ``is not fully reliable as the absolute level.
+However, [it] is still reliable as a relative level,'' and redesigning their loss around it.
+Second, an agreement scalar cannot detect this: quadratic weighting rewards a
+monotone-but-compressed predictor, so the $\mathrm{QWK}=0.87$ that \citet{schmidt2026}
+report for severity-conditional fundus generation is compatible with substantial
+compression. Our own numbers show the gap directly, with Spearman $0.593$ alongside a Scope
+of $36.3\%$.
+
+\subsection{Coverage is real; it is the wrong deficiency}
+
+The generated pool covers Fitzpatrick I--VI by construction, and the images bear it out:
+median ITA runs $46.8, 40.0, 35.2, 30.9, 9.8, -29.3$ across requested types I--VI,
+monotone and spanning 76 ITA units. ACNE04 lacks two things --- demographic breadth and
+severe cases. The pool supplies the first and, per the compression result, not the second.
+\textbf{The gap the generated data closes is not the gap that limits the benchmark.}
 
 \section{Discussion}
 \label{sec:discussion}

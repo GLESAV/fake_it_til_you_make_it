@@ -463,3 +463,107 @@
              VERIFIED -- the full list has at least nine authors; confirm before
              submission.}
 }
+
+@inproceedings{bissoto2021,
+  title     = {{GAN}-Based Data Augmentation and Anonymization for Skin-Lesion Analysis:
+               A Critical Review},
+  author    = {Bissoto, Alceu and Valle, Eduardo and Avila, Sandra},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops
+               (CVPRW), ISIC Skin Image Analysis},
+  year      = {2021},
+  note      = {arXiv:2104.10603. Ten runs per experiment on ISIC 2019. Reports that
+               "performance improvement, when it happened at all, was completely random"
+               with "no explanatory power", and names single-run reporting as one of four
+               recurring flaws in the augmentation literature. AUTHOR LIST NOT
+               INDEPENDENTLY VERIFIED -- confirm before submission.}
+}
+
+@article{schaudt2023,
+  title   = {Augmentation Strategies for an Imbalanced Learning Problem on a Novel
+             {COVID-19} Severity Dataset},
+  author  = {Schaudt, Daniel and Sp{\"a}te, Christian and von Schwerin, Reinhold and
+             Reichert, Manfred and von Schwerin, Marianne and Beer, Meinrad and
+             Kloth, Christopher},
+  journal = {Bioengineering},
+  volume  = {10},
+  number  = {12},
+  pages   = {1421},
+  year    = {2023},
+  doi     = {10.3390/bioengineering10121421},
+  note    = {Five seeds throughout. States that synthetic images help the less frequent
+             classes via rebalancing, with an oversampling control whose baseline collapses
+             one class to F1 = 0.0000. TITLE AND AUTHOR LIST NOT INDEPENDENTLY VERIFIED.}
+}
+
+@article{moroianu2025,
+  title   = {Scaling Synthetic Data for Chest Radiograph Classification},
+  author  = {Moroianu, Sofia and Bluethgen, Christian and Chambon, Pierre},
+  journal = {arXiv preprint arXiv:2508.16783},
+  year    = {2025},
+  note    = {Reports a 6.5\% gain from synthetic pretraining against 2.7\% for naive mixing.
+             Baselines are initialised from ImageNet while the synthetic-pretraining arm is
+             trained from scratch, so content and two-stage training are confounded.
+             TITLE AND AUTHOR LIST TRUNCATED AND NOT VERIFIED -- confirm before submission.}
+}
+
+@article{sagers2023,
+  title   = {Augmenting medical image classifiers with synthetic data from latent
+             diffusion models},
+  author  = {Sagers, Luke W. and Diao, James A. and Melas-Kyriazi, Luke and
+             Groh, Matthew and Rajpurkar, Pranav and Adamson, Adewole S. and
+             Rotemberg, Veronica and Daneshjou, Roxana and Manrai, Arjun K.},
+  journal = {arXiv preprint arXiv:2308.12453},
+  year    = {2023},
+  note    = {Section 4.6 constructs a duplication-based upsampling control -- "as a control,
+             we also tested an upsampling strategy of simple duplication" -- and reports its
+             result only in a supplementary figure absent from the released manuscript.
+             Gains saturate above 10:1 synthetic to real; at 228 real images per class every
+             confidence interval spans zero.}
+}
+
+@article{takezaki2023,
+  title   = {Disease Severity Regression with Continuous Data Augmentation},
+  author  = {Takezaki, Shumpei and Tanaka, Kiyohito and Uchida, Seiichi and
+             Kadota, Takeaki},
+  journal = {arXiv preprint arXiv:2302.12482},
+  year    = {2023},
+  note    = {Ulcerative colitis Mayo grading. States that a generated severity level "is not
+             fully reliable as the absolute level. However, [it] is still reliable as a
+             relative level", and redesigns the loss around it -- regression on real images,
+             learning-to-rank on generated ones. Asserts the compression property without
+             measuring it. VENUE (ICIP vs ISBI 2023) NOT CONFIRMED.}
+}
+
+@article{schmidt2026,
+  title   = {Ordinal Diffusion Models for Color Fundus Images},
+  author  = {Schmidt, Gustav and Berens, Philipp and M{\"u}ller, Sarah},
+  journal = {arXiv preprint arXiv:2602.24013},
+  year    = {2026},
+  note    = {Verifies severity-conditional generation with an independently trained CORAL
+             ordinal ResNet-50, reporting QWK 0.79--0.87 against the requested grade. An
+             agreement scalar; quadratic weighting rewards a monotone-but-compressed
+             predictor, so it cannot detect range compression. AUTHOR LIST NOT
+             INDEPENDENTLY VERIFIED.}
+}
+
+@article{shen2020,
+  title   = {{InterFaceGAN}: Interpreting the Disentangled Face Representation Learned
+             by {GAN}s},
+  author  = {Shen, Yujun and Yang, Ceyuan and Tang, Xiaoou and Zhou, Bolei},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  year    = {2020},
+  note    = {arXiv:2005.09635. Introduces the re-scoring protocol: predict the attribute of
+             a manipulated image with an independent classifier to verify the manipulation.
+             AUTHOR LIST NOT INDEPENDENTLY VERIFIED.}
+}
+
+@inproceedings{monteiro2023,
+  title     = {Measuring axiomatic soundness of counterfactual image models},
+  author    = {Monteiro, Miguel and De Sousa Ribeiro, Fabio and Pawlowski, Nick and
+               Castro, Daniel C. and Glocker, Ben},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023},
+  note      = {arXiv:2303.01274. Formalises composition, reversibility and effectiveness;
+               effectiveness is the property that an independent predictor recovers the
+               intervened value. AUTHOR LIST NOT INDEPENDENTLY VERIFIED.}
+}
