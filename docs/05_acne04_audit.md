@@ -1641,3 +1641,65 @@ as a contribution, a reviewer who knows this literature would have found Benčev
 Weir and Howard within an hour. Five causal stories in this project died to controls that
 were run; this one nearly died to a control that was *not* run, and the missing control was
 "read the literature first".
+
+---
+
+## §19 The stratification control: it removes a confound, not variance
+
+§18 named this as the serious unaddressed attack on §16. Stratifying by capture device
+removes the ITA–severity association, but stratification also removes *variance*, and
+removing variance weakens any association — confounded or genuine. Without a control,
+"the confound disappeared" and "we broke the test" are indistinguishable.
+
+### First attempt: an uninformative control
+
+The plan was to run the identical procedure on median a\* (the green-to-red axis of CIE
+L\*a\*b\*), on the reasoning that inflammatory acne is erythematous so redness should track
+severity through biology rather than provenance. It does not track it at all:
+
+| stratum | n | ITA | median a\* |
+|---|---|---|---|
+| all images | 1,457 | 0.306 (+0.056) | **0.251 (+0.001)** |
+| within dominant device | 1,107 | 0.241 (−0.009) | 0.244 (−0.006) |
+| every other device | 350 | 0.246 (−0.004) | 0.258 (+0.008) |
+
+Median a\* sits on the 0.250 floor before any stratification, so it had no association to
+lose and says nothing about whether stratification preserves real ones. Worth recording as
+its own small negative result: **"acne is red, so redness should predict severity" is false
+on this corpus** — a global colour statistic carries no severity signal whatsoever.
+
+### The control that works: a genuine signal, degraded to matched strength
+
+A real severity signal is available — the CNN grade scorer, evaluated only on held-out
+images it never trained on. Unstratified it reaches 0.702 against the 0.250 floor, and
+within each device stratum it holds 0.592 and 0.593. But it is far stronger than ITA, so it
+has more headroom, and a reviewer would rightly say a weak-but-genuine association might
+degrade further.
+
+So the signal was degraded to ITA's exact strength — a fraction of its predictions replaced
+with random labels until unstratified balanced accuracy matched — and the same
+stratification applied. The remaining association is genuine, because it still comes from
+the image, and now equally weak:
+
+| stratum | matched-strength **real** signal | ITA |
+|---|---|---|
+| all images | 0.300 (+0.050) | 0.306 (+0.056) |
+| within dominant device | **0.281 (+0.031)** | **0.241 (−0.009)** |
+| every other device | 0.288 (+0.038) | 0.246 (−0.004) |
+
+**Retained effect inside the dominant stratum: 60.7% for a genuine association of the same
+strength, −16.1% for ITA.**
+
+Stratification does cost a real, equally-weak association roughly 40% of its effect — the
+objection is correct that variance is lost, and the magnitude is now measured rather than
+waved away. But ITA loses more than all of it and lands below the floor. **The difference
+between 61% retained and nothing retained is not attributable to variance loss.** The
+ITA–severity association in ACNE04 is confounded by capture device.
+
+### What this control does and does not settle
+
+It settles the variance objection at matched effect size, which was the specific attack.
+It does not address the other one from §18 — that image resolution is a coarse proxy for
+capture device, separating devices without individuating them. That remains a limitation,
+and it is conservative in direction: residual device heterogeneity *inside* the dominant
+stratum would inflate the association we report as absent there, not deflate it.
