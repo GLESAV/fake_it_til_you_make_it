@@ -66,6 +66,19 @@ class SkinToneEstimate:
     bin: str
     coarse_bin: str
     coverage: float
+    #: True when median b* sits at or below zero, where ITA is not defined.
+    #:
+    #: ITA is arctan((L*-50)/b*) and the formula assumes skin is yellowish, b* > 0. On a
+    #: washed-out or colour-cast image median b* can reach zero, at which point the angle
+    #: pins at +/-90 degrees and a negligible change in b* swings it by 180. Clamping b*
+    #: to a small positive number, as this did, hides that: the estimate comes back as a
+    #: confident "very light" or "dark" rather than as undefined.
+    #:
+    #: Rare on framed facial photographs -- 0.2% of ACNE04, 0% of the generated pool -- and
+    #: not rare elsewhere: 3.4% of a 934-image SCIN sample, which is body-part photography
+    #: under domestic lighting. Callers doing per-image work should drop these; callers
+    #: taking group medians can ignore them at this rate.
+    degenerate: bool = False
 
 
 def estimate_ita(path: str, max_side: int = 256) -> SkinToneEstimate:
@@ -99,6 +112,7 @@ def estimate_ita(path: str, max_side: int = 256) -> SkinToneEstimate:
     lab_keep = lab[keep]
     L_m = float(np.median(lab_keep[:, 0]))
     b_m = float(np.median(lab_keep[:, 2]))
+    degenerate = b_m <= 0.0
     ita = float(np.degrees(np.arctan2(L_m - 50.0, max(b_m, 1e-6))))
 
     name = "dark"
@@ -107,7 +121,8 @@ def estimate_ita(path: str, max_side: int = 256) -> SkinToneEstimate:
             name = label
             break
     return SkinToneEstimate(
-        ita=ita, bin=name, coarse_bin=COARSE[name], coverage=float(keep.mean())
+        ita=ita, bin=name, coarse_bin=COARSE[name], coverage=float(keep.mean()),
+        degenerate=degenerate,
     )
 
 

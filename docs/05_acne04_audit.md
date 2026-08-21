@@ -1472,3 +1472,78 @@ Normalisation is worth doing and is not sufficient. What the measurements suppor
    and remains the sound use.
 
 None of the fairness audits consulted here do the first, and none report the second.
+
+---
+
+## §17 External replication on SCIN: the confound holds, the proposed fix does not
+
+The ITA result was measured on one dataset, which is an anecdote. It was replicated on
+**SCIN** (Google's Skin Condition Image Network): 934 images sampled stratified across
+self-reported Fitzpatrick type — a label that, unlike a dermatologist's rating, is **not
+derived from the pixels**. SCIN is a harder test than ACNE04: body-part photographs of
+varied conditions under domestic lighting rather than framed faces under clinical capture.
+
+### What replicated
+
+**Exposure sensitivity, strongly.** Linear-light exposure changes reassign SCIN images to a
+different ITA tone bin at 45.8% (−0.3 EV) and 64.1% (−0.5 EV), against 47% and 85% on
+ACNE04. **77.0% of images change bin under at least one of ±0.3/±0.5 EV.** A ±0.5 EV sweep
+spans an ITA range of 32.6° against a between-person spread of 37.8° — exposure variation
+inside the normal auto-exposure envelope is nearly as large as the variation between people.
+
+**The linear-light correction matters as much as claimed.** Naive sRGB scaling overstates
+median |ΔITA| by ×2.81 at −0.5 EV and ×2.30 at −0.3 EV, against the ×2.5 estimated when
+that error was caught here.
+
+**Inability to bin an individual image, strongly.** Against self-reported Fitzpatrick, ITA
+scores 0.199 against a 0.171 floor. Against *dermatologist-assigned* Fitzpatrick it scores
+0.369 against a 0.379 floor — **below chance.** Separation ratio (adjacent-label median gap
+over within-label SD) is 0.200, against 0.26 on the generated pool. Per-label median ITA is
+not even monotone for self-reported type in the lighter half.
+
+### What did not replicate: the normalisation recommendation
+
+§16.3 recommended gray-world plus luminance-percentile normalisation, on the strength of it
+raising three-group accuracy from 0.438 to 0.583 on the generated pool. **On SCIN it makes
+accuracy slightly worse** — 0.199 → 0.178 against self-reported type, 0.328 → 0.311 against
+Monk — and collapses separation, gap/SD 0.200 → 0.049.
+
+It does remove exposure sensitivity almost completely (bin flips 50.0% → 0.6%), and that is
+the problem rather than the vindication: **pinning the 90th-percentile luminance
+analytically cancels a global gain, so exposure-invariance is close to tautological.** It is
+not evidence the estimator improved. What it costs is real: forcing every image to the same
+p90 brightness discards genuine between-person brightness differences, which is where most
+of ITA's already-weak tone signal lives.
+
+Why it helped on the generated pool and hurt on SCIN is not mysterious. The pool's lighting
+was *varied by prompt*, so much of its brightness variation is noise that normalisation
+correctly removes. SCIN's brightness variation carries tone. **Which regime a corpus is in
+cannot be determined without the tone ground truth the audit is trying to establish** — so
+normalisation is not safely recommendable, and §16.3's recommendation is withdrawn.
+Normalise only where exposure is known to dominate, and say which you assumed.
+
+### A phrasing correction the replication forces
+
+Raw ITA's out-of-sample accuracy on SCIN is flat across ±0.5 EV — 0.195 to 0.204. Accuracy
+cannot degrade because it never had headroom above the floor. Rank correlation is the
+sensitive readout and does degrade (ρ −0.163 → −0.123). So the claim is not "perturbation
+destroys ITA's accuracy"; it is **"ITA is exposure-dominated and has no headroom over the
+floor to begin with."** That phrasing replicates on both corpora; the first does not.
+
+### An implementation defect found by the replication
+
+`estimate_ita` computed `arctan2(L*-50, max(b*, 1e-6))`. ITA assumes skin is yellowish
+(b\* > 0); where median b\* reaches zero the angle pins at ±90° and a negligible change
+swings it 180°. The clamp turned "undefined" into a confident "very light" or "dark". This
+affects **0.2% of ACNE04 and 0% of the generated pool** — so no number in this audit moves —
+but **3.4% of SCIN**, and it is exactly the kind of silent-plausible-output failure §14
+catalogues. `SkinToneEstimate` now carries a `degenerate` flag rather than clamping quietly.
+
+### What remains untested
+
+SCIN has no device or EXIF metadata at all and a constant `source` field, so the device
+stratification that carried §16 could not be repeated. ITA predicts no available capture
+proxy above floor there, which is a weak null rather than a contradiction. Capture
+*geometry* does move the association — the label–ITA correlation is ρ = −0.209 for close-up
+images and ρ = −0.006 (p = 0.94) for images shot at a distance — which is directionally
+consistent with an acquisition confound without being evidence about cameras.
