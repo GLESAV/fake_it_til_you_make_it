@@ -727,3 +727,46 @@ substitution fails, all-class augmentation null, pretraining null, tail augmenta
 once rebalancing is subtracted — together with a measured mechanism for *why*, is more
 coherent and more defensible than a two-point positive. **The decomposition is the
 contribution either way; the sign of the content term is a finding, not a requirement.**
+
+---
+
+## §13 The wide-domain pool, delivered in stages
+
+Every prompt in the first pool was a human face, and §12.9 measured what that cost: four
+clinical grades rendered as ~1.1 grades of real variation. A face is a strong prior. Asked
+for confluent nodulocystic disease, a model trained on millions of portraits has every
+reason to return someone who still looks like a person.
+
+The wide-domain pool removes the constraint. Acne is requested on 24 substrates — faces,
+cheeks, backs, chests, dermatoscope fields, macro fields with scale bars, isolated skin
+swatches, excised specimens on surgical drapes, sections pinned to dissection boards,
+**samples in Petri dishes**, tissue-culture plates, bioengineered constructs in culture
+wells, specimen jars, silicone training models, wax moulages, 3D renders, textbook plates,
+anatomical diagrams, prosthetic limbs — crossed with 4 severities, 6 Fitzpatrick tones, 4
+ages, 2 sexes, 7 lighting conditions, 6 capture styles and 6 backdrops.
+
+**Substrate is randomised independently of severity.** Otherwise the pool would carry the
+provenance confound the audit documented in ACNE04, where 87.1% of mild images but 16.3% of
+very-severe ones came from one camera, and a classifier would learn substrate instead of
+disease.
+
+### Staged, with a kill criterion at each gate
+
+The full 6,000 is 95 hours and $234 at the cheap tier's measured 63 images/hour — a
+concurrency of 6 was tried and fails with 429s that burn 281 seconds and six attempts per
+image. Paying that before knowing whether the premise holds would be a bad trade, so the
+pool is delivered in stages against an already-running job whose every prefix is balanced
+by construction.
+
+| stage | n | cost | time | question | kill criterion |
+|---|---|---|---|---|---|
+| **1** | 240 | $9 | 4 h | Does moving off the face widen the severity range? | no substrate beats Scope 36.3% |
+| **2** | 650 | $25 | 10 h | Does wide-domain beat face-only at matched budget on real validation? | no gain over the 644-image face pool |
+| **3** | 2,500 | $98 | 40 h | Learning curve, per-substrate ablation, tail augmentation at scale | curve flat, or best substrate is just "face" |
+| **4** | 6,000 | $234 | 95 h | Full pool | only if 1–3 all pay |
+
+Stage 1 needs **no training at all** — it applies the existing real-trained grade scorer to
+generated images and reports Continuity and Scope per substrate. That makes the decisive
+measurement the cheapest one, which is the right way round: if the face prior is not what
+compresses severity, nothing downstream is worth paying for and the honest move is to say
+so at $9 rather than $234.
