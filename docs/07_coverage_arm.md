@@ -839,3 +839,51 @@ built in 2023 (§4.6) and left in an unreleased supplementary figure, Schaudt et
 a degenerate baseline that collapsed a class to F1 = 0.0000, and Ktena et al. applied to the
 sensitive attribute rather than to class counts. The method stands whether the content term
 lands at +2.2, at zero, or below.
+
+---
+
+## §13.2 The generator refuses close-up human skin, and not artificial substrates
+
+An unplanned finding from the wide-domain run's failure log. Separating content refusals
+(the model returns no image) from rate limits (429s), the refusal rate is not uniform across
+substrates — it is concentrated almost entirely on close-up human skin.
+
+| substrate | ok | empty | refusal rate |
+|---|---|---|---|
+| cheek macro | 1 | 5 | **83%** |
+| forehead | 1 | 4 | **80%** |
+| culture plate | 1 | 4 | 80% |
+| cheek (clinical) | 2 | 4 | 67% |
+| face (clinical) | 2 | 3 | 60% |
+| isolated skin swatch | 3 | 3 | 50% |
+| jawline/chin | 4 | 3 | 43% |
+| … | | | |
+| wax moulage, textbook plate, specimen jar, silicone model, prosthetic limb, face frontal, dermatoscope, chest/trunk, bioengineered construct, anatomical diagram | 4–8 each | **0** | **0%** |
+
+Ten substrates have a zero refusal rate and every one of them is either an artificial
+depiction (moulage, silicone, textbook plate, diagram, prosthetic) or a non-close-up view
+(frontal portrait, chest, dermatoscope field). The high-refusal substrates are close-up
+photographic human facial skin.
+
+**The refusals concentrate exactly where clinical utility is highest.** ACNE04 is close-up
+half-face photography; the substrates nearest the validation domain are the ones the
+generator is most reluctant to produce. A wide-domain pool will therefore be systematically
+depleted in precisely the region where transfer to real clinical images should be best —
+which is a confound for the substrate ablation, not merely an inconvenience, since substrate
+availability now correlates with domain proximity.
+
+Stated with its caveat: n is 3–10 per substrate and this is a preliminary read from 166
+attempts. It is recorded now because it changes what the stage-1 gate can conclude, and the
+gate should be re-checked against refusal rate before its substrate ranking is believed.
+
+### The retry economics this exposed
+
+An empty response is a content decision, not a transient fault, and it repeats. Retrying it
+six times spends six requests of a rate-limited quota to fail six times — and those wasted
+requests are themselves what provokes the next 429. At a 45% overall failure rate the pool
+was spending most of its quota on prompts that were never going to succeed.
+
+`GeminiConfig` now separates the two: `max_attempts = 6` for rate limits, which are bursty
+and worth waiting out, and `max_empty_attempts = 2` for content refusals, which are not.
+Failed prompts are retried on the next run anyway, since `generate_many` skips existing
+files and re-attempts everything else.

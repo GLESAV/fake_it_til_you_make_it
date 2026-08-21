@@ -45,9 +45,16 @@ class GeminiConfig:
     project: str | None = None
     location: str = "global"
     use_vertex: bool = True
-    #: Attempts per prompt before giving up on it. Empty responses are common enough that
-    #: one retry is the difference between a complete pool and a ragged one.
+    #: Attempts per prompt when the failure is a rate limit. Worth retrying: the limit is
+    #: bursty rather than absolute, and a prompt that 429s now succeeds later.
     max_attempts: int = 6
+    #: Attempts when the model returns no image at all. Kept much lower on purpose. An
+    #: empty response is a content decision, not a transient fault, and it repeats: on the
+    #: wide-domain pool the empty rate is 83% for close-up cheek macros and 0% for wax
+    #: moulages and textbook plates, which is a property of the prompt rather than of the
+    #: moment. Retrying those six times spends six requests of a rate-limited quota to
+    #: fail six times, and those wasted requests are themselves what provokes the next 429.
+    max_empty_attempts: int = 2
     #: Seconds to wait after a failure, doubled each attempt.
     backoff: float = 2.0
     #: Separate, much longer backoff for 429s. A rate limit is not a transient error and
@@ -120,6 +127,7 @@ def generate_one(client, prompt: str, config: GeminiConfig) -> GeminiResult:
     model = config.model
     tried_fallback = False
 
+    empty_count = 0
     for attempt in range(1, config.max_attempts + 1):
         try:
             response = client.models.generate_content(
@@ -143,6 +151,9 @@ def generate_one(client, prompt: str, config: GeminiConfig) -> GeminiResult:
                         )
                 last_reason = str(getattr(candidate, "finish_reason", None) or "no image part")
             rate_limited = False
+            empty_count += 1
+            if empty_count >= config.max_empty_attempts:
+                break
         except Exception as exc:  # noqa: BLE001 - retried, then reported
             last_reason = f"{type(exc).__name__}: {exc}"[:200]
             rate_limited = "RESOURCE_EXHAUSTED" in str(exc) or "429" in str(exc)
