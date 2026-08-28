@@ -16,19 +16,19 @@ Verification pass 1 run 2026-08-19 on an unrestricted network (local M4 Max sess
 
 | # | Source | Why it matters | Status | Verified by / date |
 |---|---|---|---|---|
-| 1 | **Zein** et al. 2024, PLOS ONE 19(4):e0297958 (arXiv:2211.04214) | The 97.6% synthetic-trained / real-tested acne claim. | **[V]** — with major corrections, see §4.1 | local session, 2026-08-19 |
-| 2 | Akrout et al. 2023 (arXiv:2301.04802) | Closest medical analogue to our fully-synthetic arm. | **[V]** — full results table read | local session, 2026-08-19 |
-| 3 | Wang et al. 2025 (arXiv:2508.09550) | Exchange-rate methodology, closed-/open-set distinction. | **[V]** | local session, 2026-08-19 |
+| 1 | **Zein** et al. 2024, PLOS ONE 19(4):e0297958 (arXiv:2211.04214), `zein2024` | The 97.6% synthetic-trained / real-tested acne claim. | **[V]** — with major corrections, see §4.1 | local session, 2026-08-19 |
+| 2 | Akrout et al. 2023 (arXiv:2301.04802), `akrout2023` | Closest medical analogue to our fully-synthetic arm. | **[V]** — full results table read | local session, 2026-08-19 |
+| 3 | Wang et al. 2025 (arXiv:2508.09550), `wang2025` | Exchange-rate methodology, closed-/open-set distinction. | **[V]** | local session, 2026-08-19 |
 | 4 | Fan et al. 2024 (arXiv:2312.04567), `fan2024` | Guidance-scale and scaling protocol. | **[V]** — CFG values confirmed in pass 1; the CVPR 2024 acceptance it could not confirm is now confirmed, doi `10.1109/CVPR52733.2024.00705`, pp. 7382–7392 | local session, 2026-08-19; venue 2026-08-28 |
-| 5 | Wu et al. 2019, ICCV | ACNE04 splits, Hayashi mapping, image count. | **[V]** — via secondary full texts; thecvf.com returns 403 to our fetcher, see note below | local session, 2026-08-19 |
-| 6 | Sariyildiz et al. 2023, CVPR | Prompt strategy; how much of the gap closed. | **[V]** — Table 1 read; in-domain gap is 33 points and guidance 7.5→2.0 is worth 16.7 | local session, 2026-08-19 |
-| 7 | Ktena et al. 2024, Nature Medicine | Fairness protocol; volume/pages. | **[V]** — Nat Med **30**, 1166–1173 (2024) confirmed | local session, 2026-08-19 |
-| 8 | Retracted acne-GAN paper (doi:10.3390/biomedinformatics4020059) | Whether anything adjacent is safe to cite. | **[V]** — reason obtained, see §4.1 | local session, 2026-08-19 |
+| 5 | Wu et al. 2019, ICCV, `wu2019` | ACNE04 splits, Hayashi mapping, image count. | **[V]** — via secondary full texts; thecvf.com returns 403 to our fetcher, see note below | local session, 2026-08-19 |
+| 6 | Sariyildiz et al. 2023, CVPR, `sariyildiz2023` | Prompt strategy; how much of the gap closed. | **[V]** — Table 1 read; in-domain gap is 33 points and guidance 7.5→2.0 is worth 16.7 | local session, 2026-08-19 |
+| 7 | Ktena et al. 2024, Nature Medicine, `ktena2024` | Fairness protocol; volume/pages. | **[V]** — Nat Med **30**, 1166–1173 (2024) confirmed | local session, 2026-08-19 |
+| 8 | Retracted acne-GAN paper (doi:10.3390/biomedinformatics4020059), `sankar2024retracted` | Whether anything adjacent is safe to cite. | **[V]** — reason obtained, see §4.1 | local session, 2026-08-19 |
 | 9 | Published ACNE04 severity baselines | Our real-only arm should land near this. | **[V]** — but the band is 83.7–87.3% and it is **plain accuracy on an imbalanced test set**, not balanced accuracy | local session, 2026-08-19 |
 | 10 | Carlini et al. 2023 / Somepalli et al. 2023 | The replication prior our memorisation audit compares against. | **[V] for Somepalli** (1.88%, lower bound); **[S] for Carlini** (rate not extracted) | local session, 2026-08-19 |
-| 11 | Shumailov et al. 2024, Nature | Volume and page numbers. | **[V]** — Nature **631**, 755–759 (2024) confirmed | local session, 2026-08-19 |
-| 12 | "When Pretty Isn't Useful" (arXiv:2602.19946) | Author list was entirely unverified. | **[V]** — paper is real, authors resolved, CVPR 2026 | local session, 2026-08-19 |
-| 13 | Representation-conditioned generation (arXiv:2605.27495) | Claimed synthetic > real at 3× scale. | **[V]** — paper is real, authors resolved; claimed margin is **+2.0 pp**, not "3× scale" as previously written | local session, 2026-08-19 |
+| 11 | Shumailov et al. 2024, Nature, `shumailov2024` | Volume and page numbers. | **[V]** — Nature **631**, 755–759 (2024) confirmed | local session, 2026-08-19 |
+| 12 | "When Pretty Isn't Useful" (arXiv:2602.19946), `prettynotuseful2026` | Author list was entirely unverified. | **[V]** — paper is real, authors resolved, CVPR 2026 | local session, 2026-08-19 |
+| 13 | Representation-conditioned generation (arXiv:2605.27495), `repcond2026` | Claimed synthetic > real at 3× scale. | **[V]** — paper is real, authors resolved; claimed margin is **+2.0 pp**, not "3× scale" as previously written | local session, 2026-08-19 |
 
 ### Verification pass 2 — run 2026-08-28, the six `refs.bib` entries left unverified
 
@@ -161,6 +161,18 @@ Title and all nine authors match. Every claim the manuscript draws is present:
   for text-to-image, *"with none meeting significance thresholds after adjusting for
   multiple testing."* Every interval spans zero. **[V]**
 
+#### 8. The retraction, verified at source rather than through search indexing
+
+Pass 1 marked this `[V]` but could only reach it through search indexing of the notice
+text, because mdpi.com refuses our fetcher. Crossref holds both records and settles the
+formal facts: the article is BioMedInformatics **4**(2) 1059–1070, 9 April 2024, the
+notice is **4**(3) 1901, 12 August 2024, and the notice's `update-to` field formally
+records it as a retraction of the article. Both six-author lists match the bib entry —
+with one wrinkle worth keeping, that Crossref gives the article's fourth author as
+"Mohammad Hesamian" and the notice's as "Mohammad Hesam Hesamian"; the entry follows the
+notice. The *reason* for retraction is still from search indexing: Europe PMC does not
+hold the notice either, so that one sentence remains the only unread part of the entry.
+
 ### Note on host access
 
 Two hosts refused our fetcher during this pass and their claims lean on secondary
@@ -205,10 +217,12 @@ Everything else was read in full text or in the arXiv HTML rendering.
     a new `printing-note` rule now fails on any `note` field containing a verification
     marker.
 
-11. **Rows 1–13 name papers in prose, not bib keys.** `make publication-gate` can only
-    cross-check a row against `refs.bib` when the row names the key in backticks, so those
-    thirteen rows are outside the drift check. Adding the key to each is mechanical and
-    would put the whole checklist under it. Row 4 is done as the worked example.
+11. ~~**Rows 1–13 name papers in prose, not bib keys.**~~ **Done 2026-08-28.** Eleven of
+    the thirteen now carry their `refs.bib` key and are cross-checked by
+    `make publication-gate`. Two cannot be: row 9 is a band assembled from four separate
+    entries (`lds2024`, `kieglfn2022`, `ffpll2025`, `acneai2024`) rather than one source,
+    and row 10 is `[V]` for Somepalli and `[S]` for Carlini, so it is not a verified row.
+    Wiring row 8 up required verifying it properly first — see below.
 
 ## Procedure
 
