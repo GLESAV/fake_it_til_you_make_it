@@ -206,17 +206,20 @@ Run before any preprint, submission, or release. Mechanical checks first:
 make publication-gate
 ```
 
-That covers: no `\RESULT{}` / `\TODO{}` placeholders; every `\cite` key resolves; no cited
-entry carries an unverified marker; every source `docs/VERIFY.md` marks `[V]` says so in
-its `refs.bib` entry too; verification provenance sits in `annote` rather than the `note`
-field `plainnat` prints; `LICENSE` exists and names a holder; the README's
-verification-status claim and its count of verified sources are not stale.
+That covers: no `\RESULT{}` / `\TODO{}` placeholders; every `\cite` key resolves; every
+`\ref` resolves to a `\label`; no cited entry carries an unverified marker; every source
+`docs/VERIFY.md` marks `[V]` says so in its `refs.bib` entry too; verification provenance
+sits in `annote` rather than the `note` field `plainnat` prints; `LICENSE` exists and names
+a holder; the README's verification-status claim and its count of verified sources are not
+stale.
 
-Four of those seven rules were added after the check they encode failed to catch something
-in this repository — a gate whose pattern missed the marker it existed to catch, a README
-count that went stale within one verification pass, a source verified in one file and not
-the other, and two pages of provenance notes rendering into the manuscript's bibliography.
-None of them is hypothetical either.
+Five of those eight rules were added after the thing they check had already gone wrong
+here — a pattern that missed the marker it existed to catch, a README count that went
+stale within one verification pass, a source verified in one file and not the other, two
+pages of provenance notes rendering into the manuscript's bibliography, and a dangling
+cross-reference that compiled cleanly and printed as `??`. None of them is hypothetical
+either. The rule that follows: **when a check misses something, the fix is the check and
+not just the instance.**
 
 Everything below needs a person:
 

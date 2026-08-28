@@ -73,6 +73,24 @@ def check_placeholders(tex: Path, body: str) -> None:
         fail("placeholder", f"{rel(tex)}:{n}: {ln[:90]}")
 
 
+def check_crossrefs(tex: Path, body: str) -> None:
+    """Every \\ref resolves to a \\label in the same file.
+
+    A dangling cross-reference renders as "??" and does not stop the build, so it survives
+    a clean compile and reaches a reader. One did: a section reference added while writing
+    up protocol 8.6 pointed at a label this manuscript does not define.
+    """
+    labels = set(re.findall(r"\\label\{([^}]*)\}", body))
+    for n, line in enumerate(body.splitlines(), 1):
+        if line.lstrip().startswith("%"):
+            continue
+        for m in re.finditer(r"\\(?:page)?ref\{([^}]*)\}", line):
+            if m.group(1) not in labels:
+                fail("dangling-ref",
+                     f"{rel(tex)}:{n}: \\ref{{{m.group(1)}}} has no matching \\label "
+                     f"-- it renders as ??")
+
+
 def check_citations(tex: Path, body: str, entries: dict[str, str]) -> None:
     """R1: every cited key resolves, and every cited entry is verified."""
     cited: dict[str, int] = {}
@@ -198,6 +216,7 @@ def main() -> int:
     for tex in targets:
         body = tex.read_text()
         check_placeholders(tex, body)
+        check_crossrefs(tex, body)
         check_citations(tex, body, entries)
 
     check_licence()

@@ -495,9 +495,10 @@ cut within class so every stratum keeps the split's composition --- the syntheti
 advantage is $+0.057$ on borderline cases and $+0.127$ in the middle, and it \emph{loses},
 at $-0.071$, on the unambiguous ones. A prototype-trained model should do the opposite.
 
-The third check is not available to us: none of the external sets named in
-\S\ref{sec:data} has been obtained with severity labels on this scale, so transfer is
-untested and the criterion is not discharged. We therefore do not report the inversion as
+The third check is not available to us: none of our candidate external sets --- AcneSCU,
+the deduplicated acne subset of Fitzpatrick17k, the acne subset of SCIN --- has been
+obtained with severity labels on this scale, so transfer is untested and the criterion is
+not discharged. We therefore do not report the inversion as
 a win. What we report is narrower: the mechanism this check exists to detect is not the
 one operating here.
 
