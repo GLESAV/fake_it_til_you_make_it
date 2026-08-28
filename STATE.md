@@ -104,9 +104,11 @@ balanced accuracy is 4.3 points, and +1.65 sits well below it.
    clinical utility is highest"). The 240 target was set against a cost and a wall-clock,
    not against this threshold. Two options, and the choice is a human's:
    (a) decide stage 1 on the pooled and person / no-person rows alone and let the
-   per-substrate ranking wait for stage 2's 650 images; or (b) extend stage 1 to ~600
-   images, roughly $14 and ten more hours at the current rate. The script now prints the
-   shortfall rather than an empty table.
+   per-substrate ranking wait for stage 2's 650 images; or (b) extend stage 1 until the
+   criterion is evaluable. Option (b) is now priced from measured per-substrate yields
+   rather than guessed: **562 more prompts, about 437 more images, roughly 15 hours and
+   $17** — inside stage 2's own $25 budget. `scripts/refusal_by_substrate.py`. The gate
+   script prints the shortfall rather than an empty table.
 
    **Disclosed interim look, 2026-08-28 at 175 images.** The gate script was dry-run to
    confirm it executes before the watcher fires it, which means the interim numbers have

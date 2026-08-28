@@ -876,6 +876,41 @@ Stated with its caveat: n is 3–10 per substrate and this is a preliminary read
 attempts. It is recorded now because it changes what the stage-1 gate can conclude, and the
 gate should be re-checked against refusal rate before its substrate ranking is believed.
 
+#### Update 2026-08-28: measured, at 216 images and 270 distinct prompts
+
+`scripts/refusal_by_substrate.py` makes this repeatable. One outcome per prompt rather than
+per manifest record — several prompts have been retried across runs — and rate limits are
+excluded from the denominator, since a 429 says nothing about whether a prompt is
+renderable. The gradient is not subtle:
+
+| yield | substrates |
+|---|---|
+| **100%** | bioengineered construct, prosthetic limb, dermatoscope, anatomical diagram, specimen jar, macro + scale bar |
+| **92–95%** | wax moulage, silicone model, textbook plate, flatbed scan |
+| **79–86%** | chest/trunk, back/shoulders, pinned section |
+| **60–70%** | Petri dish, face (clinical), excised specimen, face frontal, 3D render, jawline/chin, culture plate |
+| **27–50%** | cheek (clinical) 50%, isolated skin swatch 45%, forehead 43%, **cheek macro 27%** |
+
+Mean yield is **85% across the 16 substrates with no person in them and 60% across the
+eight that need one**. Every substrate at 100% is an artificial object; every substrate
+below 50% is a close-up of human skin. The single worst is the cheek macro — which is the
+framing ACNE04 itself uses.
+
+Two consequences, and they pull in different directions.
+
+**For the substrate ablation, this is a confound and not an inconvenience.** Substrate
+availability correlates with distance from the validation domain, so a per-substrate
+ranking is partly a ranking of how easily each substrate could be produced. Any comparison
+across substrates has to carry its n and its refusal rate alongside its Scope.
+
+**For the stage-1 gate, it prices the shortfall.** The kill criterion is stated per
+substrate and `substrate_fidelity.py` will not score one below 24 images; at the gate's
+240-image threshold no substrate is close, and 24 substrates × 24 images needs ~576 even
+balanced. From the measured yields, bringing every producing substrate to 24 takes **562
+more prompts, about 437 more images, roughly 15 hours and $17** — well inside stage 2's
+$25 budget. That is the price of evaluating the criterion as written rather than
+substituting a pooled one for it.
+
 ### The retry economics this exposed
 
 An empty response is a content decision, not a transient fault, and it repeats. Retrying it
