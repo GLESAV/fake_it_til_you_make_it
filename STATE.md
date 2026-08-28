@@ -33,13 +33,22 @@ The 10-seed run is finished; `results/tenseed_final.json` is the record.
 Do not resume the old `generate_coverage_pool.py`; `gemini_pool` is deliberately frozen so
 the 10-seed run trains on a fixed snapshot.
 
-**The wide pool is not currently growing.** Restarted 2026-08-28 after a week idle; in the
-first hour every completed prompt came back `no candidates`, including substrates that
-previously had a 0% empty rate. Those are the 32 prompts the resume re-attempts first, so
-it is not yet evidence of a policy change at the backend — but if the pool is still at 92
-after the queue clears, the wide-domain arm is blocked on generation and not on analysis,
-and the kill criterion in "Open" item 1 should be applied on that basis rather than on a
-fidelity result that will never arrive.
+**The wide pool is throttled, not refused, and that is now measured rather than assumed.**
+A single-request replay on 2026-08-28 of three prompts that had previously produced images
+returned one image in 7.0 seconds and two 429s — the 429s because the running job was
+consuming the quota at the same moment. There is no policy change at the backend.
+
+The stall was self-inflicted. Resuming re-attempts every prompt with no PNG on disk, so the
+run spent 45 minutes and its whole quota re-earning 21 refusals it had already recorded, at
+a median of 261 seconds each, for zero images. The filter meant to prevent that counted the
+wrong thing (see `6d81a6b`) and now skips 23 of the 34 never-successful prompts.
+
+**The rate is the open question.** 63 images/hour was measured in August; at that rate the
+148 images still needed for the stage-1 gate is a little over two hours. If the pool is
+still near 92 after a few hours of fresh prompts, the constraint is project quota, and the
+options are to raise it, to move to the AI Studio route with a `GEMINI_API_KEY`, or to
+apply the kill criterion in "Open" item 1 on the grounds that the arm is unaffordable
+rather than on a fidelity result that will never arrive.
 
 ## The headline result, as it stands
 
