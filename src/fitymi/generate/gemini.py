@@ -166,8 +166,14 @@ def generate_one(client, prompt: str, config: GeminiConfig) -> GeminiResult:
             # come back at the same instant and trigger the limit again.
             time.sleep(base * (2 ** (attempt - 1)) * (0.75 + 0.5 * random.random()))
 
+    # `attempt` and not `config.max_attempts`. Reporting the cap here was wrong and it
+    # was wrong in the direction that hides work: the empty-response path breaks out at
+    # `max_empty_attempts` (2), so every content refusal in the manifest was recorded as
+    # having cost 6 requests when it cost 2. That made the manifest's request accounting
+    # an overcount and, worse, made the cap itself unverifiable from the artefact -- you
+    # could not tell from the record whether it was in force.
     return GeminiResult(image_bytes=None, model=config.model,
-                        attempts=config.max_attempts, seconds=time.time() - started,
+                        attempts=attempt, seconds=time.time() - started,
                         blocked_reason=last_reason)
 
 

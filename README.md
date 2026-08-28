@@ -185,9 +185,12 @@ fresh clone, not the directory the code was written in.
 Every claim in `docs/01_related_work.md` carries a `[V]`/`[S]`/`[?]` verification tag.
 They began life entirely at `[S]` — sourced from search summaries, because the authoring
 environment blocked every publisher host. Two verification passes on an open network have
-since promoted 14 sources to `[V]`; `docs/VERIFY.md` tracks what is left, and six
-`refs.bib` entries still carry `NOT INDEPENDENTLY VERIFIED`. Nothing goes into the
-manuscript at `[S]`, and `make publication-gate` enforces it.
+since promoted **20 sources to `[V]`**, and no `refs.bib` entry is marked unverified any
+longer. That was not a formality: four bibliography defects have now been found in this
+project's own record — two fabricated author lists, one citation to a paper that does not
+exist, one entry that conflated two real papers by overlapping authors, and one whose
+title and four of seven given names were invented. `docs/VERIFY.md` tracks what is left.
+Nothing goes into the manuscript at `[S]`, and `make publication-gate` enforces it.
 
 ## Licence
 

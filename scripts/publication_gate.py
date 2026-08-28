@@ -99,8 +99,14 @@ def check_licence() -> None:
         fail("licence", "README promises LICENSE (MIT) but no such file exists")
         return
     text = lic.read_text()
-    if re.search(r"<[A-Z ]+>|COPYRIGHT HOLDER|TODO|FIXME", text):
-        fail("licence", "LICENSE still contains a placeholder copyright holder")
+    # Only the copyright line, never the body: the MIT warranty clause legitimately
+    # contains the words "COPYRIGHT HOLDERS", which the first version of this check
+    # flagged as a placeholder in a licence that had already been filled in.
+    holder = re.search(r"^Copyright \(c\).*$", text, re.M)
+    if not holder:
+        fail("licence", "LICENSE has no 'Copyright (c) <year> <holder>' line")
+    elif re.search(r"<.+>|COPYRIGHT HOLDER|TODO|FIXME", holder.group(0)):
+        fail("licence", f"LICENSE copyright line is a placeholder: {holder.group(0)}")
 
 
 def check_readme_staleness() -> None:
@@ -112,6 +118,13 @@ def check_readme_staleness() -> None:
     if claims_all_s and n_verified:
         fail("stale-readme",
              f"README says every claim is [S], but VERIFY.md records {n_verified} at [V]")
+    # The README quotes the count as a number, and a number goes stale silently. It went
+    # stale within one verification pass of first being written.
+    quoted = re.search(r"promoted\s+\**(\d+)\**\s+sources", readme)
+    if quoted and int(quoted.group(1)) != n_verified:
+        fail("stale-readme",
+             f"README claims {quoted.group(1)} sources at [V]; VERIFY.md records "
+             f"{n_verified}")
 
 
 def check_bib_health(entries: dict[str, str]) -> None:

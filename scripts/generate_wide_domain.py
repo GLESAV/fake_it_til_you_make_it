@@ -178,6 +178,43 @@ def build_prompts(total: int, seed: int = 0) -> list[tuple[str, str, dict]]:
     return out
 
 
+#: A prompt the model has refused this many times, every time with an empty response and
+#: never with a rate limit, is not going to be granted on the next run either. The backend
+#: module documents why -- an empty response is a content decision, not a transient fault,
+#: and its rate is a property of the prompt (83% for close-up cheek macros, 0% for wax
+#: moulages) rather than of the moment. Resuming re-attempts every prompt with no PNG on
+#: disk, so without this the run spends its first half-hour of a rate-limited quota
+#: re-earning refusals it has already recorded, and those wasted requests are themselves
+#: what provokes the next 429.
+REFUSAL_ATTEMPTS_BEFORE_SKIP = 2
+
+
+def persistently_refused(manifest: Path) -> set[str]:
+    """Names whose every recorded attempt came back empty, never rate-limited.
+
+    Rate-limited prompts are deliberately NOT skipped: a 429 says nothing about the
+    prompt. The refusals stay in the manifest either way, so the per-substrate refusal
+    rate that scripts/substrate_fidelity.py reads is unaffected by this.
+    """
+    if not manifest.exists():
+        return set()
+    history: dict[str, list[str | None]] = {}
+    for line in manifest.read_text().splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        if record.get("path"):
+            history.pop(record["name"], None)  # it succeeded once; never skip it
+            continue
+        history.setdefault(record["name"], []).append(record.get("blocked_reason"))
+    return {
+        name for name, reasons in history.items()
+        if len(reasons) >= REFUSAL_ATTEMPTS_BEFORE_SKIP
+        and all("no candidates" in (r or "") or "no image part" in (r or "")
+                for r in reasons)
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=6000)
@@ -207,9 +244,15 @@ def main() -> None:
 
     config = GeminiConfig(project="watchmen-4d5b1", concurrency=args.concurrency)
     manifest = out / "manifest.jsonl"
+    refused = persistently_refused(manifest)
+    if refused:
+        print(f"skipping {len(refused)} prompt(s) the model has refused "
+              f"{REFUSAL_ATTEMPTS_BEFORE_SKIP}+ times with no rate limit in between",
+              flush=True)
+    queue = [(n, p) for n, p, _ in prompts if n not in refused]
     started, done, failed = time.time(), 0, 0
     with manifest.open("a") as handle:
-        for record in generate_many([(n, p) for n, p, _ in prompts], out, config):
+        for record in generate_many(queue, out, config):
             record["meta"] = {m_name: m for m_name, _, m in prompts if m_name == record["name"]}
             handle.write(json.dumps(record) + "\n")
             handle.flush()

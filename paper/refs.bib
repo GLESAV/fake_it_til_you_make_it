@@ -385,18 +385,21 @@
              Kalinin's own result. Do not reuse the table as a source for other rows.}
 }
 
+
 @article{tschandl2018,
   title   = {The {HAM10000} dataset, a large collection of multi-source dermatoscopic
              images of common pigmented skin lesions},
   author  = {Tschandl, Philipp and Rosendahl, Cliff and Kittler, Harald},
   journal = {Scientific Data},
   volume  = {5},
+  number  = {1},
   pages   = {180161},
   year    = {2018},
   doi     = {10.1038/sdata.2018.161},
-  note    = {Cited in prose in the audit manuscript with no bib entry until now.
-             METADATA NOT INDEPENDENTLY VERIFIED in this pass -- confirm before
-             submission.}
+  note    = {VERIFIED 2026-08-28 against the Crossref record for the DOI: title, all
+             three authors, journal, volume 5, article number 180161 and the 2018-08-14
+             issue date match exactly. Cited in prose in the audit manuscript for the
+             dataset only.}
 }
 
 @inproceedings{bencevic2025,
@@ -435,19 +438,28 @@
              INDEPENDENTLY VERIFIED -- confirm before submission.}
 }
 
+
 @article{howard2021,
   title   = {Reliability and Validity of Image-Based and Self-Reported Skin Phenotype
              Metrics},
   author  = {Howard, John J. and Sirotin, Yevgeniy B. and Tipton, Jerry L. and
              Vemury, Arun R.},
   journal = {IEEE Transactions on Biometrics, Behavior, and Identity Science},
+  volume  = {3},
+  number  = {4},
+  pages   = {550--560},
   year    = {2021},
-  note    = {arXiv:2106.11240. Image-derived skin lightness against a calibrated
-             colorimeter: rho 0.45 uncontrolled, 0.78 controlling for device, 0.92 with a
-             single device plus grey-background correction. Shows by modelling that noisy
-             lightness estimates cause race to be erroneously selected as the correlate of
-             biometric performance -- the failure mode this work demonstrates empirically
-             in dermatology. AUTHOR LIST NOT INDEPENDENTLY VERIFIED.}
+  doi     = {10.1109/TBIOM.2021.3123550},
+  note    = {arXiv:2106.11240. VERIFIED 2026-08-28: title and the four-author list read
+             from the arXiv abstract record for 2106.11240 (submitted 2021-06-18) and the
+             journal of record, volume, issue and page range from the Crossref entry for
+             the DOI. Image-derived skin lightness against a calibrated colorimeter:
+             rho 0.45 uncontrolled, 0.78 controlling for device, 0.92 with a single device
+             plus grey-background correction. Shows by modelling that noisy lightness
+             estimates cause race to be erroneously selected as the correlate of biometric
+             performance -- the failure mode this work demonstrates empirically in
+             dermatology. Those three correlations are from the abstract summary and the
+             full text has not been read; docs/VERIFY.md carries the open item.}
 }
 
 @article{weir2025,
@@ -478,9 +490,10 @@
                INDEPENDENTLY VERIFIED -- confirm before submission.}
 }
 
+
 @article{schaudt2023,
-  title   = {Augmentation Strategies for an Imbalanced Learning Problem on a Novel
-             {COVID-19} Severity Dataset},
+  title   = {A Critical Assessment of Generative Models for Synthetic Data Augmentation
+             on Limited Pneumonia {X}-ray Data},
   author  = {Schaudt, Daniel and Sp{\"a}te, Christian and von Schwerin, Reinhold and
              Reichert, Manfred and von Schwerin, Marianne and Beer, Meinrad and
              Kloth, Christopher},
@@ -490,9 +503,20 @@
   pages   = {1421},
   year    = {2023},
   doi     = {10.3390/bioengineering10121421},
-  note    = {Five seeds throughout. States that synthetic images help the less frequent
-             classes via rebalancing, with an oversampling control whose baseline collapses
-             one class to F1 = 0.0000. TITLE AND AUTHOR LIST NOT INDEPENDENTLY VERIFIED.}
+  note    = {VERIFIED 2026-08-28 against the full text at PMC10741143. The title in this
+             entry was WRONG until that date: it read ``Augmentation Strategies for an
+             Imbalanced Learning Problem on a Novel COVID-19 Severity Dataset'', which is
+             a different, real paper by an overlapping author group (Scientific Reports
+             13, 2023, doi 10.1038/s41598-023-45532-2) and is about classical
+             augmentation, not generative models. The DOI, journal, volume, issue, page
+             and the seven-author list were correct and belong to this paper. Both claims
+             this project draws are in the verified text: ``All classification model
+             trainings have been repeated 5 times with a different seed'' (Section 3.4),
+             and the random-oversampling reference arm scores precision and recall of
+             0.0000 +/- 0.0000 on the bacterial class in Table 9 -- ``completely misses
+             the bacterial cases'' -- against which the generative arms are compared
+             without subtraction. Their own stated limitation: prolonged generator
+             training time prohibited cross-validation, so this is one split.}
 }
 
 @article{moroianu2025,
@@ -546,16 +570,27 @@
              INDEPENDENTLY VERIFIED.}
 }
 
+
 @article{shen2020,
   title   = {{InterFaceGAN}: Interpreting the Disentangled Face Representation Learned
              by {GAN}s},
   author  = {Shen, Yujun and Yang, Ceyuan and Tang, Xiaoou and Zhou, Bolei},
   journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
-  year    = {2020},
-  note    = {arXiv:2005.09635. Introduces the re-scoring protocol: predict the attribute of
-             a manipulated image with an independent classifier to verify the manipulation.
-             AUTHOR LIST NOT INDEPENDENTLY VERIFIED.}
+  volume  = {44},
+  number  = {4},
+  pages   = {2004--2018},
+  year    = {2022},
+  doi     = {10.1109/TPAMI.2020.3034267},
+  note    = {arXiv:2005.09635. VERIFIED 2026-08-28: title and the four-author list read
+             from the arXiv abstract record for 2005.09635 (submitted 2020-05-18) and the
+             journal of record, volume 44, issue 4 and page range from the Crossref entry
+             for the DOI. The citation key retains 2020 for the preprint year; the issue
+             of record is April 2022. Introduces the re-scoring protocol: predict the
+             attribute of a manipulated image with an independent classifier to verify the
+             manipulation. That characterisation is from the abstract; the full text has
+             not been read.}
 }
+
 
 @inproceedings{monteiro2023,
   title     = {Measuring axiomatic soundness of counterfactual image models},
@@ -563,28 +598,42 @@
                Castro, Daniel C. and Glocker, Ben},
   booktitle = {International Conference on Learning Representations (ICLR)},
   year      = {2023},
-  note      = {arXiv:2303.01274. Formalises composition, reversibility and effectiveness;
-               effectiveness is the property that an independent predictor recovers the
-               intervened value. AUTHOR LIST NOT INDEPENDENTLY VERIFIED.}
+  note      = {arXiv:2303.01274. VERIFIED 2026-08-28: title and the five-author list read
+               from the arXiv abstract record for 2303.01274, whose journal reference
+               field confirms the venue as ``The Eleventh International Conference on
+               Learning Representations, ICLR 2023''. Formalises composition, reversibility
+               and effectiveness; effectiveness is the property that an independent
+               predictor recovers the intervened value. That characterisation is from the
+               abstract; the full text has not been read.}
 }
 
+
 @inproceedings{acnedit2025,
-  title     = {{ACNEDIT}: Controllable Acne Severity Editing for Dataset Rebalancing},
-  author    = {Piat, Guillaume and Gazeau, L{\'e}a and Nguyen, Thanh and Ajem, Adel and
-               Gilibert, Alexandre and Nguyen, Zung and Nguyen, Hang},
+  title     = {{ACNEDIT}: Acne Creation and Non-Destructive Editing with Dynamic Intensity
+               Tuning Using Deep Learning on Facial Images for Dermatological Application},
+  author    = {Piat, Gauthier and Gazeau, L{\'e}a and Nguyen, Thang and Ajem, Marwan and
+               Gilibert, Pierre and Nguyen, Zung and Nguyen, Hang},
   booktitle = {Deep Generative Models (DGM4MICCAI 2025), MICCAI Workshop},
   series    = {Lecture Notes in Computer Science},
   volume    = {16128},
+  pages     = {99--108},
   year      = {2025},
   publisher = {Springer},
   doi       = {10.1007/978-3-032-05472-2_10},
-  note      = {Release at github.com/AIpourlapeau/ACNEDIT. Generates 218 severe and 271
-               very-severe images to raise ACNE04's two scarce classes from 182 and 129 to
-               400 each -- the same dataset, the same two classes and the same intervention
-               as this work's tail-augmentation arm. Evaluated by a user study (59.2\% of
-               synthesised images taken for unaltered) and downstream segmentation (+7.85\%
-               IoU, +8.56\% Dice); no independent severity grader, no synthetic-only arm and
-               no rebalancing control. A lesion-compositing GAN rather than a prompted
-               text-to-image model. TITLE AND AUTHOR LIST NOT INDEPENDENTLY VERIFIED --
-               Springer is paywalled and no preprint exists; confirm before submission.}
+  note      = {VERIFIED 2026-08-28 from three independent records -- Crossref for the DOI,
+               the DBLP entry conf/miccai/PiatGNAGNN25, and the Semantic Scholar record --
+               plus the authors' own release at github.com/AIpourlapeau/ACNEDIT. Title,
+               all seven author names, series, volume 16128 and pages 99--108 agree across
+               all three. Both the title and four of the seven given names in this entry
+               were WRONG until that date. The release README states the intervention
+               exactly: severe 182 + 218 generated = 400, very-severe 129 + 271 generated
+               = 400, mild 513 and moderate 633 untouched -- the same dataset, the same two
+               scarce classes and the same intervention as this work's tail-augmentation
+               arm, and a 1,457-image ACNE04 that independently corroborates the count in
+               docs/05. It also states the method: a GAN lesion overlay refined by a
+               LaMa inpainting model trained on ACNE04, applied to real ACNE04 faces, so
+               every generated image is an edit of a real training image rather than a
+               sample from a learned distribution. Springer is paywalled and no preprint
+               exists, so the full text has not been read; the evaluation figures quoted in
+               search summaries are held in docs/VERIFY.md and are cited nowhere.}
 }
