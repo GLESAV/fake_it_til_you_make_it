@@ -99,8 +99,17 @@ balanced accuracy is 4.3 points, and +1.65 sits well below it.
    `VERIFIED <date>` note. `docs/VERIFY.md` item 9.
 3. Move the `VERIFIED` provenance notes from `note` to `annote` so they stop printing in
    the manuscript's bibliography. They cost `main.pdf` a page. `docs/VERIFY.md` item 10.
-4. Run the prototype-effect checks (protocol §8.6) on the classical arm's linear SVM, the
-   one head where synthetic beats real. Until then it is not reported as a win.
+4. **Done, and it rejects the prototype reading.** `scripts/prototype_effect.py`, 30 seeds:
+   the pool's within-grade scatter is 4.3× *higher* than the real split's and its
+   separability seven times worse, and the synthetic head's advantage is +0.057 on
+   borderline validation cases, +0.127 in the middle and **−0.071 on unambiguous ones** —
+   a prototype effect inside out. §8.6 is still not discharged: its third check needs an
+   external set with Hayashi grades and none has been acquired, so the inversion is still
+   not reported as a win. Open follow-up: a post-hoc ablation flips the sign by dropping
+   the 192 colour-histogram dimensions (+0.036 → −0.070), suggesting the real head is
+   leaning on a narrow colour prior. That is a causal claim on a nought-for-three record;
+   the manipulation that would test it is the deep arm's linear probe, which has not
+   been run.
 5. `main.tex` still holds 17 `\RESULT{}` / `\TODO{}` placeholders, which are the whole of
    what `make publication-gate` now blocks on.
 

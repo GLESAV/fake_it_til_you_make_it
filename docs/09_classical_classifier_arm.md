@@ -112,6 +112,103 @@ separate — a win that does not require the generator to have contributed anyth
 README design commitment 4 and protocol §8.6, this is not reported as a win until the
 prototype-effect checks are run.** They have not been run.
 
+### The linear SVM inversion is not a prototype effect
+
+Protocol §8.6 exists for exactly this case, and README design commitment 4 forbade
+reporting the inversion as a win until it had been run. It has now been run
+(`scripts/prototype_effect.py`, 30 seeds, output in `results/prototype_effect.json`), with
+both predictions written into the script before the run.
+
+**P1 — the synthetic pool should have *lower* within-grade scatter.** It has 4.3× *more*,
+in the same feature space the head sees, and its class separability is seven times worse:
+
+| | grade 0 | grade 1 | grade 2 | grade 3 | pooled | between/within |
+|---|---|---|---|---|---|---|
+| real train | 179.8 | 173.9 | 292.4 | 510.8 | 222.3 | **0.074** |
+| synthetic pool | 1152.9 | 928.0 | 931.0 | 787.4 | 949.8 | **0.011** |
+| ratio | 6.41 | 5.34 | 3.18 | 1.54 | 4.27 | — |
+
+**P1 fails, and in the opposite direction.** The pool is not a set of clean prototypes; it
+is far messier than ACNE04. Note the gradient: the excess is largest at grade 0 and almost
+gone by grade 3, which is the same shape as the compression finding seen from the other
+side — the generator's grades differ from each other less than the real ones do (§12.9)
+while each individual grade sprawls further.
+
+There is no contradiction between those two statements, and the feature blocks say where
+the sprawl lives:
+
+| block | dims | real | synthetic | ratio |
+|---|---|---|---|---|
+| colour histograms (RGB + HSV) | 192 | 183.4 | 859.0 | **4.68** |
+| Lab colour moments | 9 | 8.3 | 6.2 | **0.74** |
+| LBP texture | 28 | 25.8 | 76.1 | 2.95 |
+| Sobel edges | 5 | 4.7 | 5.9 | 1.25 |
+
+Almost all of it is colour histograms, which on a severity task are nuisance variation. That
+is what an open-set generator prompted across Fitzpatrick I–VI, five lighting conditions and
+several backdrops produces, measured against one cohort photographed under one protocol.
+**The generator compresses the clinically relevant axis and expands the irrelevant one.**
+
+**P2 — the advantage should concentrate on unambiguous cases.** It does the opposite.
+Validation images are ranked by inter-grade margin — distance to the nearest wrong class
+centroid minus distance to their own, both computed from the *real training split* so the
+stratification is not a property of either arm — and split into terciles *within class*, so
+every stratum keeps the split's class composition:
+
+| stratum | real | synthetic | synthetic − real |
+|---|---|---|---|
+| borderline | 0.351 | 0.407 | **+0.057** |
+| middle | 0.347 | 0.474 | **+0.127** |
+| unambiguous | 0.596 | 0.525 | **−0.071** |
+
+**P2 fails in reverse.** The synthetic-trained head wins on the hard cases and *loses* on the
+easy ones — the signature of a prototype effect turned inside out.
+
+*Sequencing, per R3:* the within-class stratification was adopted after seeing a globally
+ranked version, whose strata had class counts of [15, 42, 15, 1], [23, 43, 7, 0] and
+[34, 17, 4, 17] — one stratum with no grade-3 images at all and another with one, which
+makes balanced accuracy incomparable between them. The reason for the change was that
+confound and not the direction of the result; the global version is reported alongside in
+`results/prototype_effect.json`.
+
+**Conclusion.** Both runnable signatures of the prototype mechanism fail, one of them in
+reverse. §8.6's third check — does the win survive on the external validation set of §3.4 —
+**has not been run**, because none of AcneSCU, the deduplicated Fitzpatrick17k acne subset
+or the SCIN acne subset has been acquired with Hayashi grades. So §8.6 is *not discharged*
+and the inversion is still not reported as a win. What can be said is narrower and worth
+saying: the specific alternative explanation §8.6 exists to rule out has been ruled out.
+
+### Where the inversion does come from — a hypothesis, not a finding
+
+Both registered predictions failed, so the inversion needs an account. Check 1 supplies a
+candidate and it has a cheap first test: if the win lives in the colour histograms, removing
+them should remove it.
+
+| features | real | synthetic | synthetic − real |
+|---|---|---|---|
+| all 234 dims | 0.432 | 0.468 | **+0.036** |
+| colour histograms dropped (42 dims) | 0.479 | 0.409 | **−0.070** |
+
+The sign flips. The real arm *gains* 4.7 points from losing 192 of its 234 dimensions; the
+synthetic arm loses 5.9. The reading this suggests: ACNE04's training split is narrow in
+colour, a linear head fitted on it leans on colour that does not generalise even to the
+validation split, and a pool with four times the colour spread denies it that shortcut —
+which is worth most on the borderline cases where the shortcut misleads, and costs on the
+unambiguous ones where it happens to be right. That is consistent with every number above.
+
+**It is a hypothesis and it is labelled one.** This project's record on causal claims is
+nought for three (audit §15.1) and none of those three looked weaker than this at the point
+of proposal. What is missing is a manipulation: the prediction is that the deep arm, which
+learns its own features and can decline to use colour, should show a smaller inversion or
+none — and the deep arm's linear-probe equivalent has not been run.
+
+One thing the ablation is *not*: it is not the audit §15.2 situation. Dropping 192 named
+columns needs no verification that they are gone. The question worth asking of it is
+whether dropping colour closes the gap between the two corpora, and it does not — a head
+separates real from synthetic at 0.992 on all 234 dimensions and 0.985 on the 42 that
+remain. The pool is out of domain in texture and edges too, and colour is not what marks it
+as synthetic. So the sign flip is not the domain gap narrowing.
+
 ### The paired content effect is positive on every head — with a large caveat
 
 | head | effect | seed sd | t | p | seeds positive |
@@ -166,6 +263,7 @@ well below the same 4.3-point floor. That is an independent second argument for 
 ```bash
 python scripts/classical_baseline.py --features handcrafted --seeds 30
 python scripts/classical_baseline.py --features embedding   --seeds 30   # real arms only
+python scripts/prototype_effect.py --seeds 30                 # protocol §8.6, linsvm
 ```
 
 Features are cached to `data/features_handcrafted.npz` on first run (~75 s for 1,810

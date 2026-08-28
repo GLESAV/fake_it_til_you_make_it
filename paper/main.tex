@@ -466,7 +466,26 @@ It is a plausible mechanism for the 97.6\% reported by \citet{zein2024}, though 
 confounds listed in \S\ref{sec:intro} are a likelier explanation. Any arm
 exceeding the $p=0$ baseline is therefore checked against within-class embedding
 variance, test-set difficulty stratification, and transfer to the external validation
-set before being reported as a win. \RESULT{outcome of these checks}
+set before being reported as a win.
+
+One arm has met that condition: in the classical-feature study, a linear SVM trained on
+the fully synthetic pool scores $0.468$ against the real arm's $0.432$, on 28 of 30 seeds.
+The first two checks reject the prototype reading, and the second rejects it in reverse.
+Within-grade scatter in the head's own feature space is $4.3\times$ \emph{higher} for the
+pool than for the real training split, and its class separability is seven times worse
+($0.011$ against $0.074$); a decomposition puts almost all of the excess in the 192
+colour-histogram dimensions, which are nuisance variation on a severity task. Stratifying
+the validation split by inter-grade margin --- computed from the real training split, and
+cut within class so every stratum keeps the split's composition --- the synthetic arm's
+advantage is $+0.057$ on borderline cases and $+0.127$ in the middle, and it \emph{loses},
+at $-0.071$, on the unambiguous ones. A prototype-trained model should do the opposite.
+
+The third check is not available to us: none of the external sets named in
+\S\ref{sec:data} has been obtained with severity labels on this scale, so transfer is
+untested and the criterion is not discharged. We therefore do not report the inversion as
+a win. What we report is narrower: the mechanism this check exists to detect is not the
+one operating here. \RESULT{if the deep arm produces an arm above baseline, the same three
+checks, and the linear-probe comparison that would test the colour hypothesis}
 
 \section{Limitations}
 \label{sec:limitations}
