@@ -750,6 +750,105 @@ provenance confound the audit documented in ACNE04, where 87.1% of mild images b
 very-severe ones came from one camera, and a classifier would learn substrate instead of
 disease.
 
+## §12.18 The stage-1 gate fired, and the instrument did not survive the move
+
+Fired 2026-08-28 at 240 images. The pre-registered criterion is *"no substrate beats
+Scope 36.3%"*. The honest answer is that **the gate cannot answer its question**, for a
+reason worth more than the answer would have been.
+
+### What it reported
+
+| | Continuity | Scope | n |
+|---|---|---|---|
+| ALL wide-domain | 65.8% | 38.6% | 240 |
+| on a person | 68.2% | **47.9%** | 62 |
+| NOT on a person | 69.9% | **41.8%** | 178 |
+| face-only pool | 70.4% | 36.3% | 644 |
+| real images, same scorer | 88.4% | 93.1% | — |
+
+**The premise predicts the opposite ordering.** The wide-domain arm exists because a model
+asked for confluent nodulocystic disease returns someone who still looks like a person; the
+substrates with no person in them are the ones that were supposed to render severity better.
+They score *lower* Scope than the substrates with a person, not higher.
+
+### Neither Scope number is distinguishable from the face pool at matched n
+
+`scripts/scope_smalln_bias.py`. Scope is the range of four class means; the face pool
+measures it on 644 images and each wide arm on 63–244, and the criterion compares point
+estimates. Subsampling the face-only pool to each arm's per-grade counts, 2,000 draws:
+
+| arm | n | Scope | face pool at matched n, 95% | draws reaching it |
+|---|---|---|---|---|
+| all | 244 | 37.7% | [30.9, 41.5] | **29.3%** |
+| on a person | 63 | 47.9% | [23.3, 50.3] | **5.9%** |
+| not on a person | 183 | 41.0% | [29.6, 43.1] | **8.9%** |
+
+Every arm sits inside what the face pool produces by chance at its own sample size. A
+registered prediction of mine failed here too and is recorded as failed: I expected a range
+statistic to be biased *upward* at small n, and it is not — subsampling moves the face
+pool's Scope by 0.1 points. The problem is variance, not bias.
+
+Continuity is the one number that moves: pooled 65.3% against the face pool's 70.4%, and
+across 400 matched-n draws the face pool never once falls that low.
+
+### The pooled Continuity is worse than either half, and that is the whole finding
+
+`scripts/scorer_substrate_shift.py`.
+
+| pairs | Continuity |
+|---|---|
+| within person | 68.1% |
+| within no-person | 69.5% |
+| within either | **69.4%** |
+| **across the divide** | **59.4%** |
+| all pairs | 65.6% |
+
+Severity is ordered about as well inside each substrate family as in the face-only pool.
+**It is the pairs that cross substrates that are discordant**, and the reason is a shift:
+
+| requested grade | on a person | NOT on a person | offset |
+|---|---|---|---|
+| 0 | 0.444 | 1.755 | **+1.31** |
+| 1 | 1.550 | 2.771 | **+1.22** |
+| 2 | 1.647 | 2.810 | **+1.16** |
+| 3 | 1.882 | 3.000 | **+1.12** |
+
+**A grade-0 image on an artificial substrate scores more severe than a grade-1 image on a
+face.** The scorer predicts grade 3 for 72% of all non-person images — 27% of the ones asked
+to be *mild*, 83% of the moderate, and 100% of the severe. Ranked by mean output, the
+substrates order themselves by artificiality, not by anything clinical: isolated skin swatch,
+prosthetic limb and 3D render at 2.80, wax moulage 2.77, excised specimen 2.75, down through
+the anatomical and laboratory framings, and then every face substrate at 1.00–1.17.
+
+**This is a controlled comparison, not a correlation.** The pool's one design rule
+randomises substrate independently of severity, and refusals are strongly
+substrate-dependent, so the balance had to be re-checked in the realised pool rather than
+assumed: requested grade is independent of the person/no-person split (χ² = 3.98, p = 0.263)
+and of substrate among those with n ≥ 10 (χ² = 39.5, p = 0.446). Severity is therefore held
+fixed by construction and the differences above are substrate.
+
+### What follows
+
+1. **The gate's instrument is not valid on the substrates the gate exists to evaluate.** A
+   ResNet-50 trained on ACNE04 half-faces reads "not a face" as "severe acne". Scope and
+   Continuity computed on Petri dishes and wax moulages are measuring domain shift, and the
+   apparent Scope of the non-person arm is a distribution pinned against the top of the
+   scale — 100% of its severe requests predicted 3 — not a wider severity range.
+   This is R5 exactly: *a threshold is a property of a corpus, not of an instrument*, and so
+   is a scorer.
+2. **The kill criterion should be applied, for a different reason than it was written.**
+   Not "no substrate beat 36.3%" — one nominally did — but that no substrate *can* be
+   scored, so buying more of them cannot answer the question. Generation is capped at 680
+   images pending that decision.
+3. **The per-substrate criterion was never evaluable at 240 anyway.** 0 of 24 substrates
+   reached n ≥ 24; largest 22, median 10.
+4. **What would make it answerable** is an instrument validated across substrates — a
+   grader that has seen more than half-faces, or human grading of a sample — and that is a
+   different and larger piece of work than generating more images. Costing it is the next
+   decision, not the next generation run.
+
+---
+
 ### Staged, with a kill criterion at each gate
 
 The full 6,000 is 95 hours and $234 at the cheap tier's measured 63 images/hour — a

@@ -103,34 +103,28 @@ balanced accuracy is 4.3 points, and +1.65 sits well below it.
 
 ## Open, in priority order
 
-1. **Stage-1 gate at 240 wide-domain images** — does moving acne off the face widen Scope
-   beyond 36.3%? Kill criterion: if no substrate beats it, the wide-domain premise fails and
-   the remaining ~$225 should not be spent.
+1. **Stage-1 gate: FIRED 2026-08-28, and the answer is that it cannot answer.** Full
+   write-up in `docs/07` §12.18. The scorer the gate depends on does not survive the move
+   off the face: it predicts grade 3 for 72% of non-person images, including 27% of the
+   ones asked to be *mild*, and ranks substrates by artificiality rather than by anything
+   clinical. Severity is ordered fine *within* a substrate family (Continuity 69.4%,
+   against the face pool's 70.4%) and falls apart *across* them (59.4%), because an
+   artificial substrate scores about 1.2 grades more severe at every requested grade. The
+   pool's balance was re-checked in the realised images rather than assumed, so this is a
+   controlled comparison: requested grade is independent of the split (p = 0.263).
 
-   **The criterion as written cannot be evaluated at 240 images, and that is a planning
-   defect worth deciding on before the gate fires.** It is stated per substrate; there are
-   24 substrates and `substrate_fidelity.py` requires 24 images each, so it needs ~576
-   images even if they were balanced — and they are not, because the generator refuses
-   close-up human skin far more often than artificial substrates, so the substrates nearest
-   the validation domain fill slowest (docs/07, "the refusals concentrate exactly where
-   clinical utility is highest"). The 240 target was set against a cost and a wall-clock,
-   not against this threshold. Two options, and the choice is a human's:
-   (a) decide stage 1 on the pooled and person / no-person rows alone and let the
-   per-substrate ranking wait for stage 2's 650 images; or (b) extend stage 1 until the
-   criterion is evaluable. Option (b) is now priced from measured per-substrate yields
-   rather than guessed: **562 more prompts, about 437 more images, roughly 15 hours and
-   $17** — inside stage 2's own $25 budget. `scripts/refusal_by_substrate.py`. The gate
-   script prints the shortfall rather than an empty table.
+   Neither arm's Scope is distinguishable from the face pool at matched n (29.3%, 5.9% and
+   8.9% of resamples reach them). And the premise's own prediction fails: the substrates
+   with **no** person score *lower* Scope, 41.8% against 47.9%, when the whole hypothesis
+   was that removing the person is what widens the range.
 
-   **Disclosed interim look, 2026-08-28 at 175 images.** The gate script was dry-run to
-   confirm it executes before the watcher fires it, which means the interim numbers have
-   been seen. They are recorded here rather than quietly discarded: pooled Scope 41.7%
-   against the face-only pool's 36.3%, with *on a person* at 47.4% (n=44) and *not on a
-   person* at 46.1% (n=131). Both above 36.3%, and the two indistinguishable from each
-   other — which is the pattern that would mean the pool got wider for some reason other
-   than removing the person, and the stated mechanism is wrong even though the criterion
-   passes. **This is a dry run at 175 images with a small on-person arm, not the gate**,
-   and it must not be reported as the gate's result.
+   **The decision this needs from a human.** The kill criterion should be applied, but for
+   a different reason than written — not "no substrate beat 36.3%", since one nominally
+   did, but that no substrate can be validly scored, so buying more images cannot answer
+   the question. Generation is capped at 680 pending that call. What would make it
+   answerable is an instrument validated across substrates — a grader that has seen more
+   than half-faces, or human grading of a sample — which is a different and larger piece
+   of work than more generation.
 2. Read `moroianu2025` and `sagers2023` in full. Both are load-bearing — the manuscript
    makes specific claims about what their designs omit — and neither carries a
    `VERIFIED <date>` note. `docs/VERIFY.md` item 9.
