@@ -96,13 +96,31 @@ def main() -> None:
         rows.append((s, c, n, name))
     for s, c, n, name in sorted(rows, reverse=True):
         print(f"{name[:34]:>34}  Continuity {c:>5.1f}%  Scope {s:>5.1f}%  n={n}")
-    if not rows:
-        print(f"{'(no substrate has ' + str(args.min_per_group) + ' images yet)':>34}")
+
+    # The kill criterion is stated per substrate, so say plainly when the pool cannot yet
+    # support one rather than printing an empty table. The stage-1 target of 240 images was
+    # set against a cost and a wall-clock, not against this threshold: 24 substrates at 24
+    # images each needs 576 even if they were balanced, and they are not -- the generator
+    # refuses close-up human skin far more often than artificial substrates, so the
+    # substrates nearest the validation domain fill slowest.
+    counts = sorted((len(v) for v in by_sub.values()), reverse=True)
+    ready = sum(1 for v in counts if v >= args.min_per_group)
+    print(f"\n{'substrate coverage':>34}  {ready}/{len(by_sub)} substrates at "
+          f"n>={args.min_per_group}; largest {counts[0]}, median {counts[len(counts)//2]}")
+    if ready == 0:
+        need = args.min_per_group * len(by_sub)
+        print(f"{'':>34}  the per-substrate criterion needs about {need} images even "
+              f"balanced,\n{'':>34}  against {len(recs)} here. Until then only the pooled "
+              f"and\n{'':>34}  person / no-person rows above are evaluable.")
 
     print(f"\n{'face-only pool, for comparison':>34}  Continuity  70.4%  Scope  36.3%")
     print(f"{'real images, same scorer':>34}  Continuity  88.4%  Scope  93.1%")
     print("\nGATE: if no substrate group beats Scope 36.3%, the face prior is not the")
     print("cause of compression and the wide-domain premise fails. Stop and say so.")
+    print("Read the person / no-person rows first: the premise is that removing the person")
+    print("is what widens Scope, so those two beating the face-only pool while matching")
+    print("EACH OTHER would mean the pool got wider for some other reason, and the stated")
+    print("mechanism is wrong even though the criterion passes.")
 
 
 if __name__ == "__main__":

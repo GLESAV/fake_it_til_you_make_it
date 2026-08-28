@@ -93,7 +93,30 @@ balanced accuracy is 4.3 points, and +1.65 sits well below it.
 
 1. **Stage-1 gate at 240 wide-domain images** — does moving acne off the face widen Scope
    beyond 36.3%? Kill criterion: if no substrate beats it, the wide-domain premise fails and
-   the remaining ~$225 should not be spent. **Blocked on generation, not on analysis.**
+   the remaining ~$225 should not be spent.
+
+   **The criterion as written cannot be evaluated at 240 images, and that is a planning
+   defect worth deciding on before the gate fires.** It is stated per substrate; there are
+   24 substrates and `substrate_fidelity.py` requires 24 images each, so it needs ~576
+   images even if they were balanced — and they are not, because the generator refuses
+   close-up human skin far more often than artificial substrates, so the substrates nearest
+   the validation domain fill slowest (docs/07, "the refusals concentrate exactly where
+   clinical utility is highest"). The 240 target was set against a cost and a wall-clock,
+   not against this threshold. Two options, and the choice is a human's:
+   (a) decide stage 1 on the pooled and person / no-person rows alone and let the
+   per-substrate ranking wait for stage 2's 650 images; or (b) extend stage 1 to ~600
+   images, roughly $14 and ten more hours at the current rate. The script now prints the
+   shortfall rather than an empty table.
+
+   **Disclosed interim look, 2026-08-28 at 175 images.** The gate script was dry-run to
+   confirm it executes before the watcher fires it, which means the interim numbers have
+   been seen. They are recorded here rather than quietly discarded: pooled Scope 41.7%
+   against the face-only pool's 36.3%, with *on a person* at 47.4% (n=44) and *not on a
+   person* at 46.1% (n=131). Both above 36.3%, and the two indistinguishable from each
+   other — which is the pattern that would mean the pool got wider for some reason other
+   than removing the person, and the stated mechanism is wrong even though the criterion
+   passes. **This is a dry run at 175 images with a small on-person arm, not the gate**,
+   and it must not be reported as the gate's result.
 2. Read `moroianu2025` and `sagers2023` in full. Both are load-bearing — the manuscript
    makes specific claims about what their designs omit — and neither carries a
    `VERIFIED <date>` note. `docs/VERIFY.md` item 9.
