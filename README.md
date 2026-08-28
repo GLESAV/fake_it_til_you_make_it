@@ -182,10 +182,12 @@ fresh clone, not the directory the code was written in.
 
 ## A note on the literature review
 
-Every claim in `docs/01_related_work.md` carries a `[V]`/`[S]`/`[?]` verification tag,
-and **all of them are currently `[S]`** — sourced from search summaries, because the
-authoring environment blocked every publisher host. `docs/VERIFY.md` is the checklist
-for promoting them. Nothing goes into the manuscript at `[S]`.
+Every claim in `docs/01_related_work.md` carries a `[V]`/`[S]`/`[?]` verification tag.
+They began life entirely at `[S]` — sourced from search summaries, because the authoring
+environment blocked every publisher host. Two verification passes on an open network have
+since promoted 14 sources to `[V]`; `docs/VERIFY.md` tracks what is left, and six
+`refs.bib` entries still carry `NOT INDEPENDENTLY VERIFIED`. Nothing goes into the
+manuscript at `[S]`, and `make publication-gate` enforces it.
 
 ## Licence
 

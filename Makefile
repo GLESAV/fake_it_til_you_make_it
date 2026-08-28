@@ -5,7 +5,7 @@ CONFIG  ?= configs/acne04_closed.yaml
 RUNS    ?= runs/acne04
 RESULTS ?= results/acne04
 
-.PHONY: help venv install test smoke lint prepare finetune generate sweep final controls analyse paper clean
+.PHONY: help venv install test smoke lint prepare finetune generate sweep final controls analyse paper publication-gate clean
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -60,6 +60,9 @@ analyse:  ## tables and figures from run records
 
 paper:  ## build the manuscript
 	cd paper && latexmk -pdf main.tex
+
+publication-gate:  ## pre-publication checks (docs/08_publication_practices.md §6)
+	$(PY) scripts/publication_gate.py
 
 clean:
 	rm -rf runs/smoke runs/smoke_full .pytest_cache
