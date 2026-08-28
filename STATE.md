@@ -111,8 +111,21 @@ balanced accuracy is 4.3 points, and +1.65 sits well below it.
    leaning on a narrow colour prior. That is a causal claim on a nought-for-three record;
    the manipulation that would test it is the deep arm's linear probe, which has not
    been run.
-5. `main.tex` still holds 17 `\RESULT{}` / `\TODO{}` placeholders, which are the whole of
-   what `make publication-gate` now blocks on.
+5. **`main.tex`'s abstract still describes the pre-registered design, not the study that
+   was run.** It says results are evaluated "on the same sealed real test set" — the
+   unseal log is empty and every number is validation — and it announces two generator
+   regimes, closed-set and open-set, when the closed-set SD arm was demoted to a baseline
+   on 2026-08-20 and never built. The protocol amendment is recorded (§12 of
+   `docs/02_study_design.md`, last row); the manuscript has not caught up. This is
+   deliberately *not* fixed here: the handover says not to reorganise the paper around
+   how results land, and the right rewrite depends on whether the closed-set arm is still
+   going to be run. It is the first thing a human should decide.
+6. `main.tex` holds 11 `\RESULT{}` / `\TODO{}` placeholders, down from 17, and they are
+   the whole of what `make publication-gate` blocks on. All eleven now need experiments
+   that have not been run — the closed-set generator, the guidance sweep, the two
+   alternative backbones — or the writing passes (related work, discussion) that were
+   left until the numbers existed. The ones answerable from artefacts already on disk
+   have been filled.
 
 ## Cost so far
 

@@ -256,28 +256,43 @@ removes training images --- and that is not evidence of a broken pipeline. Secon
 78.9\% grade reproducibility is a noise floor: a substitution effect smaller than the
 label noise is not an effect we can claim to have measured.
 
-The audit is also incomplete in one specific way we flag rather than bury. Neither
-perceptual hashing nor CLIP detects \emph{the same subject photographed twice}, and
-ACNE04's capture protocol makes repeat subjects plausible. A face-identity embedding
-would settle it. Until it is run, our splits and every published split carry an
-unmeasured same-subject leakage risk.
+\paragraph{The leak perceptual hashing cannot see.} Neither perceptual hashing nor CLIP
+detects \emph{the same subject photographed twice}, which is the failure mode ACNE04's
+capture protocol makes most likely. Embedding faces with ArcFace settles it, and the
+answer is the largest single finding of the audit: the 1{,}457 images are 604 people, 326
+of whom appear more than once and one of whom appears 22 times. A split drawn at the image
+level after perceptual and CLIP deduplication --- which is what every published ACNE04
+result does, and what our own first attempt did --- leaves 74.5\% of test images sharing an
+identity with training; the published folds leave 77.5\%. Grouping by identity first leaves
+none.
+
+Priced by holding everything else fixed and varying only how the split was drawn, that is
+worth $+4.51$ points of balanced accuracy (95\% CI $[+2.33, +7.04]$, five paired seeds),
+which is larger than the entire spread between the four published methods competing on this
+benchmark. It is also not spread evenly: essentially zero on the two majority grades and
+about ten points on the two rare ones, which hold 57 and 47 distinct people --- the grades
+where recognising an individual is worth most, and the grades this paper's tail-augmentation
+arm is about. Every result below is therefore reported on subject-disjoint splits. The
+identity analysis is set out in full in the companion audit.
 
 \section{Method}
 \label{sec:method}
 
 \subsection{Task and data}
-ACNE04 \citep{wu2019}: \RESULT{n images after deduplication}, Hayashi severity in
-four ordinal grades. Deduplicated by perceptual hash and embedding cosine before
-splitting, with whole duplicate clusters assigned to a single split
-(\RESULT{n duplicate clusters}). Splits: \RESULT{n train} / \RESULT{n val} /
-\RESULT{n test}.
+ACNE04 \citep{wu2019}: 1{,}457 images, Hayashi severity in four ordinal grades.
+Deduplicated by perceptual hash (Hamming $\leq 2$) and embedding cosine ($\geq 0.98$)
+before splitting, with whole duplicate clusters assigned to a single split: 56 clusters
+covering 115 images, largest cluster three, leaving 1{,}398 groups. Those groups are then
+grouped again by ArcFace identity into 604 subjects, and it is the subjects that are split,
+for the reason given in \S\ref{sec:audit}. Splits: 948 train / 218 val / 291 test.
 
 \subsection{The sealed test set}
 The real test split is used exactly once per reported model. It is excluded from
 classifier training, early stopping, generator training, prompt selection, guidance
 selection and hyperparameter search. This is enforced in code rather than by
-convention, and every unsealing is appended to an audit log released with the paper
-(\RESULT{n unsealings}).
+convention, and every unsealing is appended to an audit log released with the paper. At the
+time of writing that log is empty: \textbf{zero unsealings}. Every number in this paper,
+including every control and every negative result, is measured on the validation split.
 
 \subsection{Generators}
 \textbf{Closed-set.} \RESULT{base model}, LoRA rank \RESULT{rank}, fine-tuned on the
@@ -484,14 +499,17 @@ The third check is not available to us: none of the external sets named in
 \S\ref{sec:data} has been obtained with severity labels on this scale, so transfer is
 untested and the criterion is not discharged. We therefore do not report the inversion as
 a win. What we report is narrower: the mechanism this check exists to detect is not the
-one operating here. \RESULT{if the deep arm produces an arm above baseline, the same three
-checks, and the linear-probe comparison that would test the colour hypothesis}
+one operating here.
 
 \section{Limitations}
 \label{sec:limitations}
 \begin{itemize}
-  \item Test set of \RESULT{n} images: powered for roughly 5-point differences in
-        balanced accuracy, not 1--2 point differences.
+  \item Test set of 291 images, 108/128/30/25 per grade. The worst-case standard
+        error of balanced accuracy on a fresh cohort of that size is 3.8 points, and
+        4.3 points on the 218-image validation split every number here is measured on.
+        The study is powered for roughly 5-point differences and not for 1--2 point
+        ones, and effects below that floor are reported as underpowered rather than
+        as absent.
   \item ACNE04 is a single-source corpus skewed towards lighter skin; the external
         validation set partly addresses this.
   \item Conclusions are tied to the generators evaluated. \citet{fan2024} attribute
