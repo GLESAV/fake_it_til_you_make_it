@@ -157,6 +157,28 @@ def check_verify_agrees_with_bib(entries: dict[str, str]) -> None:
                      f"'VERIFIED <date>' note")
 
 
+def check_notes_do_not_print(entries: dict[str, str]) -> None:
+    """R1: verification provenance belongs in `annote`, which plainnat does not print.
+
+    It lived in `note`, which plainnat does print, so every VERIFIED marker was rendering
+    into the manuscript's bibliography -- two pages of it by the end of the third
+    verification pass. The notes have to stay in refs.bib because this script reads them;
+    they must not be in a submitted PDF.
+    """
+    for key, body in sorted(entries.items()):
+        for m in re.finditer(r"^\s*note\s*=\s*\{", body, re.M):
+            tail = body[m.end():]
+            depth, i = 1, 0
+            while i < len(tail) and depth:
+                depth += (tail[i] == "{") - (tail[i] == "}")
+                i += 1
+            value = tail[:i]
+            if VERIFIED.search(value) or UNVERIFIED.search(value):
+                fail("printing-note",
+                     f"{key}: verification provenance is in `note`, which plainnat prints. "
+                     f"Move it to `annote`.")
+
+
 def check_bib_health(entries: dict[str, str]) -> None:
     """Informational: how much of the bibliography is still unverified overall."""
     unver = sorted(k for k, v in entries.items() if UNVERIFIED.search(v))
@@ -181,6 +203,7 @@ def main() -> int:
     check_licence()
     check_readme_staleness()
     check_verify_agrees_with_bib(entries)
+    check_notes_do_not_print(entries)
     check_bib_health(entries)
 
     print(f"publication gate: {len(targets)} manuscript(s), {len(entries)} bib entries\n")

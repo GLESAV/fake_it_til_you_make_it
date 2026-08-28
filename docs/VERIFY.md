@@ -197,12 +197,13 @@ Everything else was read in full text or in the arXiv HTML rendering.
    `sagers2023` were — those two were read in pass 3 — but `fan2024` supplies the
    guidance-scale protocol and should be next.
 
-10. **The verification notes print.** `plainnat` renders the `note` field, so every
-    `VERIFIED <date>` provenance note appears in the manuscript's bibliography; pass 2
-    added a page to `main.pdf` (12 → 13) that is entirely this. The notes have to stay in
-    `refs.bib` because `make publication-gate` reads them, but they should not be in a
-    submitted PDF. Move them to `annote`, which BibTeX carries and `plainnat` does not
-    print, and point the gate at both fields.
+10. ~~**The verification notes print.**~~ **Done 2026-08-28.** `plainnat` renders `note`,
+    so every `VERIFIED <date>` provenance note was appearing in the manuscript's
+    bibliography — two pages of `main.pdf` by the end of pass 3. All 40 entries moved to
+    `annote`, which BibTeX carries and `plainnat` does not print; `main.pdf` is 13 → 11
+    pages and `audit.pdf` 15 → 14. The gate reads whole entries, so it is unaffected, and
+    a new `printing-note` rule now fails on any `note` field containing a verification
+    marker.
 
 11. **Rows 1–13 name papers in prose, not bib keys.** `make publication-gate` can only
     cross-check a row against `refs.bib` when the row names the key in backticks, so those

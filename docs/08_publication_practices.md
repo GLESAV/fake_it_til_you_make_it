@@ -207,8 +207,16 @@ make publication-gate
 ```
 
 That covers: no `\RESULT{}` / `\TODO{}` placeholders; every `\cite` key resolves; no cited
-entry carries an unverified marker; `LICENSE` exists and names a holder; the README's
-verification-status claim is not stale.
+entry carries an unverified marker; every source `docs/VERIFY.md` marks `[V]` says so in
+its `refs.bib` entry too; verification provenance sits in `annote` rather than the `note`
+field `plainnat` prints; `LICENSE` exists and names a holder; the README's
+verification-status claim and its count of verified sources are not stale.
+
+Four of those seven rules were added after the check they encode failed to catch something
+in this repository — a gate whose pattern missed the marker it existed to catch, a README
+count that went stale within one verification pass, a source verified in one file and not
+the other, and two pages of provenance notes rendering into the manuscript's bibliography.
+None of them is hypothetical either.
 
 Everything below needs a person:
 

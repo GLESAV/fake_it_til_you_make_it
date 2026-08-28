@@ -97,8 +97,9 @@ balanced accuracy is 4.3 points, and +1.65 sits well below it.
 2. Read `moroianu2025` and `sagers2023` in full. Both are load-bearing — the manuscript
    makes specific claims about what their designs omit — and neither carries a
    `VERIFIED <date>` note. `docs/VERIFY.md` item 9.
-3. Move the `VERIFIED` provenance notes from `note` to `annote` so they stop printing in
-   the manuscript's bibliography. They cost `main.pdf` a page. `docs/VERIFY.md` item 10.
+3. **Done.** All 40 `refs.bib` entries moved from `note` to `annote`, so the verification
+   provenance stays in the repo and out of the PDF. `main.pdf` 13 → 11 pages. A
+   `printing-note` gate rule blocks a regression.
 4. **Done, and it rejects the prototype reading.** `scripts/prototype_effect.py`, 30 seeds:
    the pool's within-grade scatter is 4.3× *higher* than the real split's and its
    separability seven times worse, and the synthetic head's advantage is +0.057 on
