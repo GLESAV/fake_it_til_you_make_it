@@ -65,8 +65,14 @@ def test_a_rate_limit_is_retried_to_the_full_cap():
     assert "429" in result.blocked_reason
 
 
-def test_persistently_refused_skips_refusals_and_keeps_rate_limits(tmp_path):
-    """The resume filter must distinguish a content decision from a transient fault."""
+def test_persistently_refused_counts_empties_and_ignores_rate_limits(tmp_path):
+    """The resume filter counts content decisions and ignores transient faults.
+
+    A 429 must neither cause a skip nor prevent one. Requiring a *clean* refusal history
+    made the filter useless on a throttled project, where nearly every prompt collects a
+    429 sooner or later: it skipped 3 prompts where 23 qualified, and the run spent its
+    whole quota re-earning known refusals.
+    """
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
@@ -76,14 +82,19 @@ def test_persistently_refused_skips_refusals_and_keeps_rate_limits(tmp_path):
 
     manifest = tmp_path / "manifest.jsonl"
     rows = [
-        # refused twice, never rate-limited -> skip
+        # two empty responses -> skip
         {"name": "refused", "path": None, "blocked_reason": "no candidates"},
         {"name": "refused", "path": None, "blocked_reason": "no candidates"},
-        # refused once -> not yet enough evidence
+        # one empty response -> not yet enough evidence
         {"name": "once", "path": None, "blocked_reason": "no candidates"},
-        # a 429 in the history -> always retry
+        # two empties with a 429 interleaved -> still a skip; the 429 is not evidence
         {"name": "throttled", "path": None, "blocked_reason": "no candidates"},
         {"name": "throttled", "path": None, "blocked_reason": "ClientError: 429 ..."},
+        {"name": "throttled", "path": None, "blocked_reason": "no candidates"},
+        # rate-limited only, never refused -> always retry
+        {"name": "starved", "path": None, "blocked_reason": "ClientError: 429 ..."},
+        {"name": "starved", "path": None, "blocked_reason": "ClientError: 429 ..."},
+        {"name": "starved", "path": None, "blocked_reason": "ClientError: 429 ..."},
         # refused, then eventually succeeded -> never skip
         {"name": "recovered", "path": None, "blocked_reason": "no candidates"},
         {"name": "recovered", "path": None, "blocked_reason": "no candidates"},
@@ -91,5 +102,5 @@ def test_persistently_refused_skips_refusals_and_keeps_rate_limits(tmp_path):
     ]
     manifest.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
 
-    assert gwd.persistently_refused(manifest) == {"refused"}
+    assert gwd.persistently_refused(manifest) == {"refused", "throttled"}
     assert gwd.persistently_refused(tmp_path / "absent.jsonl") == set()

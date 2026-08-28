@@ -178,41 +178,44 @@ def build_prompts(total: int, seed: int = 0) -> list[tuple[str, str, dict]]:
     return out
 
 
-#: A prompt the model has refused this many times, every time with an empty response and
-#: never with a rate limit, is not going to be granted on the next run either. The backend
-#: module documents why -- an empty response is a content decision, not a transient fault,
-#: and its rate is a property of the prompt (83% for close-up cheek macros, 0% for wax
-#: moulages) rather than of the moment. Resuming re-attempts every prompt with no PNG on
-#: disk, so without this the run spends its first half-hour of a rate-limited quota
-#: re-earning refusals it has already recorded, and those wasted requests are themselves
-#: what provokes the next 429.
-REFUSAL_ATTEMPTS_BEFORE_SKIP = 2
+#: A prompt the model has answered with an empty response this many times is not going to
+#: be granted on the next run either. The backend module documents why -- an empty response
+#: is a content decision, not a transient fault, and its rate is a property of the prompt
+#: (83% for close-up cheek macros, 0% for wax moulages) rather than of the moment.
+#: Resuming re-attempts every prompt with no PNG on disk, so without this the run spends a
+#: rate-limited quota re-earning refusals it has already recorded, and those wasted
+#: requests are themselves what provokes the next 429.
+EMPTIES_BEFORE_SKIP = 2
 
 
 def persistently_refused(manifest: Path) -> set[str]:
-    """Names whose every recorded attempt came back empty, never rate-limited.
+    """Names that have come back empty EMPTIES_BEFORE_SKIP times and never produced a file.
 
-    Rate-limited prompts are deliberately NOT skipped: a 429 says nothing about the
-    prompt. The refusals stay in the manifest either way, so the per-substrate refusal
-    rate that scripts/substrate_fidelity.py reads is unaffected by this.
+    Rate limits are ignored entirely here, in both directions. A 429 says nothing about a
+    prompt, so it must neither cause a skip nor prevent one -- the first version of this
+    function required a *clean* refusal history and so skipped 3 prompts where 23 qualify,
+    because on a throttled project almost every prompt collects a 429 sooner or later. The
+    run then spent 45 minutes and its whole quota re-earning 21 known refusals, at a median
+    of 261 seconds each, and produced no images.
+
+    The refusals stay in the manifest either way, so the per-substrate refusal rate that
+    scripts/substrate_fidelity.py reads is unaffected by this.
     """
     if not manifest.exists():
         return set()
-    history: dict[str, list[str | None]] = {}
+    empties: dict[str, int] = {}
+    succeeded: set[str] = set()
     for line in manifest.read_text().splitlines():
         if not line.strip():
             continue
         record = json.loads(line)
+        name = record["name"]
         if record.get("path"):
-            history.pop(record["name"], None)  # it succeeded once; never skip it
-            continue
-        history.setdefault(record["name"], []).append(record.get("blocked_reason"))
-    return {
-        name for name, reasons in history.items()
-        if len(reasons) >= REFUSAL_ATTEMPTS_BEFORE_SKIP
-        and all("no candidates" in (r or "") or "no image part" in (r or "")
-                for r in reasons)
-    }
+            succeeded.add(name)
+        elif "429" not in str(record.get("blocked_reason")):
+            empties[name] = empties.get(name, 0) + 1
+    return {name for name, n in empties.items()
+            if n >= EMPTIES_BEFORE_SKIP and name not in succeeded}
 
 
 def main() -> None:
@@ -246,9 +249,8 @@ def main() -> None:
     manifest = out / "manifest.jsonl"
     refused = persistently_refused(manifest)
     if refused:
-        print(f"skipping {len(refused)} prompt(s) the model has refused "
-              f"{REFUSAL_ATTEMPTS_BEFORE_SKIP}+ times with no rate limit in between",
-              flush=True)
+        print(f"skipping {len(refused)} prompt(s) the model has answered with an empty "
+              f"response {EMPTIES_BEFORE_SKIP}+ times", flush=True)
     queue = [(n, p) for n, p, _ in prompts if n not in refused]
     started, done, failed = time.time(), 0, 0
     with manifest.open("a") as handle:
