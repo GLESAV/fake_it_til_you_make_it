@@ -1,5 +1,17 @@
 # Resume state — updated 2026-08-28
 
+## Background jobs, and the one guard rail added 2026-08-28
+
+**Generation is capped at 680 images.** The stage-1 gate has fired; the staged plan puts
+stage 2 at 650 and the per-substrate criterion becomes evaluable at ~677, so a watcher
+stops the generator at 680 rather than letting it run unattended to the 6,000 that costs
+$234. Restarting past that point should be a decision, not a default:
+
+```bash
+nohup bash -c 'while [ $(ls data/synthetic/wide_pool/*.png 2>/dev/null | wc -l) -lt 680 ];
+    do sleep 300; done; pkill -f generate_wide_domain' > /tmp/stage2_stop.log 2>&1 &
+```
+
 ## How to restart the two background jobs
 
 ```bash

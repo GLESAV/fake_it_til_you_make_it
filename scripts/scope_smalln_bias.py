@@ -59,8 +59,19 @@ def continuity(y: np.ndarray, pred: np.ndarray) -> float:
 
 
 def score_pool(pool: Path, scorer: str):
+    """Score every gN_ image in a pool, returning the names alongside the scores.
+
+    The names come back from the SAME glob that produced the scores. They were originally
+    recovered by globbing a second time, which is wrong twice over: an image missing from
+    prompt_meta.json would shift the alignment, and the wide pool is still being written
+    to, so a second glob taken forty seconds later simply sees more files. An assertion
+    caught it rather than silently mismatching labels to images.
+    """
+    files = [(p, m) for p in sorted(pool.glob("*.png"))
+             if (m := re.match(r"g(\d)_", p.name))]
     recs = [Record(path=str(p), label=int(m.group(1)), source=Source.SYNTH_OPEN)
-            for p in sorted(pool.glob("*.png")) if (m := re.match(r"g(\d)_", p.name))]
+            for p, m in files]
+    names = [p.stem for p, _ in files]
     if not recs:
         raise SystemExit(f"no gN_ images in {pool}")
     tc = TrainConfig(num_workers=0, device="cpu")
@@ -70,7 +81,7 @@ def score_pool(pool: Path, scorer: str):
     model.eval()
     y, pred, _ = predict(model, make_loader(Corpus(recs), 32, tc.image_size, False, 0, 0),
                          torch.device("cpu"))
-    return np.asarray(y), np.asarray(pred)
+    return np.asarray(y), np.asarray(pred), names
 
 
 def main() -> None:
@@ -82,11 +93,26 @@ def main() -> None:
     ap.add_argument("--cont-draws", type=int, default=500,
                     help="Continuity is O(n^2) per draw, so it uses a smaller sample")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--subset", choices=["all", "person", "no-person"], default="all",
+                    help="which wide-pool arm to compare; the gate reports all three")
     ap.add_argument("--out", default="results/scope_smalln_bias.json")
     args = ap.parse_args()
 
-    yf, pf = score_pool(Path(args.face_pool), args.scorer)
-    yw, pw = score_pool(Path(args.wide_pool), args.scorer)
+    yf, pf, _ = score_pool(Path(args.face_pool), args.scorer)
+    yw, pw, wide_names = score_pool(Path(args.wide_pool), args.scorer)
+    if args.subset != "all":
+        # The gate's two sub-arms have n=62 and n=178, so each needs its OWN matched-n
+        # comparison. Comparing either against a face baseline measured on 644 images
+        # compares a noisy estimate with a precise one.
+        meta = json.loads((Path(args.wide_pool) / "prompt_meta.json").read_text())
+        missing = [n for n in wide_names if n not in meta]
+        if missing:
+            raise SystemExit(f"{len(missing)} images have no prompt metadata "
+                             f"(e.g. {missing[0]}); cannot split by substrate")
+        want = args.subset == "person"
+        keep = np.array([meta[n]["needs_person"] == want for n in wide_names])
+        yw, pw = yw[keep], pw[keep]
+        print(f"[wide-pool arm: {args.subset}, n={len(yw)}]")
     face_full, wide_full = scope(yf, pf), scope(yw, pw)
     counts = {c: int((yw == c).sum()) for c in range(NUM_CLASSES)}
     face_counts = {c: int((yf == c).sum()) for c in range(NUM_CLASSES)}
