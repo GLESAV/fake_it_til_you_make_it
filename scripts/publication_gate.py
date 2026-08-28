@@ -19,7 +19,11 @@ ROOT = Path(__file__).resolve().parent.parent
 BIB = ROOT / "paper" / "refs.bib"
 
 # Markers left in refs.bib notes by the verification passes (docs/VERIFY.md).
-UNVERIFIED = re.compile(r"NOT INDEPENDENTLY VERIFIED|UNVERIFIED", re.I)
+# "NOT VERIFIED" as well as "NOT INDEPENDENTLY VERIFIED": moroianu2025 carried a
+# "TITLE AND AUTHOR LIST TRUNCATED AND NOT VERIFIED" marker that the first version
+# of this pattern did not match, so the entry passed as a warning. Its title turned
+# out to be invented and its author list truncated from eleven names to three.
+UNVERIFIED = re.compile(r"NOT (INDEPENDENTLY )?VERIFIED|UNVERIFIED", re.I)
 VERIFIED = re.compile(r"\bVERIFIED\s+\d{4}-\d{2}-\d{2}")
 PLACEHOLDER = re.compile(r"\\(RESULT|TODO)\{")
 CITE = re.compile(r"\\(?:cite|citep|citet|citealp|citealt|citeauthor|citeyear)\*?"
@@ -114,7 +118,10 @@ def check_readme_staleness() -> None:
     readme = (ROOT / "README.md").read_text()
     verify = (ROOT / "docs" / "VERIFY.md").read_text()
     claims_all_s = re.search(r"all of them are currently\s+`?\[S\]`?", readme)
-    n_verified = len(re.findall(r"\*\*\[V\]\*\*", verify))
+    # Table rows only. VERIFY.md also marks individual *claims* [V] inside prose bullets,
+    # and counting those made the README report 27 verified sources when there were 21.
+    n_verified = sum(1 for line in verify.splitlines()
+                     if line.startswith("|") and "**[V]**" in line)
     if claims_all_s and n_verified:
         fail("stale-readme",
              f"README says every claim is [S], but VERIFY.md records {n_verified} at [V]")
@@ -125,6 +132,29 @@ def check_readme_staleness() -> None:
         fail("stale-readme",
              f"README claims {quoted.group(1)} sources at [V]; VERIFY.md records "
              f"{n_verified}")
+
+
+def check_verify_agrees_with_bib(entries: dict[str, str]) -> None:
+    """R1: a source VERIFY.md calls verified must say so in the entry a manuscript cites.
+
+    The two files had drifted: `fan2024` sat at [V] in VERIFY.md from the first pass while
+    its bib entry carried no note, so one source read as verified in one file and
+    unverified in the other. Only rows naming a bib key in backticks are checkable, and the
+    earlier rows name papers in prose -- so adding the key to a row is what puts that row
+    under this check. Rows 1-13 predate the convention and are still unchecked here.
+    """
+    verify = (ROOT / "docs" / "VERIFY.md").read_text()
+    for line in verify.splitlines():
+        if not line.startswith("|") or "**[V]**" not in line:
+            continue
+        for key in re.findall(r"`([A-Za-z][A-Za-z0-9_]*\d{4}[a-z]?)`", line):
+            note = entries.get(key)
+            if note is None:
+                fail("verify-drift", f"VERIFY.md marks {key} [V] but refs.bib has no entry")
+            elif not VERIFIED.search(note):
+                fail("verify-drift",
+                     f"VERIFY.md marks {key} [V] but its refs.bib entry carries no "
+                     f"'VERIFIED <date>' note")
 
 
 def check_bib_health(entries: dict[str, str]) -> None:
@@ -150,6 +180,7 @@ def main() -> int:
 
     check_licence()
     check_readme_staleness()
+    check_verify_agrees_with_bib(entries)
     check_bib_health(entries)
 
     print(f"publication gate: {len(targets)} manuscript(s), {len(entries)} bib entries\n")

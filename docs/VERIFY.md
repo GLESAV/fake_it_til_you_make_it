@@ -19,7 +19,7 @@ Verification pass 1 run 2026-08-19 on an unrestricted network (local M4 Max sess
 | 1 | **Zein** et al. 2024, PLOS ONE 19(4):e0297958 (arXiv:2211.04214) | The 97.6% synthetic-trained / real-tested acne claim. | **[V]** — with major corrections, see §4.1 | local session, 2026-08-19 |
 | 2 | Akrout et al. 2023 (arXiv:2301.04802) | Closest medical analogue to our fully-synthetic arm. | **[V]** — full results table read | local session, 2026-08-19 |
 | 3 | Wang et al. 2025 (arXiv:2508.09550) | Exchange-rate methodology, closed-/open-set distinction. | **[V]** | local session, 2026-08-19 |
-| 4 | Fan et al. 2024 (arXiv:2312.04567) | Guidance-scale and scaling protocol. | **[V]** — CFG values confirmed; **CVPR 2024 acceptance NOT confirmed on the arXiv page** | local session, 2026-08-19 |
+| 4 | Fan et al. 2024 (arXiv:2312.04567), `fan2024` | Guidance-scale and scaling protocol. | **[V]** — CFG values confirmed in pass 1; the CVPR 2024 acceptance it could not confirm is now confirmed, doi `10.1109/CVPR52733.2024.00705`, pp. 7382–7392 | local session, 2026-08-19; venue 2026-08-28 |
 | 5 | Wu et al. 2019, ICCV | ACNE04 splits, Hayashi mapping, image count. | **[V]** — via secondary full texts; thecvf.com returns 403 to our fetcher, see note below | local session, 2026-08-19 |
 | 6 | Sariyildiz et al. 2023, CVPR | Prompt strategy; how much of the gap closed. | **[V]** — Table 1 read; in-domain gap is 33 points and guidance 7.5→2.0 is worth 16.7 | local session, 2026-08-19 |
 | 7 | Ktena et al. 2024, Nature Medicine | Fairness protocol; volume/pages. | **[V]** — Nat Med **30**, 1166–1173 (2024) confirmed | local session, 2026-08-19 |
@@ -41,10 +41,10 @@ found in its own record.
 |---|---|---|---|
 | 14 | `tschandl2018` | **[V]** — exact match | Crossref record for `10.1038/sdata.2018.161` |
 | 15 | `howard2021` | **[V]** — metadata; the three rho values remain **[S]** | arXiv 2106.11240 abstract record + Crossref for `10.1109/TBIOM.2021.3123550` (TBIOM **3**(4):550–560) |
-| 16 | `schaudt2023` | **[V] after correcting a wrong title** | full text at PMC10741143 |
+| 16 | `schaudt2023` | **[V]** — after correcting a wrong title | full text at PMC10741143 |
 | 17 | `shen2020` | **[V]** — metadata; the protocol description remains **[S]** | arXiv 2005.09635 abstract record + Crossref for `10.1109/TPAMI.2020.3034267` (TPAMI **44**(4):2004–2018, 2022) |
 | 18 | `monteiro2023` | **[V]** — metadata and venue; the axiom description remains **[S]** | arXiv 2303.01274 abstract record, whose journal-reference field names ICLR 2023 |
-| 19 | `acnedit2025` | **[V] after correcting a wrong title and four wrong given names** | Crossref + DBLP `conf/miccai/PiatGNAGNN25` + Semantic Scholar + the authors' release README |
+| 19 | `acnedit2025` | **[V]** — after correcting a wrong title and four wrong given names | Crossref + DBLP `conf/miccai/PiatGNAGNN25` + Semantic Scholar + the authors' release README |
 
 #### 16. `schaudt2023` — the entry conflated two real papers by overlapping authors
 
@@ -104,6 +104,63 @@ intervention: severe 182 + **218** generated = 400, very-severe 129 + **271** ge
 Dice downstream results. They are held here rather than in `refs.bib` so that no entry in
 the bibliography carries an unread number. Read the chapter before either is quoted.
 
+### Verification pass 3 — run 2026-08-28, the two load-bearing citations
+
+`main.tex` makes a specific claim about what each of these two designs *omits*. Both were
+read in full on arXiv. **A fifth bibliography defect surfaced.**
+
+| # | Entry | Status | Checked against |
+|---|---|---|---|
+| 20 | `moroianu2025` | **[V]** — after correcting an invented title and a truncated author list | arXiv HTML full text of 2508.16783 |
+| 21 | `sagers2023` | **[V]** — every claim verbatim | arXiv HTML full text of 2308.12453 |
+
+#### 20. `moroianu2025` — title invented, eleven authors recorded as three
+
+| field | was | is |
+|---|---|---|
+| title | *Scaling Synthetic Data for Chest Radiograph Classification* | *Improving Performance, Robustness, and Fairness of Radiographic AI Models with Finely-Controllable Synthetic Data* |
+| authors | **Sofia** Moroianu, Christian Bluethgen, Pierre Chambon | **Stefania L.** Moroianu, Christian Bluethgen, Pierre Chambon, Mehdi Cherti, Jean-Benoit Delbrouck, Magdalini Paschali, Brandon Price, Judy Gichoya, Jenia Jitsev, Curtis P. Langlotz, Akshay S. Chaudhari |
+
+The entry's own note said the title and authors were "TRUNCATED AND NOT VERIFIED", but
+`make publication-gate` did not block on it: its pattern matched `NOT INDEPENDENTLY
+VERIFIED` and `UNVERIFIED` and not the bare `NOT VERIFIED` this entry happened to use. The
+pattern is now widened. **A gate that misses the marker it exists to catch is worse than no
+gate**, because the entry reads as having passed one.
+
+The substance survives intact, and is stronger than what the manuscript claimed:
+
+- **The gain.** Abstract: *"synthetic pretraining led to a 6.5% accuracy increase in the
+  performance of downstream classification models, compared to a modest 2.7% increase when
+  naively combining real and synthetic data."* A synthetic-only arm gains 2.1%. **[V]**
+- **The confound.** The manuscript inferred the initialisation mismatch; the paper states
+  it. Figure 6's caption, on its four scenarios: *"In scenarios (i)–(iii) models were
+  initialized using ImageNet pretrained weights; in scenario (iv) the model was trained
+  from scratch"* — (iv) being the synthetic-pretrained arm. `main.tex` now quotes this
+  rather than characterising it. **[V]**
+- **Units, which nobody had checked.** The 6.5% is a *relative* increase in macro-average
+  multi-label AUROC averaged over five evaluation datasets, not percentage points:
+  in-distribution on MIMIC-test it is 0.772 → 0.798. Our pretraining nulls (+0.3, +0.9) are
+  differences in balanced accuracy in points. The two are not on the same scale and
+  `main.tex` now says so. This is the same class of error as item 9 in pass 1, where a
+  published ACNE04 band turned out to be plain accuracy rather than balanced accuracy.
+
+#### 21. `sagers2023` — verified, including the missing supplementary figure
+
+Title and all nine authors match. Every claim the manuscript draws is present:
+
+- §4.6, *"Class imbalance experiments"*: *"As a control, we also tested an upsampling
+  strategy of simple duplication for the rare disease images."* Its result is reported only
+  as *"(Figure S-2)"*. **[V]**
+- **The figure really is absent.** The released manuscript carries Figures 1–5 and no
+  supplementary section, while citing Figures S-1, S-2 and S-4. arXiv holds a single
+  version (v1, 2023-08-23) with no journal reference, and Crossref has no published record,
+  so there is no other release in which it appears. **[V]**
+- Saturation: *"improvements saturated at synthetic-to-real data ratios above 10:1."* **[V]**
+- At 228 real images per class with transforms, accuracy changes by 2.0% (95% CI −1.2 to
+  5.3) for inpainting, −0.4% (−3.0 to 2.0) for in-then-outpainting and −2.2% (−5.5 to 1.1)
+  for text-to-image, *"with none meeting significance thresholds after adjusting for
+  multiple testing."* Every interval spans zero. **[V]**
+
 ### Note on host access
 
 Two hosts refused our fetcher during this pass and their claims lean on secondary
@@ -134,11 +191,11 @@ Everything else was read in full text or in the arXiv HTML rendering.
 
 8. `acnedit2025` — the 59.2% user-study figure and the +7.85% IoU / +8.56% Dice
    results. Paywalled; see item 19. Not cited anywhere, and must not be until read.
-9. Six entries cited from `main.tex` still carry no `VERIFIED <date>` note at all and
-   are reported as warnings by `make publication-gate`: `bissoto2021`, `fan2024`,
-   `moroianu2025`, `sagers2023`, `schmidt2026`, `takezaki2023`. `moroianu2025` and
-   `sagers2023` are load-bearing — the manuscript makes specific claims about what
-   their designs omit — and should be the next two read.
+9. Four entries cited from `main.tex` still carry no `VERIFIED <date>` note and are
+   reported as warnings by `make publication-gate`: `bissoto2021`, `fan2024`,
+   `schmidt2026`, `takezaki2023`. None is load-bearing in the way `moroianu2025` and
+   `sagers2023` were — those two were read in pass 3 — but `fan2024` supplies the
+   guidance-scale protocol and should be next.
 
 10. **The verification notes print.** `plainnat` renders the `note` field, so every
     `VERIFIED <date>` provenance note appears in the manuscript's bibliography; pass 2
@@ -146,6 +203,11 @@ Everything else was read in full text or in the arXiv HTML rendering.
     `refs.bib` because `make publication-gate` reads them, but they should not be in a
     submitted PDF. Move them to `annote`, which BibTeX carries and `plainnat` does not
     print, and point the gate at both fields.
+
+11. **Rows 1–13 name papers in prose, not bib keys.** `make publication-gate` can only
+    cross-check a row against `refs.bib` when the row names the key in backticks, so those
+    thirteen rows are outside the drift check. Adding the key to each is mechanical and
+    would put the whole checklist under it. Row 4 is done as the worked example.
 
 ## Procedure
 

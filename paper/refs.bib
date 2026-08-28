@@ -50,8 +50,15 @@
   author    = {Fan, Lijie and Chen, Kaifeng and Krishnan, Dilip and Katabi, Dina
                and Isola, Phillip and Tian, Yonglong},
   booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {7382--7392},
   year      = {2024},
-  note      = {arXiv:2312.04567}
+  doi       = {10.1109/CVPR52733.2024.00705},
+  note      = {arXiv:2312.04567. VERIFIED 2026-08-28: title and the six-author list from
+               the arXiv abstract record, and the CVPR 2024 acceptance and page range from
+               the Crossref entry for the DOI. That acceptance was the one open caveat
+               left by verification pass 1, which could not confirm it from the arXiv page.
+               The guidance-scale values this project's protocol borrows were read from the
+               full text in pass 1 (docs/VERIFY.md item 4).}
 }
 
 @article{wang2025,
@@ -520,14 +527,29 @@
 }
 
 @article{moroianu2025,
-  title   = {Scaling Synthetic Data for Chest Radiograph Classification},
-  author  = {Moroianu, Sofia and Bluethgen, Christian and Chambon, Pierre},
+  title   = {Improving Performance, Robustness, and Fairness of Radiographic {AI} Models
+             with Finely-Controllable Synthetic Data},
+  author  = {Moroianu, Stefania L. and Bluethgen, Christian and Chambon, Pierre and
+             Cherti, Mehdi and Delbrouck, Jean-Benoit and Paschali, Magdalini and
+             Price, Brandon and Gichoya, Judy and Jitsev, Jenia and Langlotz, Curtis P.
+             and Chaudhari, Akshay S.},
   journal = {arXiv preprint arXiv:2508.16783},
   year    = {2025},
-  note    = {Reports a 6.5\% gain from synthetic pretraining against 2.7\% for naive mixing.
-             Baselines are initialised from ImageNet while the synthetic-pretraining arm is
-             trained from scratch, so content and two-stage training are confounded.
-             TITLE AND AUTHOR LIST TRUNCATED AND NOT VERIFIED -- confirm before submission.}
+  note    = {VERIFIED 2026-08-28 against the arXiv HTML full text of 2508.16783 (v1,
+             submitted 2025-08-22). The title in this entry was invented and the author
+             list was truncated from eleven names to three, with the first author's given
+             name wrong (Stefania, not Sofia). Both claims drawn from it are verbatim in
+             the paper. Abstract: ``synthetic pretraining led to a 6.5\% accuracy increase
+             in the performance of downstream classification models, compared to a modest
+             2.7\% increase when naively combining real and synthetic data''; a
+             synthetic-only arm gains 2.1\%. Figure 6 caption and Results, on the four
+             training scenarios: ``In scenarios (i)--(iii) models were initialized using
+             ImageNet pretrained weights; in scenario (iv) the model was trained from
+             scratch'' -- (iv) being the synthetic-pretrained arm, which is the confound
+             this paper's compute-matched two-stage control isolates. Note on units: the
+             6.5\% is a RELATIVE increase in macro-average multi-label AUROC averaged over
+             five evaluation datasets, not percentage points. In-distribution on MIMIC-test
+             it is 0.772 to 0.798.}
 }
 
 @article{sagers2023,
@@ -538,11 +560,20 @@
              Rotemberg, Veronica and Daneshjou, Roxana and Manrai, Arjun K.},
   journal = {arXiv preprint arXiv:2308.12453},
   year    = {2023},
-  note    = {Section 4.6 constructs a duplication-based upsampling control -- "as a control,
-             we also tested an upsampling strategy of simple duplication" -- and reports its
-             result only in a supplementary figure absent from the released manuscript.
-             Gains saturate above 10:1 synthetic to real; at 228 real images per class every
-             confidence interval spans zero.}
+  note    = {VERIFIED 2026-08-28 against the arXiv HTML full text of 2308.12453. Title and
+             the nine-author list match exactly. Section 4.6, ``Class imbalance
+             experiments'', contains the control verbatim: ``As a control, we also tested
+             an upsampling strategy of simple duplication for the rare disease images'',
+             with its result reported only in ``(Figure S-2)''. The released manuscript
+             carries Figures 1--5 and no supplement, while citing Figures S-1, S-2 and
+             S-4; arXiv holds one version and Crossref no published record, so there is no
+             other release in which the figure appears. Saturation: ``improvements
+             saturated at synthetic-to-real data ratios above 10:1''. At the largest real
+             sample, 228 images per class with image transforms, accuracy changes by 2.0\%
+             (95\% CI -1.2 to 5.3) for inpainting, -0.4\% (-3.0 to 2.0) for
+             in-then-outpainting and -2.2\% (-5.5 to 1.1) for text-to-image, ``with none
+             meeting significance thresholds after adjusting for multiple testing'' --
+             every interval spans zero, as this paper states.}
 }
 
 @article{takezaki2023,

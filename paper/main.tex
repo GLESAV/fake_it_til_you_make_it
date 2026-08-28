@@ -345,9 +345,14 @@ standard deviation of $1.3$.
 
 This control matters beyond our own result. \citet{moroianu2025} report a 6.5\% gain from
 synthetic pretraining on chest radiographs --- the flagship result for this recipe in medical
-imaging --- and initialise their baselines from ImageNet while training the synthetic arm
-from scratch. Content and two-stage training are therefore confounded in that design. Our
-null is not a contradiction of their number; it is the control their design omits.
+imaging --- and describe the design that produces it plainly: of their four training
+scenarios, ``in scenarios (i)--(iii) models were initialized using ImageNet pretrained
+weights; in scenario (iv) the model was trained from scratch'', where (iv) is the
+synthetic-pretrained arm. Content and two-stage training are therefore confounded in that
+design. Our null is not a contradiction of their number; it is the control their design
+omits. The two numbers are in different units and should not be subtracted: theirs is a
+relative increase in macro-average AUROC over five evaluation datasets (in-distribution,
+$0.772 \to 0.798$), ours is a difference in balanced accuracy in points.
 
 \paragraph{Relation to \textsc{ACNEDIT}.} \citet{acnedit2025} perform the same
 intervention on the same dataset and the same two classes, generating 218 severe and 271
